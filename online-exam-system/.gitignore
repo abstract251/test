@@ -1,0 +1,92 @@
+# ===========================
+# IDE 配置文件
+# ===========================
+.idea/
+.vscode/
+.claude/
+.trea/
+.codex/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+*~
+
+# ===========================
+# 后端 Java/Maven 相关
+# ===========================
+backend/target/
+backend/*.jar
+backend/*.war
+backend/*.ear
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# ===========================
+# 前端 Node.js/Vue 相关
+# ===========================
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/.temp/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/.npm
+frontend/.yarn
+frontend/.pnp.*
+
+# ===========================
+# 日志文件
+# ===========================
+*.log
+logs/
+*.log.*
+
+# ===========================
+# 操作系统生成文件
+# ===========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===========================
+# 临时文件和备份
+# ===========================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+*~
+
+# ===========================
+# 环境配置文件（可能包含敏感信息）
+# ===========================
+.env
+.env.local
+.env.*.local
+backend/src/main/resources/application-dev.properties
+backend/src/main/resources/application-prod.properties
+
+# ===========================
+# 数据库文件
+# ===========================
+*.db
+*.sqlite
+*.sqlite3
+
+# ===========================
+# 编译和构建产物
+# ===========================
+*.class
+*.o
+*.so
+*.dll
+*.exe
