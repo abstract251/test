@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 //登录实体类
 public class Login {
-    private String username;
+    private Integer username;
     private String password;
 
 }
