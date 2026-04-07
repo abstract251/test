@@ -2,6 +2,7 @@ package com.test.oes.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.Data;
 
 @Setter
 @Getter
