@@ -1,0 +1,45 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at top left, rgba(79, 175, 143, 0.18), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(255, 200, 87, 0.16), transparent 26%),
+    var(--bg-base);
+  font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.page-shell {
+  width: min(var(--page-width), calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.fade-up-enter-active {
+  animation: fade-up 220ms ease;
+}
