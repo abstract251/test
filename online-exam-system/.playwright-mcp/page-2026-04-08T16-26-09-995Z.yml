@@ -1,0 +1,55 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - generic [ref=e13]: 在线考试管理台
+        - generic [ref=e14]: 控制台
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: 教师
+        - strong [ref=e18]: 张小风
+      - button "账户操作" [ref=e20] [cursor=pointer]:
+        - text: 账户操作
+        - img [ref=e22]
+  - generic [ref=e24]:
+    - complementary [ref=e25]:
+      - menubar [ref=e26]:
+        - menuitem "控制台" [ref=e27] [cursor=pointer]:
+          - img [ref=e29]
+          - generic [ref=e31]: 控制台
+        - menuitem "学生管理" [ref=e32] [cursor=pointer]:
+          - img [ref=e34]
+          - generic [ref=e36]: 学生管理
+        - menuitem "考试管理" [ref=e37] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 考试管理
+        - menuitem "题库工作台" [ref=e43] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e47]: 题库工作台
+        - menuitem "成绩统计" [ref=e48] [cursor=pointer]:
+          - img [ref=e50]
+          - generic [ref=e52]: 成绩统计
+    - main [ref=e53]:
+      - navigation "Breadcrumb" [ref=e55]:
+        - generic [ref=e56]:
+          - link "后台" [ref=e57]
+          - text: /
+        - link "控制台" [ref=e59]
+      - generic [ref=e61]:
+        - generic [ref=e63]:
+          - heading "控制台总览" [level=1] [ref=e64]
+          - paragraph [ref=e65]: 当前版本优先保障登录、账户维护、考试管理、题库编辑和学生考试中心。成绩统计、消息交流、在线提交仍保留为后续阶段。
+        - generic [ref=e66]:
+          - article [ref=e67]:
+            - text: 当前身份
+            - strong [ref=e68]: 教师
+            - paragraph [ref=e69]: 角色路由和页面导航已按当前登录身份切分
+          - article [ref=e70]:
+            - text: 已接通主链
+            - strong [ref=e71]: "5"
+            - paragraph [ref=e72]: 登录、教师、学生、考试、试卷编辑已列为本期交付
+          - article [ref=e73]:
+            - text: 当前方案
+            - strong [ref=e74]: 校园轻量风
+            - paragraph [ref=e75]: 学生端优先兼顾手机，后台桌面优先

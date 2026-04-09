@@ -5,7 +5,6 @@
 .vscode/
 .claude/
 .trea/
-.codex/
 *.iml
 *.ipr
 *.iws

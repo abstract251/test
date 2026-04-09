@@ -26,7 +26,7 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StudentFormFields from '@/components/forms/StudentFormFields.vue'
 import { createStudent, getStudentById, updateStudent } from '@/api/studentApi'
-import { DEFAULT_PASSWORD } from '@/utils/constants'
+import { DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
@@ -46,7 +46,7 @@ const form = reactive({
   email: '',
   pwd: DEFAULT_PASSWORD,
   cardId: '',
-  sex: 'M',
+  sex: '男',
   role: '2'
 })
 
@@ -62,6 +62,7 @@ const rules = {
     patternRule(/^.{1,20}$/, '班级长度不能超过 20 个字符')
   ],
   institute: [requiredRule('请选择或输入学院', 'change')],
+  sex: [requiredRule('请选择性别', 'change')],
   tel: [
     requiredRule('请输入手机号'),
     patternRule(REGEX.phone, '手机号格式不正确，应为 11 位数字')
@@ -88,7 +89,10 @@ async function fetchStudent() {
   try {
     const response = await getStudentById(route.params.studentId)
     if (response.code === 200 && response.data) {
-      Object.assign(form, response.data)
+      Object.assign(form, {
+        ...response.data,
+        sex: normalizeSex(response.data.sex)
+      })
       return
     }
     ElMessage.error(response.message || '加载学生信息失败')
@@ -104,7 +108,7 @@ async function handleSubmit() {
   }
 
   try {
-    const payload = { ...form, role: '2' }
+    const payload = { ...form, role: '2', sex: normalizeSex(form.sex) }
     const response = isEdit.value
       ? await updateStudent(payload)
       : await createStudent(payload)

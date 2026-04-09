@@ -29,9 +29,20 @@ export const QUESTION_TYPE_LABELS = QUESTION_TYPE_OPTIONS.reduce((accumulator, i
 }, {})
 
 export const SEX_OPTIONS = [
-  { value: 'M', label: '男' },
-  { value: 'F', label: '女' }
+  { value: '男', label: '男' },
+  { value: '女', label: '女' }
 ]
+
+export const SEX_VALUE_MAP = {
+  M: '男',
+  F: '女',
+  男: '男',
+  女: '女'
+}
+
+export function normalizeSex(value, fallback = '男') {
+  return SEX_VALUE_MAP[value] || fallback
+}
 
 export const EXAM_TYPE_OPTIONS = [
   '正式考试',

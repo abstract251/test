@@ -17,14 +17,15 @@ public class StudentController {
         this.studentService = studentService;
     }
 
-    @GetMapping("/students/{page}/{size}/{name}/{grade}/{tel}/{institute}/{major}/{clazz}")
+    @GetMapping("/students/{page}/{size}/{studentId}/{name}/{grade}/{tel}/{institute}/{major}/{clazz}")
     public ApiResult<IPage<Student>> findAll(@PathVariable Integer page, @PathVariable Integer size,
-                                             @PathVariable String name, @PathVariable String grade,
+                                             @PathVariable String studentId, @PathVariable String name,
+                                             @PathVariable String grade,
                                              @PathVariable String tel, @PathVariable String institute,
                                              @PathVariable String major, @PathVariable String clazz) {
         Page<Student> studentPage = new Page<>(page, size);
         IPage<Student> res = studentService.findAll(
-                studentPage, name, grade, tel, institute, major, clazz
+                studentPage, studentId, name, grade, tel, institute, major, clazz
         );
         return ApiResultHandler.buildApiResult(200, "分页查询所有学生", res);
     }

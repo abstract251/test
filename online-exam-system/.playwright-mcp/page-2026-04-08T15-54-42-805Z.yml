@@ -1,0 +1,33 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: Campus Light
+    - heading "在线考试系统" [level=1] [ref=e7]
+    - paragraph [ref=e8]: 第一版优先打通登录、教师与学生账户维护、考试管理、试卷编辑和学生考试中心。 页面风格采用轻量校园感设计，学生端在手机上保持基础可用。
+    - list [ref=e9]:
+      - listitem [ref=e10]: Cookie 登录态，刷新后恢复本地会话
+      - listitem [ref=e11]: 学生端卡片化考试中心，后台共用管理布局
+      - listitem [ref=e12]: 缺失接口的功能统一做占位，不伪造提交结果
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - img [ref=e18]
+      - generic [ref=e22]:
+        - heading "账号登录" [level=2] [ref=e23]
+        - paragraph [ref=e24]: 请输入账号和密码，系统会自动识别管理员、教师或学生身份。
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]: 账号
+        - generic [ref=e30]:
+          - img [ref=e33]
+          - textbox "账号" [ref=e35]:
+            - /placeholder: 请输入数字账号
+      - generic [ref=e36]:
+        - generic [ref=e37]: 密码
+        - generic [ref=e40]:
+          - img [ref=e43]
+          - textbox "密码" [ref=e46]:
+            - /placeholder: 请输入密码
+      - button "登录并进入系统" [ref=e47] [cursor=pointer]:
+        - generic [ref=e48]: 登录并进入系统
+    - generic [ref=e49]:
+      - generic [ref=e50]: 默认开发环境前端端口：8081
+      - generic [ref=e51]: 后端端口：8080

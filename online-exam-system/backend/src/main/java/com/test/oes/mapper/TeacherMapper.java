@@ -5,13 +5,19 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Teacher;
 import org.apache.ibatis.annotations.*;
 
-import java.util.List;
-
 @Mapper
 public interface TeacherMapper {
 
-    @Select("select * from teacher")
-    IPage<Teacher> findAll(Page<Teacher> page);
+    @Select("select * from teacher where " +
+            "cast(teacherId as char) like concat('%',#{teacherId},'%') " +
+            "and ifnull(teacherName, '') like concat('%',#{teacherName},'%') " +
+            "and ifnull(institute, '') like concat('%',#{institute},'%') " +
+            "and ifnull(type, '') like concat('%',#{type},'%') " +
+            "and ifnull(tel, '') like concat('%',#{tel},'%') " +
+            "and ifnull(email, '') like concat('%',#{email},'%')")
+    IPage<Teacher> findAll(Page<Teacher> page, @Param("teacherId") String teacherId,
+                           @Param("teacherName") String teacherName, @Param("institute") String institute,
+                           @Param("type") String type, @Param("tel") String tel, @Param("email") String email);
 
     @Select("select * from teacher where teacherId = #{teacherId}")
     Teacher findById(Integer teacherId);

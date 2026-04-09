@@ -26,9 +26,13 @@
           <el-input v-model="form.clazz" />
         </el-form-item>
         <el-form-item label="性别" prop="sex">
-          <el-select v-model="form.sex">
-            <el-option label="男" value="M" />
-            <el-option label="女" value="F" />
+          <el-select v-model="form.sex" placeholder="请选择性别">
+            <el-option
+              v-for="item in sexOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="手机号" prop="tel">
@@ -43,7 +47,9 @@
       </div>
 
       <div class="actions">
-        <el-button type="primary" @click="handleSubmit">保存资料</el-button>
+        <el-button type="primary" :loading="saving" :disabled="saving" @click="handleSubmit">
+          保存资料
+        </el-button>
       </div>
     </el-form>
   </PageContainer>
@@ -57,9 +63,13 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import { useAuthSession } from '@/composables/useAuthSession'
 import { getStudentProfile, updateStudentProfile } from '@/api/profileApi'
 import { updateSessionRawUser } from '@/utils/auth'
+import { normalizeSex, SEX_OPTIONS } from '@/utils/constants'
+import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const { session, syncSession } = useAuthSession()
 const formRef = ref(null)
+const saving = ref(false)
+const sexOptions = SEX_OPTIONS
 
 const form = reactive({
   studentId: '',
@@ -72,38 +82,87 @@ const form = reactive({
   email: '',
   pwd: '',
   cardId: '',
-  sex: 'M',
+  sex: '男',
   role: '2'
 })
 
 const rules = {
-  studentName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  institute: [{ required: true, message: '请输入学院', trigger: 'blur' }],
-  major: [{ required: true, message: '请输入专业', trigger: 'blur' }],
-  grade: [{ required: true, message: '请输入年级', trigger: 'blur' }],
-  clazz: [{ required: true, message: '请输入班级', trigger: 'blur' }],
-  tel: [{ required: true, message: '请输入手机号', trigger: 'blur' }],
-  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' }],
-  cardId: [{ required: true, message: '请输入身份证号', trigger: 'blur' }]
+  studentName: [
+    requiredRule('请输入姓名'),
+    patternRule(/^.{2,20}$/, '姓名长度需为 2-20 个字符')
+  ],
+  institute: [
+    requiredRule('请输入学院'),
+    patternRule(REGEX.institute, '学院格式不正确，支持中文、字母、数字、空格和括号')
+  ],
+  major: [
+    requiredRule('请输入专业'),
+    patternRule(REGEX.major, '专业格式不正确，支持中文、字母、数字、空格和括号')
+  ],
+  grade: [
+    requiredRule('请输入年级'),
+    patternRule(/^\d{4}$/, '年级格式不正确，应为 4 位数字')
+  ],
+  clazz: [
+    requiredRule('请输入班级'),
+    patternRule(/^.{1,20}$/, '班级长度不能超过 20 个字符')
+  ],
+  sex: [requiredRule('请选择性别', 'change')],
+  tel: [
+    requiredRule('请输入手机号'),
+    patternRule(REGEX.phone, '手机号格式不正确，应为 11 位数字')
+  ],
+  email: [
+    requiredRule('请输入邮箱'),
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  ],
+  cardId: [
+    requiredRule('请输入身份证号'),
+    patternRule(REGEX.idCard, '身份证号格式不正确')
+  ]
 }
 
 async function fetchProfile() {
-  const response = await getStudentProfile(session.value.userId)
-  if (response.code === 200 && response.data) {
-    Object.assign(form, response.data)
+  try {
+    const response = await getStudentProfile(session.value.userId)
+    if (response.code === 200 && response.data) {
+      Object.assign(form, {
+        ...response.data,
+        sex: normalizeSex(response.data.sex)
+      })
+      return
+    }
+    ElMessage.error(response.message || '加载个人资料失败')
+  } catch (error) {
+    ElMessage.error('加载个人资料失败，请稍后重试')
   }
 }
 
 async function handleSubmit() {
+  if (saving.value) {
+    return
+  }
+
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
     return
   }
-  const response = await updateStudentProfile({ ...form, role: '2' })
-  if (response.code === 200) {
-    updateSessionRawUser({ ...form, role: '2' })
-    syncSession()
-    ElMessage.success('个人资料已更新')
+
+  saving.value = true
+  try {
+    const payload = { ...form, role: '2', sex: normalizeSex(form.sex) }
+    const response = await updateStudentProfile(payload)
+    if (response.code === 200) {
+      updateSessionRawUser(payload)
+      syncSession()
+      ElMessage.success('个人资料已更新')
+      return
+    }
+    ElMessage.error(response.message || '保存失败，请检查后重试')
+  } catch (error) {
+    ElMessage.error('保存失败，请稍后重试')
+  } finally {
+    saving.value = false
   }
 }
 

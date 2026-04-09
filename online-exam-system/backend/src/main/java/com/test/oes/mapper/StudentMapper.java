@@ -14,13 +14,16 @@ public interface StudentMapper {
      * @return List<Student>
      */
     @Select("select * from student where " +
-            "studentName like concat('%',#{name},'%') " +
-            "and grade like concat('%',#{grade},'%') " +
-            "and tel like concat('%',#{tel},'%') " +
-            "and major like concat('%',#{major},'%') " +
-            "and institute like concat('%',#{institute},'%') " +
-            "and clazz like concat('%',#{clazz},'%')")
-    IPage<Student> findAll(Page<Student> page, @Param("name") String name, @Param("grade") String grade,
+            "cast(studentId as char) like concat('%',#{studentId},'%') " +
+            "and " +
+            "ifnull(studentName, '') like concat('%',#{name},'%') " +
+            "and ifnull(grade, '') like concat('%',#{grade},'%') " +
+            "and ifnull(tel, '') like concat('%',#{tel},'%') " +
+            "and ifnull(major, '') like concat('%',#{major},'%') " +
+            "and ifnull(institute, '') like concat('%',#{institute},'%') " +
+            "and ifnull(clazz, '') like concat('%',#{clazz},'%')")
+    IPage<Student> findAll(Page<Student> page, @Param("studentId") String studentId,
+                           @Param("name") String name, @Param("grade") String grade,
                            @Param("tel") String tel,  @Param("institute") String institute,
                            @Param("major")String major, @Param("clazz") String clazz);
 
