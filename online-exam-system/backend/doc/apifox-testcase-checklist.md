@@ -57,42 +57,42 @@ pm.test("写入 rb_role", () => {
 - `优先级`：P0（阻断）/ P1（高）/ P2（中）
 - `SQL核验`：写明执行完接口后需要人工执行的 SQL
 
-| 用例ID | 分组 | 优先级 | 方法 | 路径 | 场景说明 | 请求体/参数摘要 | 断言重点 | SQL核验 |
-|---|---|---|---|---|---|---|---|---|
-| L-001 | Login | P0 | POST | `/login` | 管理员登录成功 | `{"username":9991,"password":"123456"}` | `code=200`，写入 `rb_token`，`rb_role=0` | 无 |
-| L-002 | Login | P0 | POST | `/login` | 教师登录成功 | `{"username":20081001,"password":"123456"}` | `code=200`，`rb_role=1` | 无 |
-| L-003 | Login | P0 | POST | `/login` | 学生登录成功 | `{"username":20224001,"password":"123456"}` | `code=200`，`rb_role=2` | 无 |
-| L-004 | Login | P0 | POST | `/login` | 密码错误 | 合法账号 + 错误密码 | `code=400` | 无 |
-| L-005 | Login | P1 | POST | `/login` | 账号不存在 | `username=99999999` | `code=400` | 无 |
-| L-006 | Login | P1 | POST | `/login` | username 非数字 | `username="abc"` | 返回 4xx 或统一异常 JSON | 无 |
-| L-007 | Login | P1 | POST | `/login` | 缺少 password | 不传 password | 返回失败，记录实际码 | 无 |
-| L-008 | Login | P0 | POST | `/logout` | 登出清理 Cookie | 无 | 清理 `rb_token`、`rb_role` | 无 |
-| A-001 | Admin | P0 | GET | `/admins` | 查询管理员列表 | 无 | `code=200`，`data` 为数组 | `SELECT COUNT(*) FROM admin;` |
-| A-002 | Admin | P0 | GET | `/admin/{adminId}` | 查询管理员详情 | `adminId=9991` | `code=200`，返回对象 | `SELECT * FROM admin WHERE adminId=9991;` |
-| A-003 | Admin | P1 | GET | `/admin/{adminId}` | 查询不存在管理员 | `adminId=999999` | 记录返回行为（空/错） | 无 |
-| A-004 | Admin | P1 | POST | `/admin` | 新增管理员 | 传完整 admin JSON | 预期新增成功 | `SELECT * FROM admin WHERE adminName='test_admin';` |
-| A-005 | Admin | P1 | PUT | `/admin/{adminId}` | 更新管理员 | `adminId + body` | `code=200`，字段被更新 | `SELECT tel,email,pwd FROM admin WHERE adminId=?;` |
-| A-006 | Admin | P1 | DELETE | `/admin/{adminId}` | 删除管理员 | 用新增的测试 ID | `code=200` | `SELECT COUNT(*) FROM admin WHERE adminId=?;` |
-| A-007 | Admin | P2 | DELETE | `/admin/{adminId}` | 删除不存在管理员 | `adminId=999999` | 记录返回行为 | 无 |
-| A-008 | Admin | P1 | GET | `/admin/resetPsw/{adminId}/{oldPsw}/{newPsw}` | 管理员改密成功 | `9991/123456/654321` | `code=200`，data 为 true | `SELECT pwd FROM admin WHERE adminId=9991;` |
-| A-009 | Admin | P1 | GET | `/admin/resetPsw/{adminId}/{oldPsw}/{newPsw}` | 旧密码错误 | `9991/wrong/123456` | 返回失败提示 | 无 |
-| A-010 | Admin | P2 | GET | `/admin/resetPsw/{adminId}/{oldPsw}/{newPsw}` | 通过 teacherId 改教师密码 | `20081001/123456/654321` | 验证跨角色逻辑 | `SELECT pwd FROM teacher WHERE teacherId=20081001;` |
-| T-001 | Teacher | P0 | GET | `/teachers/{page}/{size}` | 教师分页查询 | `1/10` | `code=200`，`data.records` 存在 | 无 |
-| T-002 | Teacher | P0 | GET | `/teacher/{teacherId}` | 教师详情 | `teacherId=20081001` | `code=200` | `SELECT * FROM teacher WHERE teacherId=20081001;` |
-| T-003 | Teacher | P1 | POST | `/teacher` | 新增教师 | 传 teacher JSON | `code=200`，默认 `role=1` | `SELECT role FROM teacher WHERE teacherName='test_teacher';` |
-| T-004 | Teacher | P1 | PUT | `/teacher` | 更新教师 | 传完整 teacher JSON | `code=200` | `SELECT tel,email,type FROM teacher WHERE teacherId=?;` |
-| T-005 | Teacher | P1 | DELETE | `/teacher/{teacherId}` | 删除教师 | 删除测试数据 | `code=200` | `SELECT COUNT(*) FROM teacher WHERE teacherId=?;` |
-| T-006 | Teacher | P2 | DELETE | `/teacher/{teacherId}` | 删除不存在教师 | `teacherId=29999999` | 记录返回行为 | 无 |
-| S-001 | Student | P0 | GET | `/students/{page}/{size}/{name}/{grade}/{tel}/{institute}/{major}/{clazz}` | 全量分页 | `1/10/@/@/@/@/@/@` | `code=200`，有分页记录 | 无 |
-| S-002 | Student | P1 | GET | `/students/...` | 按条件分页 | `1/10/@/2023/@/@/软件工程/@` | 返回数据满足过滤条件 | 无 |
-| S-003 | Student | P0 | GET | `/student/{studentId}` | 学生详情存在 | `20224001` | `code=200` | `SELECT * FROM student WHERE studentId=20224001;` |
-| S-004 | Student | P1 | GET | `/student/{studentId}` | 学生详情不存在 | `20999999` | `code=404` | 无 |
-| S-005 | Student | P1 | POST | `/student` | 新增学生 | 传 student JSON | `code=200` | `SELECT * FROM student WHERE studentName='test_student';` |
-| S-006 | Student | P1 | PUT | `/student` | 更新学生 | 传完整 student JSON | `code=200` | `SELECT tel,email,major FROM student WHERE studentId=?;` |
-| S-007 | Student | P0 | PUT | `/studentPWD` | 更新学生密码 | `{"studentId":"20224001","pwd":"654321"}` | `code=200` | `SELECT pwd FROM student WHERE studentId=20224001;` |
-| S-008 | Student | P1 | DELETE | `/student/{studentId}` | 删除学生 | 删除测试数据 | `code=200` | `SELECT COUNT(*) FROM student WHERE studentId=?;` |
-| S-009 | Student | P2 | GET | `/students/...` | 分页边界 | `page=0,size=0` 或负数 | 不应引发服务崩溃 | 无 |
-| S-010 | Student | P2 | GET | `/student/{studentId}` | 非法ID类型 | `studentId=abc` | 4xx 或统一异常 | 无 |
+| 用例ID  | 分组      | 优先级 | 方法     | 路径                                                                         | 场景说明               | 请求体/参数摘要                                    | 断言重点                                 | SQL核验                                                        |
+|-------|---------|-----|--------|----------------------------------------------------------------------------|--------------------|---------------------------------------------|--------------------------------------|--------------------------------------------------------------|
+| L-001 | Login   | P0  | POST   | `/login`                                                                   | 管理员登录成功            | `{"username":9991,"password":"123456"}`     | `code=200`，写入 `rb_token`，`rb_role=0` | 无                                                            |
+| L-002 | Login   | P0  | POST   | `/login`                                                                   | 教师登录成功             | `{"username":20081001,"password":"123456"}` | `code=200`，`rb_role=1`               | 无                                                            |
+| L-003 | Login   | P0  | POST   | `/login`                                                                   | 学生登录成功             | `{"username":20224001,"password":"123456"}` | `code=200`，`rb_role=2`               | 无                                                            |
+| L-004 | Login   | P0  | POST   | `/login`                                                                   | 密码错误               | 合法账号 + 错误密码                                 | `code=400`                           | 无                                                            |
+| L-005 | Login   | P1  | POST   | `/login`                                                                   | 账号不存在              | `username=99999999`                         | `code=400`                           | 无                                                            |
+| L-006 | Login   | P1  | POST   | `/login`                                                                   | username 非数字       | `username="abc"`                            | 返回 4xx 或统一异常 JSON                    | 无                                                            |
+| L-007 | Login   | P1  | POST   | `/login`                                                                   | 缺少 password        | 不传 password                                 | 返回失败，记录实际码                           | 无                                                            |
+| L-008 | Login   | P0  | POST   | `/logout`                                                                  | 登出清理 Cookie        | 无                                           | 清理 `rb_token`、`rb_role`              | 无                                                            |
+| A-001 | Admin   | P0  | GET    | `/admins`                                                                  | 查询管理员列表            | 无                                           | `code=200`，`data` 为数组                | `SELECT COUNT(*) FROM admin;`                                |
+| A-002 | Admin   | P0  | GET    | `/admin/{adminId}`                                                         | 查询管理员详情            | `adminId=9991`                              | `code=200`，返回对象                      | `SELECT * FROM admin WHERE adminId=9991;`                    |
+| A-003 | Admin   | P1  | GET    | `/admin/{adminId}`                                                         | 查询不存在管理员           | `adminId=999999`                            | 记录返回行为（空/错）                          | 无                                                            |
+| A-004 | Admin   | P1  | POST   | `/admin`                                                                   | 新增管理员              | 传完整 admin JSON                              | 预期新增成功                               | `SELECT * FROM admin WHERE adminName='test_admin';`          |
+| A-005 | Admin   | P1  | PUT    | `/admin/{adminId}`                                                         | 更新管理员              | `adminId + body`                            | `code=200`，字段被更新                     | `SELECT tel,email,pwd FROM admin WHERE adminId=?;`           |
+| A-006 | Admin   | P1  | DELETE | `/admin/{adminId}`                                                         | 删除管理员              | 用新增的测试 ID                                   | `code=200`                           | `SELECT COUNT(*) FROM admin WHERE adminId=?;`                |
+| A-007 | Admin   | P2  | DELETE | `/admin/{adminId}`                                                         | 删除不存在管理员           | `adminId=999999`                            | 记录返回行为                               | 无                                                            |
+| A-008 | Admin   | P1  | GET    | `/admin/resetPsw/{adminId}/{oldPsw}/{newPsw}`                              | 管理员改密成功            | `9991/123456/654321`                        | `code=200`，data 为 true               | `SELECT pwd FROM admin WHERE adminId=9991;`                  |
+| A-009 | Admin   | P1  | GET    | `/admin/resetPsw/{adminId}/{oldPsw}/{newPsw}`                              | 旧密码错误              | `9991/wrong/123456`                         | 返回失败提示                               | 无                                                            |
+| A-010 | Admin   | P2  | GET    | `/admin/resetPsw/{adminId}/{oldPsw}/{newPsw}`                              | 通过 teacherId 改教师密码 | `20081001/123456/654321`                    | 验证跨角色逻辑                              | `SELECT pwd FROM teacher WHERE teacherId=20081001;`          |
+| T-001 | Teacher | P0  | GET    | `/teachers/{page}/{size}`                                                  | 教师分页查询             | `1/10`                                      | `code=200`，`data.records` 存在         | 无                                                            |
+| T-002 | Teacher | P0  | GET    | `/teacher/{teacherId}`                                                     | 教师详情               | `teacherId=20081001`                        | `code=200`                           | `SELECT * FROM teacher WHERE teacherId=20081001;`            |
+| T-003 | Teacher | P1  | POST   | `/teacher`                                                                 | 新增教师               | 传 teacher JSON                              | `code=200`，默认 `role=1`               | `SELECT role FROM teacher WHERE teacherName='test_teacher';` |
+| T-004 | Teacher | P1  | PUT    | `/teacher`                                                                 | 更新教师               | 传完整 teacher JSON                            | `code=200`                           | `SELECT tel,email,type FROM teacher WHERE teacherId=?;`      |
+| T-005 | Teacher | P1  | DELETE | `/teacher/{teacherId}`                                                     | 删除教师               | 删除测试数据                                      | `code=200`                           | `SELECT COUNT(*) FROM teacher WHERE teacherId=?;`            |
+| T-006 | Teacher | P2  | DELETE | `/teacher/{teacherId}`                                                     | 删除不存在教师            | `teacherId=29999999`                        | 记录返回行为                               | 无                                                            |
+| S-001 | Student | P0  | GET    | `/students/{page}/{size}/{name}/{grade}/{tel}/{institute}/{major}/{clazz}` | 全量分页               | `1/10/@/@/@/@/@/@`                          | `code=200`，有分页记录                     | 无                                                            |
+| S-002 | Student | P1  | GET    | `/students/...`                                                            | 按条件分页              | `1/10/@/2023/@/@/软件工程/@`                    | 返回数据满足过滤条件                           | 无                                                            |
+| S-003 | Student | P0  | GET    | `/student/{studentId}`                                                     | 学生详情存在             | `20224001`                                  | `code=200`                           | `SELECT * FROM student WHERE studentId=20224001;`            |
+| S-004 | Student | P1  | GET    | `/student/{studentId}`                                                     | 学生详情不存在            | `20999999`                                  | `code=404`                           | 无                                                            |
+| S-005 | Student | P1  | POST   | `/student`                                                                 | 新增学生               | 传 student JSON                              | `code=200`                           | `SELECT * FROM student WHERE studentName='test_student';`    |
+| S-006 | Student | P1  | PUT    | `/student`                                                                 | 更新学生               | 传完整 student JSON                            | `code=200`                           | `SELECT tel,email,major FROM student WHERE studentId=?;`     |
+| S-007 | Student | P0  | PUT    | `/studentPWD`                                                              | 更新学生密码             | `{"studentId":"20224001","pwd":"654321"}`   | `code=200`                           | `SELECT pwd FROM student WHERE studentId=20224001;`          |
+| S-008 | Student | P1  | DELETE | `/student/{studentId}`                                                     | 删除学生               | 删除测试数据                                      | `code=200`                           | `SELECT COUNT(*) FROM student WHERE studentId=?;`            |
+| S-009 | Student | P2  | GET    | `/students/...`                                                            | 分页边界               | `page=0,size=0` 或负数                         | 不应引发服务崩溃                             | 无                                                            |
+| S-010 | Student | P2  | GET    | `/student/{studentId}`                                                     | 非法ID类型             | `studentId=abc`                             | 4xx 或统一异常                            | 无                                                            |
 
 ## 5. 场景测试编排建议（Apifox 场景）
 
@@ -114,9 +114,9 @@ pm.test("写入 rb_role", () => {
 
 每条用例执行后在 Apifox 或表格记录：
 
-| 用例ID | 执行人 | 执行时间 | 结果(PASS/FAIL) | 缺陷ID | 备注 |
-|---|---|---|---|---|---|
-| L-001 |  |  |  |  |  |
+| 用例ID  | 执行人 | 执行时间 | 结果(PASS/FAIL) | 缺陷ID | 备注 |
+|-------|-----|------|---------------|------|----|
+| L-001 |     |      |               |      |    |
 
 ## 7. 当前版本备注
 

@@ -1,0 +1,33 @@
+:root {
+  --bg-base: #f6faf7;
+  --bg-panel: rgba(255, 255, 255, 0.86);
+  --bg-soft: #e8f3ed;
+  --bg-accent: #d7efe4;
+  --border-soft: rgba(47, 79, 70, 0.12);
+  --text-main: #2f4f46;
+  --text-secondary: #5f756d;
+  --text-muted: #83948e;
+  --brand-primary: #4faf8f;
+  --brand-primary-deep: #2f8064;
+  --brand-accent: #ffc857;
+  --brand-danger: #d96a5f;
+  --shadow-soft: 0 16px 48px rgba(79, 175, 143, 0.14);
+  --shadow-card: 0 12px 28px rgba(47, 79, 70, 0.08);
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --page-width: 1200px;
+  --transition-base: 180ms ease;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
