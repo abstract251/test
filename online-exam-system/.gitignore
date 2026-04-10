@@ -5,6 +5,7 @@
 .vscode/
 .claude/
 .trea/
+.playwright-mcp
 *.iml
 *.ipr
 *.iws
