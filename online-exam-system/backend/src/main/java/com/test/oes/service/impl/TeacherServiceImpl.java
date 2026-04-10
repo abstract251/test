@@ -18,14 +18,21 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
-    public IPage<Teacher> findAll(Page<Teacher> page) {
-        return teacherMapper.findAll(page);
+    public IPage<Teacher> findAll(Page<Teacher> page, String teacherId, String teacherName,
+                                  String institute, String type, String tel, String email) {
+        teacherId = ("@".equals(teacherId) ? "" : teacherId);
+        teacherName = ("@".equals(teacherName) ? "" : teacherName);
+        institute = ("@".equals(institute) ? "" : institute);
+        type = ("@".equals(type) ? "" : type);
+        tel = ("@".equals(tel) ? "" : tel);
+        email = ("@".equals(email) ? "" : email);
+        return teacherMapper.findAll(page, teacherId, teacherName, institute, type, tel, email);
     }
 
     @Override
     public List<Teacher> findAll() {
-        Page<Teacher> teacherPage = new Page<>(0,9999);
-        return teacherMapper.findAll(teacherPage).getRecords();
+        Page<Teacher> teacherPage = new Page<>(1, 9999);
+        return teacherMapper.findAll(teacherPage, "", "", "", "", "", "").getRecords();
     }
 
     @Override

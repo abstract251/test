@@ -44,22 +44,24 @@ public class GlobalExceptionHandler {
         String message = e.getMessage();
         log.error("系统异常：{}", e.getMessage(), e);
 
-        if (message.contains("(using password: YES)")) {
+        if (message == null || message.isBlank()) {
+            message = "系统异常，请稍后重试";
+        } else if (message.contains("(using password: YES)")) {
             if (!message.contains("'root'@'")) {
-                message = "PU Request failed with status code 500";
+                message = "数据库账号不存在或没有访问权限，请检查数据库用户名配置";
             } else if (message.contains("'root'@'localhost'")) {
-                message = "P Request failed with status code 500";
+                message = "数据库密码错误或账号无权访问，请检查数据库账号密码配置";
             }
-        } else if(message.contains("Table") && message.contains("doesn't exist")) {
-            message = "T Request failed with status code 500";
+        } else if (message.contains("Table") && message.contains("doesn't exist")) {
+            message = "数据库表不存在，请确认已导入初始化 SQL";
         } else if (message.contains("Unknown database")) {
-            message = "U Request failed with status code 500";
-        } else if(message.contains("edits")) {
-            message = "R Request failed with status code 500";
-        } else if(message.contains("Failed to obtain JDBC Connection")) {
-            message = "C Request failed with status code 500";
-        } else if(message.contains("SQLSyntaxErrorException")) {
-            message = "S Request failed with status code 500";
+            message = "数据库不存在，请先创建 online_exam 数据库并导入初始化数据";
+        } else if (message.contains("edits")) {
+            message = "系统更新失败，请稍后重试";
+        } else if (message.contains("Failed to obtain JDBC Connection")) {
+            message = "数据库连接失败，请确认 MySQL 已启动且 online_exam 数据库可访问";
+        } else if (message.contains("SQLSyntaxErrorException")) {
+            message = "数据库 SQL 执行失败，请检查表结构与字段是否完整";
         }
 
         // 返回统一的JSON格式

@@ -1,0 +1,88 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e57]:
+    - banner [ref=e58]:
+      - generic [ref=e59]:
+        - img [ref=e62]
+        - generic [ref=e66]:
+          - generic [ref=e67]: 在线考试管理台
+          - generic [ref=e68]: 新增教师
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]: 管理员
+          - strong [ref=e72]: 超级管理员
+        - button "账户操作" [ref=e74] [cursor=pointer]:
+          - text: 账户操作
+          - img [ref=e76]
+    - generic [ref=e78]:
+      - complementary [ref=e79]:
+        - menubar [ref=e80]:
+          - menuitem "控制台" [ref=e81] [cursor=pointer]:
+            - img [ref=e83]
+            - generic [ref=e85]: 控制台
+          - menuitem "教师管理" [ref=e86] [cursor=pointer]:
+            - img [ref=e88]
+            - generic [ref=e90]: 教师管理
+      - main [ref=e91]:
+        - navigation "Breadcrumb" [ref=e93]:
+          - generic [ref=e94]:
+            - link "后台" [ref=e95]
+            - text: /
+          - link "新增教师" [ref=e97]
+        - generic [ref=e98]:
+          - generic [ref=e100]:
+            - heading "新增教师" [level=1] [ref=e101]
+            - paragraph [ref=e102]: 教师账号默认密码为 123456，也可以在创建或编辑时手动修改。
+          - generic [ref=e103]:
+            - generic [ref=e104]:
+              - generic [ref=e105]:
+                - generic [ref=e106]: "*姓名"
+                - textbox "*姓名" [ref=e110]:
+                  - /placeholder: 请输入教师姓名
+              - generic [ref=e111]:
+                - generic [ref=e112]: "*学院"
+                - generic [ref=e115]:
+                  - generic:
+                    - combobox "*学院" [ref=e117]
+                    - generic [ref=e118]: 选择或输入学院
+                  - img [ref=e121] [cursor=pointer]
+              - generic [ref=e123]:
+                - generic [ref=e124]: "*职称"
+                - generic [ref=e127]:
+                  - generic:
+                    - combobox "*职称" [ref=e129]
+                    - generic [ref=e130]: 选择或输入职称
+                  - img [ref=e133] [cursor=pointer]
+              - generic [ref=e135]:
+                - generic [ref=e136]: 性别
+                - generic [ref=e139] [cursor=pointer]:
+                  - generic:
+                    - combobox "性别" [ref=e141]
+                    - generic [ref=e142]: 男
+                  - img [ref=e145]
+              - generic [ref=e147]:
+                - generic [ref=e148]: "*手机号"
+                - textbox "*手机号" [ref=e152]:
+                  - /placeholder: 请输入手机号
+              - generic [ref=e153]:
+                - generic [ref=e154]: "*邮箱"
+                - textbox "*邮箱" [ref=e158]:
+                  - /placeholder: 请输入邮箱
+              - generic [ref=e159]:
+                - generic [ref=e160]: "*身份证号"
+                - textbox "*身份证号" [ref=e164]:
+                  - /placeholder: 请输入身份证号
+              - generic [ref=e165]:
+                - generic [ref=e166]: "*密码"
+                - generic [ref=e169]:
+                  - textbox "*密码" [ref=e170]:
+                    - /placeholder: 默认 123456，可手动修改
+                    - text: "123456"
+                  - img [ref=e173] [cursor=pointer]
+            - generic [ref=e176]:
+              - button "取消" [ref=e177] [cursor=pointer]:
+                - generic [ref=e178]: 取消
+              - button "创建教师" [ref=e179] [cursor=pointer]:
+                - generic [ref=e180]: 创建教师
+  - alert [ref=e181]:
+    - img [ref=e183]
+    - paragraph [ref=e185]: 登录成功

@@ -90,6 +90,18 @@ const form = reactive({
   password: ''
 })
 
+function resolveLoginErrorMessage(response) {
+  if (response?.code === 400) {
+    return '账号或密码错误'
+  }
+
+  if (response?.message) {
+    return response.message
+  }
+
+  return '登录失败，请稍后重试'
+}
+
 async function handleLogin() {
   if (!/^\d+$/.test(form.username)) {
     ElMessage.warning('账号必须是数字')
@@ -110,15 +122,21 @@ async function handleLogin() {
     })
 
     if (response.code !== 200 || !response.data) {
-      ElMessage.error('用户名或密码错误')
+      ElMessage.error(resolveLoginErrorMessage(response))
       return
     }
 
     const session = setSessionFromUser(response.data)
+    if (!session) {
+      ElMessage.error('登录成功，但会话初始化失败，请联系管理员检查返回数据')
+      return
+    }
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
 
     ElMessage.success('登录成功')
     await router.replace(redirect || resolveHomePath(session.role))
+  } catch (error) {
+    ElMessage.error(error?.message || '登录请求失败，请确认后端服务已启动')
   } finally {
     submitting.value = false
   }

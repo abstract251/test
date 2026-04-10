@@ -1,8 +1,21 @@
 import request from '@/utils/request'
 
-export function getTeacherPage(page, size) {
+function toSegment(value) {
+  return encodeURIComponent(value?.trim() ? value.trim() : '@')
+}
+
+export function getTeacherPage({ page, size, filters }) {
   return request({
-    url: `/teachers/${page}/${size}`,
+    url: `/teachers/${[
+      page,
+      size,
+      toSegment(filters.teacherId),
+      toSegment(filters.teacherName),
+      toSegment(filters.institute),
+      toSegment(filters.type),
+      toSegment(filters.tel),
+      toSegment(filters.email)
+    ].join('/')}`,
     method: 'get'
   })
 }

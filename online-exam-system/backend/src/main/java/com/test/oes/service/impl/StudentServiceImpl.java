@@ -17,15 +17,16 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public IPage<Student> findAll(
-            Page<Student> page, String name, String grade,
+            Page<Student> page, String studentId, String name, String grade,
             String tel, String institute, String major, String clazz) {
+        studentId = ("@".equals(studentId) ? "" : studentId);
         name = ("@".equals(name) ? "" : name);
         grade = ("@".equals(grade) ? "" : grade);
         tel = ("@".equals(tel) ? "" : tel);
         institute = ("@".equals(institute) ? "" : institute);
         major = ("@".equals(major) ? "" : major);
         clazz = ("@".equals(clazz) ? "" : clazz);
-        return studentMapper.findAll(page, name, grade, tel, institute, major, clazz);
+        return studentMapper.findAll(page, studentId, name, grade, tel, institute, major, clazz);
     }
 
     @Override

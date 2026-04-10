@@ -8,6 +8,7 @@ export function getStudentPage({ page, size, filters }) {
   const path = [
     page,
     size,
+    toSegment(filters.studentId),
     toSegment(filters.name),
     toSegment(filters.grade),
     toSegment(filters.tel),

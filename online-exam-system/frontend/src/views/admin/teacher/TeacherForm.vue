@@ -26,7 +26,7 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import TeacherFormFields from '@/components/forms/TeacherFormFields.vue'
 import { createTeacher, getTeacherById, updateTeacher } from '@/api/teacherApi'
-import { DEFAULT_PASSWORD } from '@/utils/constants'
+import { DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
@@ -39,7 +39,7 @@ const form = reactive({
   teacherId: '',
   teacherName: '',
   institute: '',
-  sex: 'M',
+  sex: '男',
   tel: '',
   email: '',
   pwd: DEFAULT_PASSWORD,
@@ -55,6 +55,7 @@ const rules = {
   ],
   institute: [requiredRule('请选择或输入学院', 'change')],
   type: [requiredRule('请选择或输入职称', 'change')],
+  sex: [requiredRule('请选择性别', 'change')],
   tel: [
     requiredRule('请输入手机号'),
     patternRule(REGEX.phone, '手机号格式不正确，应为 11 位数字')
@@ -80,7 +81,10 @@ async function fetchTeacher() {
   try {
     const response = await getTeacherById(route.params.teacherId)
     if (response.code === 200 && response.data) {
-      Object.assign(form, response.data)
+      Object.assign(form, {
+        ...response.data,
+        sex: normalizeSex(response.data.sex)
+      })
       return
     }
     ElMessage.error(response.message || '加载教师信息失败')
@@ -97,8 +101,8 @@ async function handleSubmit() {
 
   try {
     const response = isEdit.value
-      ? await updateTeacher({ ...form })
-      : await createTeacher({ ...form, role: '1' })
+      ? await updateTeacher({ ...form, sex: normalizeSex(form.sex) })
+      : await createTeacher({ ...form, role: '1', sex: normalizeSex(form.sex) })
 
     if (response.code === 200) {
       ElMessage.success(isEdit.value ? '教师信息已更新' : '教师已创建')

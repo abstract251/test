@@ -59,6 +59,8 @@
       v-model="dialogVisible"
       title="修改密码"
       width="420px"
+      align-center
+      append-to-body
       destroy-on-close
     >
       <el-form label-position="top">

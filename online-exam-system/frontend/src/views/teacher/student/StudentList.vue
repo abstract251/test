@@ -2,7 +2,7 @@
   <PageContainer>
     <PageHeader
       title="学生管理"
-      description="支持按姓名、年级、学院、专业、班级和手机号筛选学生。"
+      description="支持按学号、姓名、年级、学院、专业、班级和手机号筛选学生。"
     >
       <template #actions>
         <el-button type="primary" @click="router.push('/console/teacher/students/new')">
@@ -12,6 +12,9 @@
     </PageHeader>
 
     <el-form class="filter-grid" label-position="top" @submit.prevent>
+      <el-form-item label="学号">
+        <el-input v-model="filters.studentId" placeholder="请输入学号" />
+      </el-form-item>
       <el-form-item label="姓名">
         <el-input v-model="filters.name" placeholder="请输入学生姓名" />
       </el-form-item>
@@ -43,7 +46,7 @@
       <el-table-column prop="major" label="专业" min-width="160" />
       <el-table-column prop="grade" label="年级" min-width="90" />
       <el-table-column prop="clazz" label="班级" min-width="90" />
-      <el-table-column prop="sex" label="性别" min-width="90" />
+      <el-table-column prop="sex" label="性别" min-width="90" :formatter="formatSexDisplay" />
       <el-table-column prop="tel" label="手机号" min-width="140" />
       <el-table-column fixed="right" label="操作" width="180">
         <template #default="{ row }">
@@ -81,10 +84,12 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { usePagination } from '@/composables/usePagination'
 import { deleteStudent, getStudentPage } from '@/api/studentApi'
+import { normalizeSex } from '@/utils/constants'
 
 const router = useRouter()
 const pagination = usePagination(6)
 const filters = reactive({
+  studentId: '',
   name: '',
   grade: '',
   tel: '',
@@ -92,6 +97,10 @@ const filters = reactive({
   major: '',
   clazz: ''
 })
+
+function formatSexDisplay(row) {
+  return normalizeSex(row.sex, '-')
+}
 
 async function fetchStudents() {
   try {
@@ -134,6 +143,7 @@ async function handleDelete(studentId) {
 
 function resetFilters() {
   Object.assign(filters, {
+    studentId: '',
     name: '',
     grade: '',
     tel: '',
