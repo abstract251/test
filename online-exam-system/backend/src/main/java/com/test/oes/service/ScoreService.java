@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Score;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public interface ScoreService {
 
@@ -42,4 +44,13 @@ public interface ScoreService {
      * @return 成绩列表
      */
     List<Score> findByExamCode(Integer examCode);
+
+    // 新增
+
+    /**
+     * 获取某考试的成绩统计信息
+     * @param examCode 考试编号
+     * @return 包含平均分、最高分、最低分、及格率、分数段分布等信息的Map
+     */
+    Map<String, Object> getStatistics(Integer examCode);
 }

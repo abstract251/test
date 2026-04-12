@@ -8,6 +8,8 @@ import com.test.oes.service.ScoreService;
 import com.test.oes.util.ApiResultHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.util.List;
 
@@ -76,5 +78,18 @@ public class ScoreController {
     public ApiResult<List<Score>> findByExamCode(@PathVariable Integer examCode) {
         List<Score> scores = scoreService.findByExamCode(examCode);
         return ApiResultHandler.buildApiResult(200, "查询成功", scores);
+    }
+
+    // 新增
+
+    /**
+     * 获取某考试的成绩统计信息（用于图表展示）
+     * @param examCode 考试编号
+     * @return 统计信息
+     */
+    @GetMapping("/score/statistics/{examCode}")
+    public ApiResult<Map<String, Object>> getStatistics(@PathVariable Integer examCode) {
+        Map<String, Object> statistics = scoreService.getStatistics(examCode);
+        return ApiResultHandler.buildApiResult(200, "查询成绩统计成功", statistics);
     }
 }

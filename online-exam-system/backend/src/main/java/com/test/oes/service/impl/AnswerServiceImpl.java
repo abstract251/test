@@ -89,7 +89,8 @@ public class AnswerServiceImpl implements AnswerService {
         // 6. 保存成绩
         Score score = new Score();
         score.setExamCode(examCode);
-        score.setStudentId(studentId);
+        //score.setStudentId(studentId);
+        score.setStudentId(String.valueOf(studentId));
         score.setSubject(subject);
         score.setPtScore(ptScore);
         score.setEtScore(obtainedScore);

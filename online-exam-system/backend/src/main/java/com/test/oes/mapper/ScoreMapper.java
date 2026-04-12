@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Score;
 import org.apache.ibatis.annotations.*;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.util.List;
 
@@ -52,4 +54,55 @@ public interface ScoreMapper {
      */
     @Select("select * from score where examCode = #{examCode}")
     List<Score> findByExamCode(Integer examCode);
+
+    // 新增的方法
+
+    /**
+     * 获取某考试的平均分（etScore）
+     */
+    @Select("SELECT AVG(etScore) FROM score WHERE examCode = #{examCode}")
+    Double getAvgScore(@Param("examCode") Integer examCode);
+
+    /**
+     * 获取某考试的最高分
+     */
+    @Select("SELECT MAX(etScore) FROM score WHERE examCode = #{examCode}")
+    Integer getMaxScore(@Param("examCode") Integer examCode);
+
+    /**
+     * 获取某考试的最低分
+     */
+    @Select("SELECT MIN(etScore) FROM score WHERE examCode = #{examCode}")
+    Integer getMinScore(@Param("examCode") Integer examCode);
+
+    /**
+     * 获取某考试的参考总人数
+     */
+    @Select("SELECT COUNT(*) FROM score WHERE examCode = #{examCode}")
+    Integer getTotalCount(@Param("examCode") Integer examCode);
+
+    /**
+     * 获取某考试的及格人数（etScore >= score * 0.6）
+     */
+    @Select("SELECT COUNT(*) FROM score WHERE examCode = #{examCode} AND etScore >= score * 0.6")
+    Integer getPassCount(@Param("examCode") Integer examCode);
+
+    /**
+     * 获取某考试的分数段分布
+     * 返回格式：每个元素包含 scoreSegment（分数段字符串）和 count（人数）
+     */
+    @Select("SELECT " +
+            "CASE " +
+            "  WHEN etScore < 60 THEN '0-59' " +
+            "  WHEN etScore >= 60 AND etScore < 70 THEN '60-69' " +
+            "  WHEN etScore >= 70 AND etScore < 80 THEN '70-79' " +
+            "  WHEN etScore >= 80 AND etScore < 90 THEN '80-89' " +
+            "  ELSE '90-100' " +
+            "END AS scoreSegment, " +
+            "COUNT(*) AS count " +
+            "FROM score " +
+            "WHERE examCode = #{examCode} " +
+            "GROUP BY scoreSegment " +
+            "ORDER BY MIN(etScore)")
+    List<Map<String, Object>> getScoreDistribution(@Param("examCode") Integer examCode);
 }
