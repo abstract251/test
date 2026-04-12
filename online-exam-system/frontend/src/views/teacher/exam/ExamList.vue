@@ -27,19 +27,42 @@
         <template #default="{ row }">{{ row.totalTime }} 分钟</template>
       </el-table-column>
       <el-table-column prop="totalScore" label="总分" min-width="90" />
-      <el-table-column fixed="right" label="操作" width="260">
+      <el-table-column fixed="right" label="操作" width="280">
         <template #default="{ row }">
           <el-space wrap>
             <el-button link type="primary" @click="openPreview(row)">
               试卷详情
             </el-button>
-            <el-button link type="primary" @click="router.push(`/console/teacher/exams/${row.examCode}/paper`)">
+            <el-tooltip
+              v-if="row.paperLocked || row.revokedAt"
+              content="试卷已冻结或考试已撤销时不可再组卷"
+              placement="top"
+            >
+              <span>
+                <el-button link type="primary" disabled>进入组卷</el-button>
+              </span>
+            </el-tooltip>
+            <el-button
+              v-else
+              link
+              type="primary"
+              @click="router.push(`/console/teacher/exams/${row.examCode}/paper`)"
+            >
               进入组卷
             </el-button>
             <el-button link type="primary" @click="router.push(`/console/teacher/exams/${row.examCode}/edit`)">
               编辑
             </el-button>
-            <el-button link type="danger" @click="handleDelete(row.examCode)">
+            <el-tooltip
+              v-if="row.paperLocked || row.revokedAt"
+              content="冻结后或已撤销的考试不可删除"
+              placement="top"
+            >
+              <span>
+                <el-button link type="danger" disabled>删除</el-button>
+              </span>
+            </el-tooltip>
+            <el-button v-else link type="danger" @click="handleDelete(row.examCode)">
               删除
             </el-button>
           </el-space>
@@ -51,7 +74,7 @@
       <el-pagination
         v-model:current-page="pagination.current"
         v-model:page-size="pagination.size"
-        :page-sizes="[4, 8, 10]"
+        :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
         :total="pagination.total"
         @size-change="fetchExams"
@@ -92,7 +115,7 @@ import { formatDateTime } from '@/utils/date'
 import { QUESTION_TYPE_OPTIONS } from '@/utils/constants'
 
 const router = useRouter()
-const pagination = usePagination(4)
+const pagination = usePagination(10)
 const previewVisible = ref(false)
 const previewExam = ref(null)
 const previewQuestionMap = ref(ensureQuestionMap())
@@ -152,7 +175,8 @@ async function handleDelete(examCode) {
     }
     ElMessage.error(response.message || '删除考试失败')
   } catch (error) {
-    ElMessage.error('删除考试失败，请稍后重试')
+    const msg = error?.response?.data?.message
+    ElMessage.error(msg || '删除考试失败，请稍后重试')
   }
 }
 

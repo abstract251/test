@@ -3,11 +3,23 @@
     <PageContainer>
       <PageHeader
         title="试卷编辑"
-        description="左侧为科目题库，右侧为当前试卷题目。"
+        :description="paperReadOnly ? '当前试卷已冻结或考试已撤销，题目不可再增删。' : '左侧为科目题库，右侧为当前试卷题目。'"
       >
         <template #actions>
           <el-button @click="router.push('/console/teacher/exams')">返回考试列表</el-button>
-          <el-button type="danger" plain :loading="operating" :disabled="operating" @click="handleClearPaper">
+          <el-tooltip v-if="paperReadOnly" content="试卷已冻结或考试已撤销，不可再改题" placement="bottom">
+            <span>
+              <el-button type="danger" plain disabled>清空试卷</el-button>
+            </span>
+          </el-tooltip>
+          <el-button
+            v-else
+            type="danger"
+            plain
+            :loading="operating"
+            :disabled="operating"
+            @click="handleClearPaper"
+          >
             清空试卷
           </el-button>
         </template>
@@ -46,7 +58,7 @@
             action-text="加入试卷"
             :action-loading="operating"
             :action-disabled="operating"
-            :show-action="true"
+            :show-action="!paperReadOnly"
             empty-text="当前科目下暂无此题型题目"
             @action="handleAddQuestion"
           />
@@ -69,7 +81,7 @@
             action-text="移出试卷"
             :action-loading="operating"
             :action-disabled="operating"
-            :show-action="true"
+            :show-action="!paperReadOnly"
             empty-text="当前试卷下暂无此题型题目"
             @action="handleRemoveQuestion"
           />
@@ -100,6 +112,10 @@ const exam = ref(null)
 const paperScore = ref(0)
 const keyword = ref('')
 const operating = ref(false)
+
+const paperReadOnly = computed(
+  () => !!(exam.value?.paperLocked || exam.value?.revokedAt)
+)
 
 const {
   availableQuestions,
@@ -183,6 +199,9 @@ async function fetchExamAndPractice() {
 }
 
 async function handleAddQuestion({ type, question }) {
+  if (paperReadOnly.value) {
+    return
+  }
   if (operating.value) {
     return
   }
@@ -214,6 +233,9 @@ async function handleAddQuestion({ type, question }) {
 }
 
 async function handleRemoveQuestion({ type, question }) {
+  if (paperReadOnly.value) {
+    return
+  }
   if (operating.value) {
     return
   }
@@ -234,6 +256,9 @@ async function handleRemoveQuestion({ type, question }) {
 }
 
 async function handleClearPaper() {
+  if (paperReadOnly.value) {
+    return
+  }
   if (operating.value) {
     return
   }
