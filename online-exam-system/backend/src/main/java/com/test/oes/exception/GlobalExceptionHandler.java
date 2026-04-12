@@ -1,4 +1,4 @@
-package com.test.oes.config;
+package com.test.oes.exception;
 
 import com.test.oes.entity.ApiResult;
 import com.test.oes.util.ApiResultHandler;
@@ -14,6 +14,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j  // 添加日志注解
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ExamBusinessException.class)
+    @ResponseBody
+    public ApiResult<Void> handleExamBusiness(ExamBusinessException e) {
+        log.warn("考试业务规则: {}", e.getMessage());
+        return ApiResultHandler.buildApiResult(e.getHttpStyleCode(), e.getMessage(), null);
+    }
 
     /**
      * 处理【接口不存在 404】

@@ -50,3 +50,28 @@ export function getLatestPaperId() {
     method: 'get'
   })
 }
+
+/** 开考/冻结/撤销/快照等业务策略（评审稿） */
+export function getExamPolicy(examCode) {
+  return request({
+    url: `/exam/${examCode}/exam-policy`,
+    method: 'get'
+  })
+}
+
+/** 冻结后的本场共用题目（结构与 /paper/{paperId} 一致） */
+export function getFrozenExamPaper(examCode) {
+  return request({
+    url: `/exam/${examCode}/frozen-paper`,
+    method: 'get'
+  })
+}
+
+/** 超级管理员撤销考试 */
+export function revokeExamAsAdmin(examCode, reason) {
+  return request({
+    url: `/admin/exam/${examCode}/revoke`,
+    method: 'post',
+    data: { reason }
+  })
+}

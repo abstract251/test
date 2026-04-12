@@ -14,6 +14,9 @@ public interface AdminMapper {
     @Select("select adminId,adminName,sex,tel,email,cardId,role,pwd from `admin` where adminId = #{adminId}")
     Admin findById(Integer adminId);
 
+    @Select("select adminId,adminName,cardId from `admin` where cardId = #{cardId} limit 1")
+    Admin findByCardId(@Param("cardId") String cardId);
+
     @Delete("delete from `admin` where adminId = #{adminId}")
     int deleteById(Integer adminId);
 

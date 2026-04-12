@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
-// 填空题 (TODO:未修改)
+// 填空题
 @Mapper
 public interface FillQuestionMapper {
 
@@ -37,5 +37,8 @@ public interface FillQuestionMapper {
 
     @Select("select * from fill_question where subject = #{subject}")
     List<FillQuestion> findQuestionBySubject(@Param("subject") String subject);
+
+    @Select("select * from fill_question where questionId = #{questionId}")
+    FillQuestion findByQuestionId(@Param("questionId") Integer questionId);
 
 }
