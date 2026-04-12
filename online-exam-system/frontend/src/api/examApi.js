@@ -75,3 +75,26 @@ export function revokeExamAsAdmin(examCode, reason) {
     data: { reason }
   })
 }
+
+/** 学生：开始/恢复作答（返回脱敏试卷与草稿） */
+export function startStudentExamSession(examCode) {
+  return request({
+    url: `/student/exam/${examCode}/attempt/start`,
+    method: 'post'
+  })
+}
+
+export function saveStudentExamAnswers(examCode, answers) {
+  return request({
+    url: `/student/exam/${examCode}/attempt/answers`,
+    method: 'put',
+    data: { answers }
+  })
+}
+
+export function submitStudentExamSession(examCode) {
+  return request({
+    url: `/student/exam/${examCode}/attempt/submit`,
+    method: 'post'
+  })
+}

@@ -29,4 +29,11 @@ public interface AdminMapper {
             "values(#{adminName},#{sex},#{tel},#{email},#{pwd},#{cardId},#{role})")
     int add(Admin admin);
 
+    @Select("SELECT COUNT(*) FROM `admin` WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId <> ''")
+    int countByCardId(@Param("cid") String cid);
+
+    @Select("SELECT COUNT(*) FROM `admin` WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId <> '' "
+            + "AND adminId <> #{adminId}")
+    int countByCardIdExcludingAdmin(@Param("cid") String cid, @Param("adminId") int adminId);
+
 }

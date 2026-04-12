@@ -69,6 +69,9 @@ public class ExamManageController {
         body.put("paperLocked", examTimeHelper.isPaperLocked(res, now));
         body.put("revoked", examTimeHelper.isRevoked(res));
         body.put("snapshotReady", examSnapshotService.hasSharedSnapshot(examCode));
+        body.put("windowEndAt", examTimeHelper.examWindowEnd(res));
+        body.put("inExamWindow", examTimeHelper.isWithinExamWindow(res, now));
+        body.put("serverTime", now);
         return ApiResultHandler.buildApiResult(200, "请求成功", body);
     }
 

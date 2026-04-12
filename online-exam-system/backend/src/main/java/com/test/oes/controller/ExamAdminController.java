@@ -33,7 +33,13 @@ public class ExamAdminController {
         if (token == null || token.isBlank()) {
             return ApiResultHandler.buildApiResult(401, "未登录", null);
         }
-        Admin admin = adminMapper.findByCardId(token);
+        int adminId;
+        try {
+            adminId = Integer.parseInt(token.trim());
+        } catch (NumberFormatException e) {
+            return ApiResultHandler.buildApiResult(401, "登录信息已失效，请重新登录", null);
+        }
+        Admin admin = adminMapper.findById(adminId);
         if (admin == null) {
             return ApiResultHandler.buildApiResult(403, "仅管理员账号可执行撤销", null);
         }

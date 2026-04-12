@@ -72,6 +72,28 @@ public class ExamTimeHelper {
     }
 
     /**
+     * 考试开放窗口结束：开考 + totalTime（分钟），默认 90。
+     */
+    public LocalDateTime examWindowEnd(ExamManage e) {
+        LocalDateTime start = effectiveExamStart(e);
+        if (start == null) {
+            return null;
+        }
+        int minutes = e.getTotalTime() == null ? 90 : e.getTotalTime();
+        return start.plusMinutes(minutes);
+    }
+
+    /** 是否在可作答时间窗内（含结束时刻，与交卷校验一致）。 */
+    public boolean isWithinExamWindow(ExamManage e, LocalDateTime now) {
+        LocalDateTime start = effectiveExamStart(e);
+        if (start == null) {
+            return false;
+        }
+        LocalDateTime end = examWindowEnd(e);
+        return !now.isBefore(start) && !now.isAfter(end);
+    }
+
+    /**
      * 从请求体解析开考时刻：优先已有 examStartAt；否则解析 examDate 字符串。
      */
     public LocalDateTime resolveExamStartFromPayload(ExamManage payload, LocalDateTime defaultIfBlank) {
