@@ -3,7 +3,13 @@ package com.test.oes.mapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Student;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface StudentMapper {
@@ -56,4 +62,17 @@ public interface StudentMapper {
     @Insert("insert into student(studentName,grade,major,clazz,institute,tel,email,pwd,cardId,sex,role) values " +
             "(#{studentName},#{grade},#{major},#{clazz},#{institute},#{tel},#{email},#{pwd},#{cardId},#{sex},#{role})")
     int add(Student student);
+
+    /**
+     * 按身份证号查询（仅运维/排查；登录身份请以主键为准）。
+     */
+    @Select("SELECT * FROM student WHERE cardId = #{cardId} LIMIT 1")
+    Student findByCardId(@Param("cardId") String cardId);
+
+    @Select("SELECT COUNT(*) FROM student WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId <> ''")
+    int countByCardId(@Param("cid") String cid);
+
+    @Select("SELECT COUNT(*) FROM student WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId <> '' "
+            + "AND studentId <> #{studentId}")
+    int countByCardIdExcludingStudent(@Param("cid") String cid, @Param("studentId") int studentId);
 }

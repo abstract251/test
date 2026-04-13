@@ -1,19 +1,24 @@
 <template>
   <PageContainer>
     <PageHeader
-      :title="isEdit ? '编辑考试' : '新增考试'"
-      description="考试时间精确到分钟，试卷编号会在创建时自动分配。"
+      :title="headerTitle"
+      description="开考时间将写入系统并用于冻结与考试窗口；试卷冻结后仅可修改说明、提示与延长时长。"
     />
 
-    <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-      <ExamFormFields :model="form" />
+    <el-form ref="formRef" :model="form" :rules="dynamicRules" label-position="top">
+      <ExamFormFields
+        :model="form"
+        :freeze-locked="freezeLocked"
+        :revoked="revoked"
+        :baseline-total-time="baselineTotalTime"
+      />
 
       <div class="summary">
         <span>试卷编号：{{ form.paperId || '创建时生成' }}</span>
         <span>当前总分：{{ form.totalScore || 0 }}</span>
       </div>
 
-      <div class="actions">
+      <div v-if="!revoked" class="actions">
         <el-button @click="router.push('/console/teacher/exams')">取消</el-button>
         <el-button type="primary" @click="handleSubmit">
           {{ isEdit ? '保存修改' : '创建考试' }}
@@ -27,6 +32,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import dayjs from 'dayjs'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ExamFormFields from '@/components/forms/ExamFormFields.vue'
@@ -39,6 +45,25 @@ const router = useRouter()
 const formRef = ref(null)
 
 const isEdit = computed(() => Boolean(route.params.examCode))
+
+const paperLocked = ref(false)
+const revoked = ref(false)
+const baselineTotalTime = ref(1)
+
+const freezeLocked = computed(() => paperLocked.value && !revoked.value)
+
+const headerTitle = computed(() => {
+  if (!isEdit.value) {
+    return '新增考试'
+  }
+  if (revoked.value) {
+    return '编辑考试（已撤销）'
+  }
+  if (freezeLocked.value) {
+    return '编辑考试（试卷已冻结）'
+  }
+  return '编辑考试'
+})
 
 const form = reactive({
   examCode: null,
@@ -68,13 +93,17 @@ const rules = {
   institute: [requiredRule('请选择或输入学院', 'change')],
   major: [requiredRule('请选择或输入专业', 'change')],
   grade: [requiredRule('请选择或输入年级', 'change')],
-  examDate: [requiredRule('请选择考试时间', 'change')],
+  examDate: [requiredRule('请选择开考时间', 'change')],
   totalTime: [
     requiredRule('请输入考试时长', 'change'),
     {
       validator: (_, value, callback) => {
         if (!Number.isInteger(value) || value < 1 || value > 300) {
           callback(new Error('考试时长需在 1-300 分钟之间'))
+          return
+        }
+        if (freezeLocked.value && value < baselineTotalTime.value) {
+          callback(new Error(`冻结后时长不能少于 ${baselineTotalTime.value} 分钟`))
           return
         }
         callback()
@@ -89,6 +118,20 @@ const rules = {
   ]
 }
 
+const dynamicRules = computed(() => {
+  if (revoked.value) {
+    return {}
+  }
+  if (freezeLocked.value) {
+    return {
+      description: rules.description,
+      tips: rules.tips,
+      totalTime: rules.totalTime
+    }
+  }
+  return rules
+})
+
 async function fetchExam() {
   if (!isEdit.value) {
     return
@@ -97,8 +140,12 @@ async function fetchExam() {
   try {
     const response = await getExamById(route.params.examCode)
     if (response.code === 200 && response.data) {
-      Object.assign(form, response.data, {
-        examDate: toPickerDateTime(response.data.examDate)
+      const d = response.data
+      paperLocked.value = !!d.paperLocked
+      revoked.value = !!d.revokedAt
+      baselineTotalTime.value = Number(d.totalTime) > 0 ? Number(d.totalTime) : 1
+      Object.assign(form, d, {
+        examDate: toPickerDateTime(d.examDate)
       })
       return
     }
@@ -122,7 +169,35 @@ async function assignPaperId() {
   }
 }
 
+function buildPayload() {
+  if (freezeLocked.value) {
+    return {
+      examCode: form.examCode,
+      description: form.description,
+      tips: form.tips,
+      totalTime: form.totalTime
+    }
+  }
+
+  const payload = {
+    ...form,
+    examDate: toBackendDateTime(form.examDate),
+    totalScore: Number(form.totalScore || 0)
+  }
+  if (form.examDate) {
+    const d = dayjs(form.examDate, 'YYYY-MM-DD HH:mm')
+    if (d.isValid()) {
+      payload.examStartAt = d.format('YYYY-MM-DDTHH:mm:00')
+    }
+  }
+  return payload
+}
+
 async function handleSubmit() {
+  if (revoked.value) {
+    return
+  }
+
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
     return
@@ -132,16 +207,10 @@ async function handleSubmit() {
     await assignPaperId()
   }
 
-  const payload = {
-    ...form,
-    examDate: toBackendDateTime(form.examDate),
-    totalScore: Number(form.totalScore || 0)
-  }
+  const payload = buildPayload()
 
   try {
-    const response = isEdit.value
-      ? await updateExam(payload)
-      : await addExam(payload)
+    const response = isEdit.value ? await updateExam(payload) : await addExam(payload)
 
     if (response.code === 200) {
       ElMessage.success(isEdit.value ? '考试信息已更新' : '考试已创建')
@@ -151,7 +220,8 @@ async function handleSubmit() {
 
     ElMessage.error(response.message || '保存失败，请检查后重试')
   } catch (error) {
-    ElMessage.error('保存失败，请稍后重试')
+    const msg = error?.response?.data?.message
+    ElMessage.error(msg || '保存失败，请稍后重试')
   }
 }
 

@@ -52,4 +52,8 @@ public interface ScoreMapper {
      */
     @Select("select * from score where examCode = #{examCode}")
     List<Score> findByExamCode(Integer examCode);
+
+    @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score "
+            + "where examCode = #{examCode} and studentId = #{studentId} limit 1")
+    Score findByExamAndStudent(@Param("examCode") Integer examCode, @Param("studentId") Integer studentId);
 }

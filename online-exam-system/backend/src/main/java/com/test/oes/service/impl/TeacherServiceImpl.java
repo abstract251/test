@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Teacher;
 import com.test.oes.mapper.TeacherMapper;
 import com.test.oes.service.TeacherService;
+import com.test.oes.service.identity.CardIdUniquenessValidator;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,9 +13,11 @@ import java.util.List;
 @Service
 public class TeacherServiceImpl implements TeacherService {
     private final TeacherMapper teacherMapper;
+    private final CardIdUniquenessValidator cardIdUniquenessValidator;
 
-    public TeacherServiceImpl(TeacherMapper teacherMapper) {
+    public TeacherServiceImpl(TeacherMapper teacherMapper, CardIdUniquenessValidator cardIdUniquenessValidator) {
         this.teacherMapper = teacherMapper;
+        this.cardIdUniquenessValidator = cardIdUniquenessValidator;
     }
 
     @Override
@@ -47,12 +50,14 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public int update(Teacher teacher) {
+        cardIdUniquenessValidator.validateTeacherUpdate(teacher);
         return teacherMapper.update(teacher);
     }
 
     @Override
     public int add(Teacher teacher) {
         teacher.setRole("1");
+        cardIdUniquenessValidator.validateNewTeacher(teacher);
         return teacherMapper.add(teacher);
     }
 }

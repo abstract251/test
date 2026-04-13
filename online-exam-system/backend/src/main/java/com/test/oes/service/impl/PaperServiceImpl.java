@@ -6,6 +6,7 @@ import com.test.oes.entity.MultiQuestion;
 import com.test.oes.entity.PaperManage;
 import com.test.oes.mapper.PaperMapper;
 import com.test.oes.service.*;
+import com.test.oes.service.exam.ExamPaperEditPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,8 @@ public class PaperServiceImpl implements PaperService {
 
     private final FillQuestionService fillQuestionService;
 
+    private final ExamPaperEditPolicy examPaperEditPolicy;
+
     // 查询所有试卷
     @Override
     public List<PaperManage> findAll() {
@@ -38,6 +41,7 @@ public class PaperServiceImpl implements PaperService {
     // 添加试卷
     @Override
     public int add(PaperManage paperManage) {
+        examPaperEditPolicy.assertPaperEditable(paperManage.getPaperId());
         return paperMapper.add(paperManage);
     }
 
@@ -54,12 +58,14 @@ public class PaperServiceImpl implements PaperService {
     // 删除试卷中的单条试题关联
     @Override
     public int delete(Integer paperId, Integer type, Integer questionId) {
+        examPaperEditPolicy.assertPaperEditable(paperId);
         return paperMapper.delete(paperId, type, questionId);
     }
 
     // 根据试卷ID删除所有题目关联
     @Override
     public int deleteByPaperId(Integer paperId) {
+        examPaperEditPolicy.assertPaperEditable(paperId);
         return paperMapper.deleteByPaperId(paperId);
     }
 }

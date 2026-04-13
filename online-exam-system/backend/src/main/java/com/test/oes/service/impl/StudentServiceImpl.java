@@ -5,14 +5,17 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Student;
 import com.test.oes.mapper.StudentMapper;
 import com.test.oes.service.StudentService;
+import com.test.oes.service.identity.CardIdUniquenessValidator;
 import org.springframework.stereotype.Service;
 
 @Service
 public class StudentServiceImpl implements StudentService {
     private final StudentMapper studentMapper;
+    private final CardIdUniquenessValidator cardIdUniquenessValidator;
 
-    public StudentServiceImpl(StudentMapper studentMapper) {
+    public StudentServiceImpl(StudentMapper studentMapper, CardIdUniquenessValidator cardIdUniquenessValidator) {
         this.studentMapper = studentMapper;
+        this.cardIdUniquenessValidator = cardIdUniquenessValidator;
     }
 
     @Override
@@ -41,6 +44,7 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public int update(Student student) {
+        cardIdUniquenessValidator.validateStudentUpdate(student);
         return studentMapper.update(student);
     }
 
@@ -51,6 +55,7 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public int add(Student student) {
+        cardIdUniquenessValidator.validateNewStudent(student);
         return studentMapper.add(student);
     }
 }
