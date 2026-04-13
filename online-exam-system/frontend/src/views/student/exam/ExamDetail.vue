@@ -3,7 +3,7 @@
     <PageContainer>
       <PageHeader
         title="考试详情"
-        description="开考时间、时长与服务器策略一致时方可进入答题；试卷预览来自当前试卷关联，正式答题以冻结快照为准。"
+        description="考前注意查看查看考试说明与时间安排；准备无误后可开始答题。"
       >
         <template #actions>
           <el-button @click="router.push('/student/home')">返回考试中心</el-button>
@@ -30,24 +30,6 @@
       />
     </PageContainer>
 
-    <PageContainer>
-      <PageHeader
-        title="试卷结构（预览）"
-        description="题目列表来自组卷；正式答题页面题目与冻结快照一致。"
-      />
-
-      <div class="question-groups">
-        <PaperQuestionGroup
-          v-for="item in groupedQuestions"
-          :key="item.type"
-          :title="item.title"
-          :description="item.description"
-          :questions="item.questions"
-          :type="item.type"
-          :show-action="false"
-        />
-      </div>
-    </PageContainer>
   </div>
 </template>
 
@@ -58,16 +40,11 @@ import { ElMessage } from 'element-plus'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ExamMetaPanel from '@/components/exam/ExamMetaPanel.vue'
-import PaperQuestionGroup from '@/components/exam/PaperQuestionGroup.vue'
 import { getExamById, getExamPolicy } from '@/api/examApi'
-import { getPaper } from '@/api/paperApi'
-import { ensureQuestionMap } from '@/utils/adapters'
-import { QUESTION_TYPE_OPTIONS } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
 const exam = ref(null)
-const questionMap = ref(ensureQuestionMap())
 const policy = ref(null)
 
 const canEnter = computed(
@@ -87,15 +64,6 @@ const enterButtonText = computed(() => {
   return '当前不可进入'
 })
 
-const groupedQuestions = computed(() =>
-  QUESTION_TYPE_OPTIONS.map((item) => ({
-    type: item.value,
-    title: item.label,
-    description: `当前试卷中的${item.label}`,
-    questions: questionMap.value[item.value]
-  }))
-)
-
 function goAnswer() {
   if (!canEnter.value) {
     return
@@ -110,10 +78,6 @@ async function fetchExamDetail() {
     return
   }
   exam.value = examResponse.data
-  const paperResponse = await getPaper(exam.value.paperId)
-  if (paperResponse.code === 200) {
-    questionMap.value = ensureQuestionMap(paperResponse.data)
-  }
   const pol = await getExamPolicy(route.params.examCode)
   if (pol.code === 200 && pol.data) {
     policy.value = pol.data
@@ -125,12 +89,6 @@ onMounted(fetchExamDetail)
 
 <style scoped>
 .student-page {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.question-groups {
   display: flex;
   flex-direction: column;
   gap: 18px;

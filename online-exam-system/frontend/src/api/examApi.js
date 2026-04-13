@@ -59,7 +59,7 @@ export function getExamPolicy(examCode) {
   })
 }
 
-/** 冻结后的本场共用题目（结构与 /paper/{paperId} 一致） */
+/** 冻结后的本场共用题目（仅教师/管理员；学生请用 attempt/start） */
 export function getFrozenExamPaper(examCode) {
   return request({
     url: `/exam/${examCode}/frozen-paper`,
