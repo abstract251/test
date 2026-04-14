@@ -95,7 +95,39 @@
     </EmptyState>
 
     <template v-else>
+      <div v-if="isMobileViewport" class="mobile-message-list">
+        <article
+          v-for="row in displayRows"
+          :key="resolveMessageId(row)"
+          class="mobile-message-card"
+        >
+          <div class="mobile-message-card__header">
+            <div>
+              <p class="mobile-message-card__eyebrow">
+                {{ resolveMessageId(row) ? `留言 #${resolveMessageId(row)}` : '留言详情' }}
+              </p>
+              <h3 class="mobile-message-card__title">{{ row.title || '未命名留言' }}</h3>
+            </div>
+            <el-tag :type="hasReplies(row) ? 'success' : 'warning'">
+              {{ hasReplies(row) ? '已回复' : '待回复' }}
+            </el-tag>
+          </div>
+
+          <p class="mobile-message-card__preview">{{ getMessagePreview(row, 90) }}</p>
+
+          <div class="mobile-message-card__meta">
+            <span>{{ `提交于 ${formatDateTime(row.time, 'YYYY-MM-DD')}` }}</span>
+            <span>{{ `回复 ${getMessageReplyCount(row)} 条` }}</span>
+          </div>
+
+          <el-button type="primary" plain @click="openDetail(row)">
+            查看详情
+          </el-button>
+        </article>
+      </div>
+
       <el-table
+        v-else
         v-loading="loading"
         :data="displayRows"
         stripe
@@ -151,7 +183,7 @@
       </div>
     </template>
 
-    <el-drawer v-model="detailVisible" size="55%" :title="drawerTitle">
+    <el-drawer v-model="detailVisible" :size="drawerSize" :title="drawerTitle">
       <div class="drawer-content">
         <MessageDetailPanel :loading="detailLoading" :message="activeMessage" />
         <ReplyList
@@ -175,6 +207,7 @@ import MessageDetailPanel from '@/components/message/MessageDetailPanel.vue'
 import ReplyList from '@/components/message/ReplyList.vue'
 import { useAuthSession } from '@/composables/useAuthSession'
 import { usePagination } from '@/composables/usePagination'
+import { useViewport } from '@/composables/useViewport'
 import {
   createMessage,
   getMessageById,
@@ -202,6 +235,7 @@ const statusOptions = [
 ]
 
 const { session } = useAuthSession()
+const { isMobileViewport } = useViewport()
 const pagination = usePagination(6)
 const loading = ref(false)
 const submitting = ref(false)
@@ -258,6 +292,7 @@ const latestActivityText = computed(() => {
 })
 
 const drawerTitle = computed(() => activeMessage.value?.title || '留言详情')
+const drawerSize = computed(() => (isMobileViewport.value ? '100%' : '55%'))
 
 function parseTime(value) {
   if (!value) {
@@ -538,6 +573,53 @@ onMounted(fetchMessages)
   gap: 18px;
 }
 
+.mobile-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mobile-message-card {
+  padding: 18px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+}
+
+.mobile-message-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.mobile-message-card__eyebrow {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.mobile-message-card__title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.mobile-message-card__preview {
+  margin: 14px 0;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.mobile-message-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 @media (max-width: 768px) {
   .composer-card {
     padding: 20px;
@@ -554,6 +636,10 @@ onMounted(fetchMessages)
 
   .filter-actions {
     padding-bottom: 0;
+  }
+
+  .footer {
+    justify-content: center;
   }
 }
 </style>

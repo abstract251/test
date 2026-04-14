@@ -3,7 +3,7 @@
     <PageContainer>
       <PageHeader
         title="在线答题"
-        description="题目来自本场冻结快照；答案将自动暂存，请在考试结束前交卷。"
+        description="题目已按本场考试固定；系统会自动暂存作答，请在结束前完成并交卷。"
       >
         <template #actions>
           <el-button @click="router.push(`/student/exams/${exam.examCode}`)">返回考试详情</el-button>
@@ -18,8 +18,12 @@
       <div class="answer-layout">
         <div class="answer-layout__content">
           <section v-for="type in [1, 2, 3]" :key="type" class="q-block">
-            <h3>{{ typeTitle(type) }}</h3>
-            <article v-for="q in questionsOf(type)" :key="q.questionId" class="q-item">
+            <div class="q-block__header">
+              <h3>{{ typeTitle(type) }}</h3>
+              <span>{{ `${questionsOf(type).length} 题` }}</span>
+            </div>
+            <article v-for="(q, index) in questionsOf(type)" :key="q.questionId" class="q-item">
+              <p class="q-index">{{ `${typeTitle(type)} ${index + 1}` }}</p>
               <p class="q-stem">{{ q.question }}</p>
               <div v-if="type === 1" class="q-opts">
                 <el-radio-group v-model="answers[answerKey(type, q.questionId)]">
@@ -47,11 +51,18 @@
         </div>
 
         <aside class="answer-layout__sidebar">
+          <StatusCard
+            label="已作答"
+            :value="`${answeredQuestionCount}/${totalQuestionCount}`"
+            :hint="answerProgressHint"
+          />
           <StatusCard label="作答状态" :value="submitting ? '交卷中…' : '进行中'" hint="请勿关闭页面前交卷" />
           <StatusCard label="剩余时间" :value="remainLabel" hint="以服务器时间为准" />
-          <el-button type="primary" :loading="submitting" :disabled="!ready || ended" @click="handleSubmit">
-            {{ ended ? '考试已结束' : '交卷' }}
-          </el-button>
+          <div class="answer-layout__actions">
+            <el-button type="primary" :loading="submitting" :disabled="!ready || ended" @click="handleSubmit">
+              {{ ended ? '考试已结束' : '交卷' }}
+            </el-button>
+          </div>
         </aside>
       </div>
     </PageContainer>
@@ -59,7 +70,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
@@ -86,6 +97,24 @@ const serverSkewMs = ref(0)
 const remainLabel = ref('--:--')
 const submitting = ref(false)
 const ended = ref(false)
+
+const totalQuestionCount = computed(() => {
+  return [1, 2, 3].reduce((sum, type) => sum + questionsOf(type).length, 0)
+})
+
+const answeredQuestionCount = computed(() => {
+  return Object.values(answers).filter((value) => String(value || '').trim()).length
+})
+
+const answerProgressHint = computed(() => {
+  if (!totalQuestionCount.value) {
+    return '试题加载完成后会显示进度'
+  }
+  if (answeredQuestionCount.value >= totalQuestionCount.value) {
+    return '已完成全部作答，请确认后交卷'
+  }
+  return `还有 ${totalQuestionCount.value - answeredQuestionCount.value} 题未作答`
+})
 
 let saveTimer = null
 let tickTimer = null
@@ -258,14 +287,33 @@ onBeforeUnmount(() => {
   gap: 22px;
 }
 
+.q-block__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .q-block h3 {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 1.05rem;
+}
+
+.q-block__header span {
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .q-item {
   padding: 14px 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.q-index {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .q-stem {
@@ -283,11 +331,37 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  position: sticky;
+  top: 92px;
+  align-self: start;
+}
+
+.answer-layout__actions :deep(.el-button) {
+  width: 100%;
+  min-height: 44px;
 }
 
 @media (max-width: 900px) {
   .answer-layout {
     grid-template-columns: 1fr;
+  }
+
+  .answer-layout__sidebar {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .q-block__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .q-opts :deep(.el-radio-group) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 }
 </style>

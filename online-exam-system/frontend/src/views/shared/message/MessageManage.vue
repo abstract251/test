@@ -131,7 +131,7 @@
       </div>
     </template>
 
-    <el-drawer v-model="detailVisible" size="55%" :title="drawerTitle">
+    <el-drawer v-model="detailVisible" :size="drawerSize" :title="drawerTitle">
       <div class="drawer-content">
         <MessageDetailPanel :loading="detailLoading" :message="activeMessage" />
         <ReplyList
@@ -181,6 +181,7 @@ import StatusCard from '@/components/common/StatusCard.vue'
 import MessageDetailPanel from '@/components/message/MessageDetailPanel.vue'
 import ReplyList from '@/components/message/ReplyList.vue'
 import { usePagination } from '@/composables/usePagination'
+import { useViewport } from '@/composables/useViewport'
 import {
   createReply,
   deleteMessage,
@@ -208,6 +209,7 @@ const statusOptions = [
   { label: '已回复', value: 'resolved' }
 ]
 
+const { isMobileViewport } = useViewport()
 const pagination = usePagination(10)
 const loading = ref(false)
 const detailVisible = ref(false)
@@ -270,6 +272,7 @@ const latestActivityText = computed(() => {
 })
 
 const drawerTitle = computed(() => activeMessage.value?.title || '留言详情')
+const drawerSize = computed(() => (isMobileViewport.value ? '100%' : '55%'))
 
 function parseTime(value) {
   if (!value) {

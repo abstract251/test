@@ -47,7 +47,42 @@
     />
 
     <template v-else>
+      <div v-if="isMobileViewport" class="mobile-score-list">
+        <article
+          v-for="row in pagination.records"
+          :key="buildScoreKey(row)"
+          class="mobile-score-card"
+          :class="{ 'mobile-score-card--latest': buildScoreKey(row) === highlightKey }"
+        >
+          <div class="mobile-score-card__header">
+            <div>
+              <p class="mobile-score-card__eyebrow">{{ `考试编号 ${row.examCode}` }}</p>
+              <h3 class="mobile-score-card__title">{{ row.subject || '未命名考试' }}</h3>
+            </div>
+            <el-tag :type="isPassed(row) ? 'success' : 'danger'">
+              {{ isPassed(row) ? '已通过' : '未通过' }}
+            </el-tag>
+          </div>
+
+          <div class="mobile-score-card__stats">
+            <div>
+              <span>得分</span>
+              <strong>{{ formatActualScore(row) }}</strong>
+            </div>
+            <div>
+              <span>满分</span>
+              <strong>{{ formatFullScore(row) }}</strong>
+            </div>
+            <div>
+              <span>交卷日期</span>
+              <strong>{{ formatDateTime(row.answerDate, 'YYYY-MM-DD') }}</strong>
+            </div>
+          </div>
+        </article>
+      </div>
+
       <el-table
+        v-else
         v-loading="loading"
         class="score-table"
         :data="pagination.records"
@@ -106,12 +141,14 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import StatusCard from '@/components/common/StatusCard.vue'
 import { useAuthSession } from '@/composables/useAuthSession'
 import { usePagination } from '@/composables/usePagination'
+import { useViewport } from '@/composables/useViewport'
 import { getStudentScorePage, getStudentScores } from '@/api/scoreApi'
 import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
 const { session } = useAuthSession()
+const { isMobileViewport } = useViewport()
 
 const pagination = usePagination(6)
 const loading = ref(false)
@@ -394,6 +431,60 @@ onMounted(refreshScores)
   margin-top: 20px;
 }
 
+.mobile-score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mobile-score-card {
+  padding: 18px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+}
+
+.mobile-score-card--latest {
+  background: linear-gradient(135deg, rgba(255, 248, 223, 0.98), rgba(79, 175, 143, 0.12));
+}
+
+.mobile-score-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.mobile-score-card__eyebrow {
+  margin: 0 0 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.mobile-score-card__title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.mobile-score-card__stats {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  margin-top: 16px;
+}
+
+.mobile-score-card__stats span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.mobile-score-card__stats strong {
+  font-size: 16px;
+}
+
 .score-table :deep(.score-row--latest td) {
   background: rgba(255, 248, 223, 0.95) !important;
 }
@@ -406,6 +497,12 @@ onMounted(refreshScores)
 
   .latest-card__score {
     font-size: 26px;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer {
+    justify-content: center;
   }
 }
 </style>
