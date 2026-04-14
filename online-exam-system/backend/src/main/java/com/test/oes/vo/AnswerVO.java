@@ -7,7 +7,7 @@ import java.util.List;
  * 提交答案的请求体
  */
 @Data
-public class AnswerSubmitVO {
+public class AnswerVO {
     private Integer examCode;          // 考试编号
     private Integer studentId;         // 学生ID
     private List<AnswerDetail> answers; // 答案列表
