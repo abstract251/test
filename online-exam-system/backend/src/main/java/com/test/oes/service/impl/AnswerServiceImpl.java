@@ -2,8 +2,8 @@ package com.test.oes.service.impl;
 
 import com.test.oes.entity.*;
 import com.test.oes.service.*;
-import com.test.oes.vo.AnswerSubmitVO;
-import com.test.oes.vo.AnswerSubmitVO.AnswerDetail;
+import com.test.oes.vo.AnswerVO;
+import com.test.oes.vo.AnswerVO.AnswerDetail;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,14 +29,14 @@ public class AnswerServiceImpl implements AnswerService {
 
     @Override
     @Transactional
-    public Score submitAnswer(AnswerSubmitVO vo) {
+    public Score submitAnswer(AnswerVO vo) {
         Integer examCode = vo.getExamCode();
         Integer studentId = vo.getStudentId();
 
         // 1. 检查是否已经提交过该考试
         List<Score> existingScores = scoreService.findByExamCode(examCode);
         boolean alreadySubmitted = existingScores.stream()
-                .anyMatch(score -> score.getStudentId().equals(studentId));
+                .anyMatch(score -> score.getStudentId() == studentId);
         if (alreadySubmitted) {
             throw new RuntimeException("您已参加过本次考试，不能重复提交");
         }
@@ -89,8 +89,7 @@ public class AnswerServiceImpl implements AnswerService {
         // 6. 保存成绩
         Score score = new Score();
         score.setExamCode(examCode);
-        //score.setStudentId(studentId);
-        score.setStudentId(String.valueOf(studentId));
+        score.setStudentId(studentId);
         score.setSubject(subject);
         score.setPtScore(ptScore);
         score.setEtScore(obtainedScore);

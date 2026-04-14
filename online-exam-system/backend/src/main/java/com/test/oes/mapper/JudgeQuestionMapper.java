@@ -40,4 +40,7 @@ public interface JudgeQuestionMapper {
     @Select("select * from judge_question where questionId = #{questionId}")
     JudgeQuestion findByQuestionId(@Param("questionId") Integer questionId);
 
+    @Delete("delete from judge_question where questionId = #{questionId}")
+    int deleteByQuestionId(@Param("questionId") Integer questionId);
+
 }

@@ -40,4 +40,7 @@ public interface MultiQuestionMapper {
 
     @Select("select * from multi_question where questionId = #{questionId}")
     MultiQuestion findByQuestionId(@Param("questionId") Integer questionId);
+
+    @Delete("delete from multi_question where questionId = #{questionId}")
+    int deleteByQuestionId(@Param("questionId") Integer questionId);
 }

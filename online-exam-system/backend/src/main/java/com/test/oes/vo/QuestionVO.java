@@ -3,7 +3,11 @@ package com.test.oes.vo;
 import com.test.oes.entity.FillQuestion;
 import com.test.oes.entity.JudgeQuestion;
 import com.test.oes.entity.MultiQuestion;
+import lombok.Getter;
+import lombok.Setter;
 
+@Setter
+@Getter
 public class QuestionVO {
     private String type;
 
@@ -13,35 +17,4 @@ public class QuestionVO {
 
     private MultiQuestion multiQuestion;
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public FillQuestion getFillQuestion() {
-        return fillQuestion;
-    }
-
-    public void setFillQuestion(FillQuestion fillQuestion) {
-        this.fillQuestion = fillQuestion;
-    }
-
-    public JudgeQuestion getJudgeQuestion() {
-        return judgeQuestion;
-    }
-
-    public void setJudgeQuestion(JudgeQuestion judgeQuestion) {
-        this.judgeQuestion = judgeQuestion;
-    }
-
-    public MultiQuestion getMultiQuestion() {
-        return multiQuestion;
-    }
-
-    public void setMultiQuestion(MultiQuestion multiQuestion) {
-        this.multiQuestion = multiQuestion;
-    }
 }

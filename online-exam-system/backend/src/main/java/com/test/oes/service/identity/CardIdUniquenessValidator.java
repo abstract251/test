@@ -30,7 +30,7 @@ public class CardIdUniquenessValidator {
     public void validateStudentUpdate(Student student) {
         String cid = normalize(student.getCardId());
         requireNonBlank(cid);
-        int sid = parseIntId(student.getStudentId(), "学生编号");
+        int sid = requirePositiveId(student.getStudentId(), "学生编号");
         assertUniqueAmongAllRoles(cid, sid, null, null);
     }
 
@@ -43,7 +43,7 @@ public class CardIdUniquenessValidator {
     public void validateTeacherUpdate(Teacher teacher) {
         String cid = normalize(teacher.getCardId());
         requireNonBlank(cid);
-        int tid = parseIntId(teacher.getTeacherId(), "教师编号");
+        int tid = parseTeacherId(teacher.getTeacherId(), "教师编号");
         assertUniqueAmongAllRoles(cid, null, tid, null);
     }
 
@@ -93,7 +93,14 @@ public class CardIdUniquenessValidator {
         }
     }
 
-    private static int parseIntId(String raw, String label) {
+    private static int requirePositiveId(int id, String label) {
+        if (id <= 0) {
+            throw new ExamBusinessException(400, label + "无效");
+        }
+        return id;
+    }
+
+    private static int parseTeacherId(String raw, String label) {
         try {
             return Integer.parseInt(raw.trim());
         } catch (Exception e) {

@@ -20,6 +20,12 @@ public interface PaperMapper {
     @Delete("delete from paper_manage where paperId = #{paperId} and questionType = #{type} and questionId = #{questionId}")
     int delete(@Param("paperId") Integer paperId, @Param("type") Integer type, @Param("questionId") Integer questionId);
 
+    @Select("select distinct paperId from paper_manage where questionType = #{questionType} and questionId = #{questionId}")
+    List<Integer> findPaperIdsByQuestion(@Param("questionType") Integer questionType, @Param("questionId") Integer questionId);
+
+    @Delete("delete from paper_manage where questionType = #{questionType} and questionId = #{questionId}")
+    int deleteByQuestion(@Param("questionType") Integer questionType, @Param("questionId") Integer questionId);
+
     /**
      * 根据试卷id删除题目关联
      *
