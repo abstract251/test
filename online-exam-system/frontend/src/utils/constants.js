@@ -15,6 +15,21 @@ export const ROLE_LABELS = {
   [ROLES.STUDENT]: '学生'
 }
 
+export const CONSOLE_ROLE_SCOPE = {
+  [ROLES.ADMIN]: 'admin',
+  [ROLES.TEACHER]: 'teacher'
+}
+
+export function resolveConsoleScope(role) {
+  return CONSOLE_ROLE_SCOPE[role] || CONSOLE_ROLE_SCOPE[ROLES.TEACHER]
+}
+
+export function buildConsolePath(role, path = '') {
+  const basePath = `/console/${resolveConsoleScope(role)}`
+  const normalizedPath = String(path).replace(/^\/+|\/+$/g, '')
+  return normalizedPath ? `${basePath}/${normalizedPath}` : basePath
+}
+
 export const DEFAULT_PASSWORD = '123456'
 
 export const QUESTION_TYPE_OPTIONS = [
@@ -27,6 +42,8 @@ export const QUESTION_TYPE_LABELS = QUESTION_TYPE_OPTIONS.reduce((accumulator, i
   accumulator[item.value] = item.label
   return accumulator
 }, {})
+
+export const SCORE_DISTRIBUTION_LABELS = ['0-59', '60-69', '70-79', '80-89', '90-100']
 
 export const SEX_OPTIONS = [
   { value: '男', label: '男' },
@@ -60,19 +77,28 @@ export const TEACHER_TYPE_OPTIONS = ['讲师', '副教授', '教授']
 export const CONSOLE_MENU = {
   [ROLES.ADMIN]: [
     { title: '控制台', path: '/console/home', icon: 'House' },
-    { title: '教师管理', path: '/console/admin/teachers', icon: 'UserFilled' }
+    { title: '管理员管理', path: buildConsolePath(ROLES.ADMIN, 'admins'), icon: 'UserFilled' },
+    { title: '教师管理', path: buildConsolePath(ROLES.ADMIN, 'teachers'), icon: 'UserFilled' },
+    { title: '学生管理', path: buildConsolePath(ROLES.ADMIN, 'students'), icon: 'User' },
+    { title: '考试管理', path: buildConsolePath(ROLES.ADMIN, 'exams'), icon: 'Reading' },
+    { title: '全局题库管理', path: buildConsolePath(ROLES.ADMIN, 'question-bank'), icon: 'EditPen' },
+    { title: '成绩管理', path: buildConsolePath(ROLES.ADMIN, 'grades'), icon: 'Histogram' },
+    { title: '消息管理', path: buildConsolePath(ROLES.ADMIN, 'messages'), icon: 'ChatDotRound' }
   ],
   [ROLES.TEACHER]: [
     { title: '控制台', path: '/console/home', icon: 'House' },
-    { title: '学生管理', path: '/console/teacher/students', icon: 'User' },
-    { title: '考试管理', path: '/console/teacher/exams', icon: 'Reading' },
-    { title: '题库工作台', path: '/console/teacher/questions', icon: 'EditPen' },
-    { title: '成绩统计', path: '/console/teacher/grades', icon: 'Histogram' }
+    { title: '学生管理', path: buildConsolePath(ROLES.TEACHER, 'students'), icon: 'User' },
+    { title: '考试管理', path: buildConsolePath(ROLES.TEACHER, 'exams'), icon: 'Reading' },
+    { title: '题库工作台', path: buildConsolePath(ROLES.TEACHER, 'questions'), icon: 'EditPen' },
+    { title: '全局题库管理', path: buildConsolePath(ROLES.TEACHER, 'question-bank'), icon: 'EditPen' },
+    { title: '成绩管理', path: buildConsolePath(ROLES.TEACHER, 'grades'), icon: 'Histogram' },
+    { title: '消息管理', path: buildConsolePath(ROLES.TEACHER, 'messages'), icon: 'ChatDotRound' }
   ]
 }
 
 export const STUDENT_NAV_ITEMS = [
   { title: '考试中心', path: '/student/home' },
   { title: '个人资料', path: '/student/profile' },
-  { title: '我的成绩', path: '/student/scores' }
+  { title: '我的成绩', path: '/student/scores' },
+  { title: '消息中心', path: '/student/messages' }
 ]

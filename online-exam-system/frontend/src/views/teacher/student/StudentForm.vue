@@ -9,7 +9,7 @@
       <StudentFormFields :model="form" :is-edit="isEdit" />
 
       <div class="actions">
-        <el-button @click="router.push('/console/teacher/students')">取消</el-button>
+        <el-button @click="router.push(studentListPath)">取消</el-button>
         <el-button type="primary" @click="handleSubmit">
           {{ isEdit ? '保存修改' : '创建学生' }}
         </el-button>
@@ -26,12 +26,15 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StudentFormFields from '@/components/forms/StudentFormFields.vue'
 import { createStudent, getStudentById, updateStudent } from '@/api/studentApi'
-import { DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
+import { getSession } from '@/utils/auth'
+import { buildConsolePath, DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
+const consoleRole = getSession()?.role
+const studentListPath = buildConsolePath(consoleRole, 'students')
 
 const isEdit = computed(() => Boolean(route.params.studentId))
 
@@ -115,7 +118,7 @@ async function handleSubmit() {
 
     if (response.code === 200) {
       ElMessage.success(isEdit.value ? '学生信息已更新' : '学生已创建')
-      router.push('/console/teacher/students')
+      router.push(studentListPath)
       return
     }
 

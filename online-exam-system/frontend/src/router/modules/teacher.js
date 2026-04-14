@@ -101,12 +101,32 @@ export const teacherConsoleRoutes = [
   },
   {
     path: 'teacher/grades',
-    name: 'teacher-grade-placeholder',
-    component: () => import('@/views/teacher/grade/GradePlaceholder.vue'),
+    name: 'teacher-grade-center',
+    component: () => import('@/views/shared/grade/GradeCenter.vue'),
     meta: {
       requiresAuth: true,
       roles: ['1'],
-      title: '成绩统计'
+      title: '成绩管理'
+    }
+  },
+  {
+    path: 'teacher/question-bank',
+    name: 'teacher-question-bank',
+    component: () => import('@/views/shared/question/GlobalQuestionBank.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['1'],
+      title: '全局题库管理'
+    }
+  },
+  {
+    path: 'teacher/messages',
+    name: 'teacher-message-manage',
+    component: () => import('@/views/shared/message/MessageManage.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['1'],
+      title: '消息管理'
     }
   }
 ]

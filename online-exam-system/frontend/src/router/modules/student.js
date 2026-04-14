@@ -59,12 +59,22 @@ export const studentRoutes = {
     },
     {
       path: 'scores',
-      name: 'student-score-placeholder',
-      component: () => import('@/views/student/score/ScorePlaceholder.vue'),
+      name: 'student-score-list',
+      component: () => import('@/views/student/score/ScoreList.vue'),
       meta: {
         requiresAuth: true,
         roles: ['2'],
         title: '我的成绩'
+      }
+    },
+    {
+      path: 'messages',
+      name: 'student-message-center',
+      component: () => import('@/views/student/message/MessageCenter.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['2'],
+        title: '消息中心'
       }
     }
   ]

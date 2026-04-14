@@ -6,7 +6,7 @@
         :description="paperReadOnly ? '当前试卷已冻结或考试已撤销，题目不可再增删。' : '左侧为科目题库，右侧为当前试卷题目。'"
       >
         <template #actions>
-          <el-button @click="router.push('/console/teacher/exams')">返回考试列表</el-button>
+          <el-button @click="router.push(examListPath)">返回考试列表</el-button>
           <el-tooltip v-if="paperReadOnly" content="试卷已冻结或考试已撤销，不可再改题" placement="bottom">
             <span>
               <el-button type="danger" plain disabled>清空试卷</el-button>
@@ -104,14 +104,17 @@ import PaperQuestionGroup from '@/components/exam/PaperQuestionGroup.vue'
 import { getExamById } from '@/api/examApi'
 import { addPaperQuestion, clearPaper, getPaper, getPaperScore, getPracticeBySubject, removePaperQuestion } from '@/api/paperApi'
 import { usePaperBuilder } from '@/composables/usePaperBuilder'
-import { QUESTION_TYPE_OPTIONS } from '@/utils/constants'
+import { getSession } from '@/utils/auth'
+import { buildConsolePath, QUESTION_TYPE_OPTIONS } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
+const consoleRole = getSession()?.role
 const exam = ref(null)
 const paperScore = ref(0)
 const keyword = ref('')
 const operating = ref(false)
+const examListPath = buildConsolePath(consoleRole, 'exams')
 
 const paperReadOnly = computed(
   () => !!(exam.value?.paperLocked || exam.value?.revokedAt)

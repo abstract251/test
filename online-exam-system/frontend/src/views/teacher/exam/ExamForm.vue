@@ -19,7 +19,7 @@
       </div>
 
       <div v-if="!revoked" class="actions">
-        <el-button @click="router.push('/console/teacher/exams')">取消</el-button>
+        <el-button @click="router.push(examListPath)">取消</el-button>
         <el-button type="primary" @click="handleSubmit">
           {{ isEdit ? '保存修改' : '创建考试' }}
         </el-button>
@@ -37,12 +37,16 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ExamFormFields from '@/components/forms/ExamFormFields.vue'
 import { addExam, getExamById, getLatestPaperId, updateExam } from '@/api/examApi'
+import { getSession } from '@/utils/auth'
+import { buildConsolePath } from '@/utils/constants'
 import { toBackendDateTime, toPickerDateTime } from '@/utils/date'
 import { patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
+const consoleRole = getSession()?.role
+const examListPath = buildConsolePath(consoleRole, 'exams')
 
 const isEdit = computed(() => Boolean(route.params.examCode))
 
@@ -214,7 +218,7 @@ async function handleSubmit() {
 
     if (response.code === 200) {
       ElMessage.success(isEdit.value ? '考试信息已更新' : '考试已创建')
-      router.push('/console/teacher/exams')
+      router.push(examListPath)
       return
     }
 

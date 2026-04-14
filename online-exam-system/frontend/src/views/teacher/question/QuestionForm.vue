@@ -22,7 +22,7 @@
       description="未找到可编辑题目，请先在题库工作台选择“编辑”。"
       emoji="🧩"
     >
-      <el-button type="primary" @click="router.push('/console/teacher/questions')">
+      <el-button type="primary" @click="router.push(questionWorkbenchPath)">
         回到工作台
       </el-button>
     </EmptyState>
@@ -38,12 +38,15 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import QuestionFormFields from '@/components/forms/QuestionFormFields.vue'
 import { createQuestion, updateQuestion } from '@/api/questionApi'
-import { clearQuestionDraft, readQuestionDraft } from '@/utils/auth'
+import { clearQuestionDraft, getSession, readQuestionDraft } from '@/utils/auth'
+import { buildConsolePath } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
+const consoleRole = getSession()?.role
 const draft = readQuestionDraft()
-const isEdit = computed(() => route.name === 'teacher-question-edit')
+const questionWorkbenchPath = buildConsolePath(consoleRole, 'questions')
+const isEdit = computed(() => String(route.name || '').endsWith('question-edit'))
 
 const form = reactive({
   questionId: draft?.questionId || null,
@@ -123,7 +126,7 @@ async function handleSubmit() {
     ElMessage.success(isEdit.value ? '题目已更新' : '题目已创建')
     clearQuestionDraft()
     router.push({
-      path: '/console/teacher/questions',
+      path: questionWorkbenchPath,
       query: { subject: form.subject }
     })
   }
@@ -132,7 +135,7 @@ async function handleSubmit() {
 function handleCancel() {
   clearQuestionDraft()
   router.push({
-    path: '/console/teacher/questions',
+    path: questionWorkbenchPath,
     query: { subject: form.subject }
   })
 }

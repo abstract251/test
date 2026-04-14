@@ -21,7 +21,7 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
-import { EditPen, Histogram, House, Reading, User, UserFilled } from '@element-plus/icons-vue'
+import { ChatDotRound, EditPen, Histogram, House, Reading, User, UserFilled } from '@element-plus/icons-vue'
 
 defineProps({
   items: {
@@ -38,7 +38,8 @@ const iconMap = {
   UserFilled,
   Reading,
   EditPen,
-  Histogram
+  Histogram,
+  ChatDotRound
 }
 </script>
 

@@ -5,7 +5,7 @@
       description="维护考试基础信息，进入试卷编辑页后可以按科目从题库加入或移除题目。"
     >
       <template #actions>
-        <el-button type="primary" @click="router.push('/console/teacher/exams/new')">
+        <el-button type="primary" @click="router.push(createExamPath)">
           新增考试
         </el-button>
       </template>
@@ -46,11 +46,11 @@
               v-else
               link
               type="primary"
-              @click="router.push(`/console/teacher/exams/${row.examCode}/paper`)"
+              @click="openPaperBuilder(row.examCode)"
             >
               进入组卷
             </el-button>
-            <el-button link type="primary" @click="router.push(`/console/teacher/exams/${row.examCode}/edit`)">
+            <el-button link type="primary" @click="openExamEdit(row.examCode)">
               编辑
             </el-button>
             <el-tooltip
@@ -111,14 +111,17 @@ import { usePagination } from '@/composables/usePagination'
 import { deleteExam, getExamList } from '@/api/examApi'
 import { getPaper } from '@/api/paperApi'
 import { ensureQuestionMap } from '@/utils/adapters'
+import { getSession } from '@/utils/auth'
 import { formatDateTime } from '@/utils/date'
-import { QUESTION_TYPE_OPTIONS } from '@/utils/constants'
+import { buildConsolePath, QUESTION_TYPE_OPTIONS } from '@/utils/constants'
 
 const router = useRouter()
+const consoleRole = getSession()?.role
 const pagination = usePagination(10)
 const previewVisible = ref(false)
 const previewExam = ref(null)
 const previewQuestionMap = ref(ensureQuestionMap())
+const createExamPath = buildConsolePath(consoleRole, 'exams/new')
 
 const groupedPreview = computed(() =>
   QUESTION_TYPE_OPTIONS.map((item) => ({
@@ -128,6 +131,14 @@ const groupedPreview = computed(() =>
     questions: previewQuestionMap.value[item.value]
   }))
 )
+
+function openPaperBuilder(examCode) {
+  router.push(buildConsolePath(consoleRole, `exams/${examCode}/paper`))
+}
+
+function openExamEdit(examCode) {
+  router.push(buildConsolePath(consoleRole, `exams/${examCode}/edit`))
+}
 
 async function fetchExams() {
   try {
