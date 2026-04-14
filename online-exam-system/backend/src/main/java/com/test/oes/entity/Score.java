@@ -9,7 +9,7 @@ import lombok.Data;
 public class Score {
     private Integer scoreId;      // 分数编号
     private Integer examCode;     // 考试编号
-    private String studentId;     // 学号
+    private int studentId;        // 学号
     private String subject;       // 课程名称
     private Integer ptScore;      // 是否及格 (0: 不及格, 1: 及格)
     private Integer etScore;      // 学生成绩
@@ -21,7 +21,7 @@ public class Score {
         return "Score{" +
                 "scoreId=" + scoreId +
                 ", examCode=" + examCode +
-                ", studentId='" + studentId + '\'' +
+                ", studentId=" + studentId +
                 ", subject='" + subject + '\'' +
                 ", ptScore=" + ptScore +
                 ", etScore=" + etScore +

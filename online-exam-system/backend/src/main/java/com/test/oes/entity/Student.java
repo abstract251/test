@@ -7,7 +7,7 @@ import lombok.*;
 @AllArgsConstructor
 //学生实体类
 public class Student {
-    private String studentId;
+    private int studentId;
 
     private String studentName;
 

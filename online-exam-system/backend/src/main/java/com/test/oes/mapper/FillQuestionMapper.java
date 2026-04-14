@@ -41,4 +41,7 @@ public interface FillQuestionMapper {
     @Select("select * from fill_question where questionId = #{questionId}")
     FillQuestion findByQuestionId(@Param("questionId") Integer questionId);
 
+    @Delete("delete from fill_question where questionId = #{questionId}")
+    int deleteByQuestionId(@Param("questionId") Integer questionId);
+
 }

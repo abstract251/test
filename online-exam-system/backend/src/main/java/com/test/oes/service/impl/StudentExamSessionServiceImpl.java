@@ -143,7 +143,7 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
 
         Score score = new Score();
         score.setExamCode(examCode);
-        score.setStudentId(String.valueOf(sid));
+        score.setStudentId(sid);
         score.setSubject(exam.getSource() == null ? "" : exam.getSource());
         score.setPtScore(pass);
         score.setEtScore(etScore);
@@ -196,11 +196,11 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
     }
 
     private int parseStudentId(Student student) {
-        try {
-            return Integer.parseInt(student.getStudentId().trim());
-        } catch (Exception e) {
+        int studentId = student.getStudentId();
+        if (studentId <= 0) {
             throw new ExamBusinessException(500, "学生账号异常");
         }
+        return studentId;
     }
 
     private Map<String, Object> buildStartPayload(ExamAttempt attempt, ExamManage exam, LocalDateTime now,
