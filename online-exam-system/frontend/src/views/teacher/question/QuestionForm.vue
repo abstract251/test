@@ -9,7 +9,7 @@
       <QuestionFormFields :model="form" :is-edit="isEdit" />
 
       <div class="actions">
-        <el-button @click="handleCancel">返回工作台</el-button>
+        <el-button @click="handleCancel">{{ backActionLabel }}</el-button>
         <el-button type="primary" @click="handleSubmit">
           {{ isEdit ? '保存题目' : '创建题目' }}
         </el-button>
@@ -19,11 +19,11 @@
 
   <PageContainer v-else>
     <EmptyState
-      description="未找到可编辑题目，请先在题库工作台选择“编辑”。"
+      description="未找到可编辑题目，请从题库列表重新进入。"
       emoji="🧩"
     >
-      <el-button type="primary" @click="router.push(questionWorkbenchPath)">
-        回到工作台
+      <el-button type="primary" @click="navigateBack">
+        {{ backActionLabel }}
       </el-button>
     </EmptyState>
   </PageContainer>
@@ -47,6 +47,10 @@ const consoleRole = getSession()?.role
 const draft = readQuestionDraft()
 const questionWorkbenchPath = buildConsolePath(consoleRole, 'questions')
 const isEdit = computed(() => String(route.name || '').endsWith('question-edit'))
+const returnToPath = computed(() => {
+  return typeof route.query.returnTo === 'string' ? route.query.returnTo : ''
+})
+const backActionLabel = computed(() => (returnToPath.value ? '返回题库列表' : '返回工作台'))
 
 const form = reactive({
   questionId: draft?.questionId || null,
@@ -65,6 +69,29 @@ const form = reactive({
 })
 
 const ready = computed(() => !isEdit.value || Boolean(draft))
+
+function buildWorkbenchTarget() {
+  const query = {}
+  if (form.subject.trim()) {
+    query.subject = form.subject.trim()
+  }
+
+  return {
+    path: questionWorkbenchPath,
+    query
+  }
+}
+
+function navigateBack() {
+  clearQuestionDraft()
+
+  if (returnToPath.value) {
+    router.push(returnToPath.value)
+    return
+  }
+
+  router.push(buildWorkbenchTarget())
+}
 
 function buildPayload() {
   const basePayload = {
@@ -124,20 +151,12 @@ async function handleSubmit() {
 
   if (response.code === 200) {
     ElMessage.success(isEdit.value ? '题目已更新' : '题目已创建')
-    clearQuestionDraft()
-    router.push({
-      path: questionWorkbenchPath,
-      query: { subject: form.subject }
-    })
+    navigateBack()
   }
 }
 
 function handleCancel() {
-  clearQuestionDraft()
-  router.push({
-    path: questionWorkbenchPath,
-    query: { subject: form.subject }
-  })
+  navigateBack()
 }
 </script>
 
