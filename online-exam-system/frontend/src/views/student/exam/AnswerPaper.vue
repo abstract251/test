@@ -207,7 +207,15 @@ async function handleSubmit() {
     const res = await submitStudentExamSession(route.params.examCode)
     if (res.code === 200 && res.data) {
       ElMessage.success(`交卷成功，得分 ${res.data.etScore} / ${res.data.maxScore}`)
-      router.push('/student/scores')
+      router.push({
+        path: '/student/scores',
+        query: {
+          submitted: '1',
+          examCode: String(route.params.examCode),
+          score: String(res.data.etScore ?? ''),
+          maxScore: String(res.data.maxScore ?? '')
+        }
+      })
       return
     }
     ElMessage.error(res.message || '交卷失败')

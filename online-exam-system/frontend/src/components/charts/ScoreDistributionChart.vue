@@ -45,7 +45,7 @@ const props = defineProps({
 const distributionMap = computed(() => {
   if (Array.isArray(props.distribution)) {
     return props.distribution.reduce((accumulator, item) => {
-      const key = item?.label || item?.range || item?.scoreRange
+      const key = item?.label || item?.range || item?.scoreRange || item?.scoreSegment
       if (!key) {
         return accumulator
       }
