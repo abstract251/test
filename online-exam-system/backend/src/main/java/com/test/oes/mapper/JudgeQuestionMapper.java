@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
-// 判断题 (TODO:未修改)
+// 判断题
 @Mapper
 public interface JudgeQuestionMapper {
 
@@ -36,5 +36,8 @@ public interface JudgeQuestionMapper {
 
     @Select("select * from judge_question  where subject=#{subject}")
     List<JudgeQuestion> findQuestionBySubject(@Param("subject") String subject);
+
+    @Select("select * from judge_question where questionId = #{questionId}")
+    JudgeQuestion findByQuestionId(@Param("questionId") Integer questionId);
 
 }

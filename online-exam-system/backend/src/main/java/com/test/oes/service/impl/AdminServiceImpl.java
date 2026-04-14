@@ -5,6 +5,7 @@ import com.test.oes.entity.Teacher;
 import com.test.oes.mapper.AdminMapper;
 import com.test.oes.mapper.TeacherMapper;
 import com.test.oes.service.AdminService;
+import com.test.oes.service.identity.CardIdUniquenessValidator;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,10 +15,13 @@ public class AdminServiceImpl implements AdminService {
 
     private final AdminMapper adminMapper;
     private final TeacherMapper teacherMapper;
+    private final CardIdUniquenessValidator cardIdUniquenessValidator;
 
-    public AdminServiceImpl(AdminMapper adminMapper, TeacherMapper teacherMapper) {
+    public AdminServiceImpl(AdminMapper adminMapper, TeacherMapper teacherMapper,
+                            CardIdUniquenessValidator cardIdUniquenessValidator) {
         this.adminMapper = adminMapper;
         this.teacherMapper = teacherMapper;
+        this.cardIdUniquenessValidator = cardIdUniquenessValidator;
     }
 
     @Override
@@ -37,11 +41,13 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public int update(Admin admin) {
+        cardIdUniquenessValidator.validateAdminUpdate(admin);
         return adminMapper.update(admin);
     }
 
     @Override
     public int add(Admin admin) {
+        cardIdUniquenessValidator.validateNewAdmin(admin);
         return adminMapper.add(admin);
     }
 

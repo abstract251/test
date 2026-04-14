@@ -34,4 +34,11 @@ public interface TeacherMapper {
     @Insert("insert into teacher(teacherName,sex,tel,email,pwd,cardId,role,type,institute) " +
             "values(#{teacherName},#{sex},#{tel},#{email},#{pwd},#{cardId},#{role},#{type},#{institute})")
     int add(Teacher teacher);
+
+    @Select("SELECT COUNT(*) FROM teacher WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId <> ''")
+    int countByCardId(@Param("cid") String cid);
+
+    @Select("SELECT COUNT(*) FROM teacher WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId <> '' "
+            + "AND teacherId <> #{teacherId}")
+    int countByCardIdExcludingTeacher(@Param("cid") String cid, @Param("teacherId") int teacherId);
 }

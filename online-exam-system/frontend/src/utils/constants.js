@@ -52,7 +52,7 @@ export const EXAM_TYPE_OPTIONS = [
 
 export const TERM_OPTIONS = ['1', '2']
 export const LEVEL_OPTIONS = ['基础', '中等', '提高']
-export const INSTITUTE_OPTIONS = ['计算机学院', '软件学院', '信息工程学院']
+export const INSTITUTE_OPTIONS = ['计算机学院', '软件工程学院', '信息工程学院']
 export const MAJOR_OPTIONS = ['软件工程', '计算机科学与技术', '信息安全', '网络工程']
 export const GRADE_OPTIONS = ['2022', '2023', '2024', '2025', '2026']
 export const TEACHER_TYPE_OPTIONS = ['讲师', '副教授', '教授']
