@@ -1,17 +1,17 @@
 <template>
   <PageContainer>
     <PageHeader
-      :title="isEdit ? '编辑学生' : '新增学生'"
-      description="学生账号默认密码为 123456，可按需调整。"
+      :title="isEdit ? '编辑管理员' : '新增管理员'"
+      :description="isEdit ? '调整管理员信息并保存。' : '填写管理员基础信息后保存，编号会由系统自动生成。'"
     />
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-      <StudentFormFields :model="form" :is-edit="isEdit" />
+      <AdminFormFields :model="form" :is-edit="isEdit" />
 
       <div class="actions">
-        <el-button @click="router.push(studentListPath)">取消</el-button>
+        <el-button @click="router.push(adminListPath)">取消</el-button>
         <el-button type="primary" @click="handleSubmit">
-          {{ isEdit ? '保存修改' : '创建学生' }}
+          {{ isEdit ? '保存修改' : '创建管理员' }}
         </el-button>
       </div>
     </el-form>
@@ -24,8 +24,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import StudentFormFields from '@/components/forms/StudentFormFields.vue'
-import { createStudent, getStudentById, updateStudent } from '@/api/studentApi'
+import AdminFormFields from '@/components/forms/AdminFormFields.vue'
+import { createAdmin, getAdminById, updateAdmin } from '@/api/adminApi'
 import { getSession } from '@/utils/auth'
 import { buildConsolePath, DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
@@ -34,37 +34,26 @@ const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
 const consoleRole = getSession()?.role
-const studentListPath = buildConsolePath(consoleRole, 'students')
+const adminListPath = buildConsolePath(consoleRole, 'admins')
 
-const isEdit = computed(() => Boolean(route.params.studentId))
+const isEdit = computed(() => Boolean(route.params.adminId))
 
 const form = reactive({
-  studentId: '',
-  studentName: '',
-  grade: '',
-  major: '',
-  clazz: '',
-  institute: '',
+  adminId: '',
+  adminName: '',
+  sex: '男',
   tel: '',
   email: '',
   pwd: DEFAULT_PASSWORD,
   cardId: '',
-  sex: '男',
-  role: '2'
+  role: '0'
 })
 
 const rules = {
-  studentName: [
-    requiredRule('请输入学生姓名'),
+  adminName: [
+    requiredRule('请输入管理员姓名'),
     patternRule(/^.{2,20}$/, '姓名长度需为 2-20 个字符')
   ],
-  grade: [requiredRule('请选择或输入年级', 'change')],
-  major: [requiredRule('请选择或输入专业', 'change')],
-  clazz: [
-    requiredRule('请输入班级'),
-    patternRule(/^.{1,20}$/, '班级长度不能超过 20 个字符')
-  ],
-  institute: [requiredRule('请选择或输入学院', 'change')],
   sex: [requiredRule('请选择性别', 'change')],
   tel: [
     requiredRule('请输入手机号'),
@@ -84,13 +73,13 @@ const rules = {
   ]
 }
 
-async function fetchStudent() {
+async function fetchAdmin() {
   if (!isEdit.value) {
     return
   }
 
   try {
-    const response = await getStudentById(route.params.studentId)
+    const response = await getAdminById(route.params.adminId)
     if (response.code === 200 && response.data) {
       Object.assign(form, {
         ...response.data,
@@ -98,9 +87,9 @@ async function fetchStudent() {
       })
       return
     }
-    ElMessage.error(response.message || '加载学生信息失败')
+    ElMessage.error(response.message || '加载管理员信息失败')
   } catch (error) {
-    ElMessage.error('加载学生信息失败，请稍后重试')
+    ElMessage.error('加载管理员信息失败，请稍后重试')
   }
 }
 
@@ -111,24 +100,29 @@ async function handleSubmit() {
   }
 
   try {
-    const payload = { ...form, role: '2', sex: normalizeSex(form.sex) }
+    const payload = {
+      ...form,
+      role: '0',
+      sex: normalizeSex(form.sex)
+    }
     const response = isEdit.value
-      ? await updateStudent(payload)
-      : await createStudent(payload)
+      ? await updateAdmin(route.params.adminId, payload)
+      : await createAdmin(payload)
 
     if (response.code === 200) {
-      ElMessage.success(isEdit.value ? '学生信息已更新' : '学生已创建')
-      router.push(studentListPath)
+      ElMessage.success(isEdit.value ? '管理员信息已更新' : '管理员已创建')
+      router.push(adminListPath)
       return
     }
 
     ElMessage.error(response.message || '保存失败，请检查后重试')
   } catch (error) {
-    ElMessage.error('保存失败，请稍后重试')
+    const message = error?.response?.data?.message
+    ElMessage.error(message || '保存失败，请稍后重试')
   }
 }
 
-onMounted(fetchStudent)
+onMounted(fetchAdmin)
 </script>
 
 <style scoped>

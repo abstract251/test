@@ -5,7 +5,7 @@
       description="支持按学号、姓名、年级、学院、专业、班级和手机号筛选学生。"
     >
       <template #actions>
-        <el-button type="primary" @click="router.push('/console/teacher/students/new')">
+        <el-button type="primary" @click="router.push(createStudentPath)">
           新增学生
         </el-button>
       </template>
@@ -51,7 +51,7 @@
       <el-table-column fixed="right" label="操作" width="180">
         <template #default="{ row }">
           <el-space>
-            <el-button link type="primary" @click="router.push(`/console/teacher/students/${row.studentId}/edit`)">
+            <el-button link type="primary" @click="openStudentEdit(row.studentId)">
               编辑
             </el-button>
             <el-button link type="danger" @click="handleDelete(row.studentId)">
@@ -84,9 +84,11 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { usePagination } from '@/composables/usePagination'
 import { deleteStudent, getStudentPage } from '@/api/studentApi'
-import { normalizeSex } from '@/utils/constants'
+import { getSession } from '@/utils/auth'
+import { buildConsolePath, normalizeSex } from '@/utils/constants'
 
 const router = useRouter()
+const consoleRole = getSession()?.role
 const pagination = usePagination(6)
 const filters = reactive({
   studentId: '',
@@ -97,9 +99,14 @@ const filters = reactive({
   major: '',
   clazz: ''
 })
+const createStudentPath = buildConsolePath(consoleRole, 'students/new')
 
 function formatSexDisplay(row) {
   return normalizeSex(row.sex, '-')
+}
+
+function openStudentEdit(studentId) {
+  router.push(buildConsolePath(consoleRole, `students/${studentId}/edit`))
 }
 
 async function fetchStudents() {

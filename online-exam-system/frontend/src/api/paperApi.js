@@ -22,6 +22,14 @@ export function addPaperQuestion(data) {
   })
 }
 
+export function autoGeneratePaper(data) {
+  return request({
+    url: '/item',
+    method: 'post',
+    data
+  })
+}
+
 export function removePaperQuestion(paperId, type, questionId) {
   return request({
     url: `/paper/delete/${paperId}/${type}/${questionId}`,

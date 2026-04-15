@@ -7,7 +7,7 @@
       <template #actions>
         <el-button
           type="primary"
-          @click="router.push({ path: '/console/teacher/questions/new', query: { subject: subjectInput } })"
+          @click="router.push({ path: createQuestionPath, query: { subject: subjectInput } })"
         >
           新增题目
         </el-button>
@@ -62,11 +62,12 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { getPracticeBySubject } from '@/api/paperApi'
 import { flattenQuestionMap } from '@/utils/adapters'
-import { saveQuestionDraft } from '@/utils/auth'
-import { QUESTION_TYPE_OPTIONS } from '@/utils/constants'
+import { getSession, saveQuestionDraft } from '@/utils/auth'
+import { buildConsolePath, QUESTION_TYPE_OPTIONS } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
+const consoleRole = getSession()?.role
 
 const subjectInput = ref('')
 const keyword = ref('')
@@ -74,6 +75,8 @@ const section = ref('')
 const typeFilter = ref(null)
 const loaded = ref(false)
 const questions = ref([])
+const createQuestionPath = buildConsolePath(consoleRole, 'questions/new')
+const questionEditPath = buildConsolePath(consoleRole, 'questions/edit')
 
 const typeOptions = QUESTION_TYPE_OPTIONS
 
@@ -103,7 +106,7 @@ async function loadQuestions() {
 
 function handleEdit(row) {
   saveQuestionDraft(row)
-  router.push('/console/teacher/questions/edit')
+  router.push(questionEditPath)
 }
 
 function resetFilters() {
