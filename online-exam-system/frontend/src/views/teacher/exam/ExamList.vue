@@ -174,11 +174,11 @@ import { getPaper } from '@/api/paperApi'
 import { ensureQuestionMap } from '@/utils/adapters'
 import { getSession } from '@/utils/auth'
 import { formatDateTime } from '@/utils/date'
-import { buildConsolePath, QUESTION_TYPE_OPTIONS, ROLES } from '@/utils/constants'
+import { AUTH_ROLES, buildConsolePath, QUESTION_TYPE_OPTIONS } from '@/utils/constants'
 
 const router = useRouter()
-const consoleRole = getSession()?.role
-const isAdminConsole = consoleRole === ROLES.ADMIN
+const consoleRole = getSession()?.authRole
+const isAdminConsole = consoleRole === AUTH_ROLES.ADMIN
 const pagination = usePagination(10)
 const loadingList = ref(false)
 const revokingExamCode = ref(null)

@@ -178,7 +178,7 @@ import { buildConsolePath, normalizeSex } from '@/utils/constants'
 
 const router = useRouter()
 const { session } = useAuthSession()
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 const createAdminPath = buildConsolePath(consoleRole, 'admins/new')
 
 const loadingList = ref(false)

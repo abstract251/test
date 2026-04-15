@@ -37,7 +37,7 @@ const route = useRoute()
 const router = useRouter()
 const { session, syncSession } = useAuthSession()
 
-const menuItems = computed(() => CONSOLE_MENU[session.value?.role] || [])
+const menuItems = computed(() => CONSOLE_MENU[session.value?.authRole] || [])
 
 async function handleLogout() {
   try {

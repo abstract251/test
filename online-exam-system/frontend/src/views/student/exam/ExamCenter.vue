@@ -7,34 +7,44 @@
       />
 
       <div class="student-page__summary">
-        <StatusCard label="匹配到的考试" :value="filteredExams.length" hint="根据你的专业和年级自动筛选" />
-        <StatusCard label="当前身份" :value="session?.userName || '--'" hint="如需修改个人资料，请进入个人资料页" />
+        <StatusCard label="匹配到的考试" :value="profileReady ? filteredExams.length : '--'" hint="根据你的专业和年级自动筛选" />
+        <StatusCard label="当前身份" :value="session?.displayName || session?.userName || '--'" hint="如需修改个人资料，请进入个人资料页" />
       </div>
 
-      <div class="toolbar">
-        <el-input v-model="keyword" placeholder="按科目、说明、专业搜索" clearable />
-      </div>
-
-      <EmptyState
-        v-if="!filteredExams.length"
-        description="当前没有匹配到考试，可能是还未发布或筛选条件不匹配。"
-        emoji="🪴"
+      <el-alert
+        v-if="!profileReady"
+        title="正在加载当前学生资料，用于筛选可参加考试"
+        type="info"
+        show-icon
+        :closable="false"
       />
 
-      <div v-else class="exam-grid">
-        <ExamCard
-          v-for="item in filteredExams"
-          :key="item.examCode"
-          :exam="item"
-          @select="router.push(`/student/exams/${item.examCode}`)"
+      <template v-else>
+        <div class="toolbar">
+          <el-input v-model="keyword" placeholder="按科目、说明、专业搜索" clearable />
+        </div>
+
+        <EmptyState
+          v-if="!filteredExams.length"
+          description="当前没有匹配到考试，可能是还未发布或筛选条件不匹配。"
+          emoji="📓"
         />
-      </div>
+
+        <div v-else class="exam-grid">
+          <ExamCard
+            v-for="item in filteredExams"
+            :key="item.examCode"
+            :exam="item"
+            @select="router.push(`/student/exams/${item.examCode}`)"
+          />
+        </div>
+      </template>
     </PageContainer>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -49,6 +59,11 @@ const router = useRouter()
 const { session } = useAuthSession()
 const exams = ref([])
 const keyword = ref('')
+
+const profileReady = computed(() => {
+  const rawUser = session.value?.rawUser || {}
+  return Boolean(rawUser.grade || rawUser.major || rawUser.institute)
+})
 
 const filteredExams = useStudentExamFilter(exams, session, keyword)
 
@@ -77,7 +92,7 @@ onMounted(fetchExams)
 }
 
 .toolbar {
-  margin-bottom: 18px;
+  margin: 18px 0;
 }
 
 .exam-grid {

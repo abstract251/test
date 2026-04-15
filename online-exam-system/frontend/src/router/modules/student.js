@@ -1,9 +1,11 @@
+import { AUTH_ROLES } from '@/utils/constants'
+
 export const studentRoutes = {
   path: '/student',
   component: () => import('@/layout/StudentLayout.vue'),
   meta: {
     requiresAuth: true,
-    roles: ['2']
+    roles: [AUTH_ROLES.STUDENT]
   },
   redirect: '/student/home',
   children: [
@@ -13,7 +15,7 @@ export const studentRoutes = {
       component: () => import('@/views/student/exam/ExamCenter.vue'),
       meta: {
         requiresAuth: true,
-        roles: ['2'],
+        roles: [AUTH_ROLES.STUDENT],
         title: '考试中心'
       }
     },
@@ -23,7 +25,7 @@ export const studentRoutes = {
       component: () => import('@/views/student/exam/ExamDetail.vue'),
       meta: {
         requiresAuth: true,
-        roles: ['2'],
+        roles: [AUTH_ROLES.STUDENT],
         title: '考试详情'
       }
     },
@@ -33,7 +35,7 @@ export const studentRoutes = {
       component: () => import('@/views/student/exam/AnswerPaper.vue'),
       meta: {
         requiresAuth: true,
-        roles: ['2'],
+        roles: [AUTH_ROLES.STUDENT],
         title: '在线答题'
       }
     },
@@ -43,7 +45,7 @@ export const studentRoutes = {
       component: () => import('@/views/student/profile/Profile.vue'),
       meta: {
         requiresAuth: true,
-        roles: ['2'],
+        roles: [AUTH_ROLES.STUDENT],
         title: '个人资料'
       }
     },
@@ -53,7 +55,7 @@ export const studentRoutes = {
       component: () => import('@/views/student/profile/Password.vue'),
       meta: {
         requiresAuth: true,
-        roles: ['2'],
+        roles: [AUTH_ROLES.STUDENT],
         title: '修改密码'
       }
     },
@@ -63,7 +65,7 @@ export const studentRoutes = {
       component: () => import('@/views/student/score/ScoreList.vue'),
       meta: {
         requiresAuth: true,
-        roles: ['2'],
+        roles: [AUTH_ROLES.STUDENT],
         title: '我的成绩'
       }
     },
@@ -73,7 +75,7 @@ export const studentRoutes = {
       component: () => import('@/views/student/message/MessageCenter.vue'),
       meta: {
         requiresAuth: true,
-        roles: ['2'],
+        roles: [AUTH_ROLES.STUDENT],
         title: '消息中心'
       }
     }

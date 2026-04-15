@@ -35,6 +35,11 @@ const form = reactive({
 })
 
 async function handleSubmit() {
+  if (!session.value?.userId) {
+    ElMessage.error('当前登录信息缺失，请重新登录')
+    return
+  }
+
   if (!form.password.trim()) {
     ElMessage.warning('请输入新密码')
     return
@@ -54,7 +59,10 @@ async function handleSubmit() {
     ElMessage.success('密码已更新')
     form.password = ''
     form.confirmPassword = ''
+    return
   }
+
+  ElMessage.error(response.message || '密码更新失败')
 }
 </script>
 

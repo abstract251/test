@@ -90,7 +90,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { Lock, School, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { login } from '@/api/authApi'
-import { setSessionFromAuthResponse, resolveHomePath } from '@/utils/auth'
+import {
+  resolveHomePath,
+  setSessionFromAuthResponse,
+  updateSessionRawUser
+} from '@/utils/auth'
+import { getStudentProfile } from '@/api/profileApi'
 import { AUTH_ROLES, AUTH_ROLE_OPTIONS } from '@/utils/constants'
 
 const route = useRoute()
@@ -144,6 +149,13 @@ async function handleLogin() {
     if (!session) {
       ElMessage.error('登录成功，但会话初始化失败，请检查认证返回结构')
       return
+    }
+
+    if (session.authRole === AUTH_ROLES.STUDENT) {
+      const profileResponse = await getStudentProfile(session.userId)
+      if (profileResponse?.code === 200 && profileResponse?.data) {
+        updateSessionRawUser(profileResponse.data)
+      }
     }
 
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''

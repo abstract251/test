@@ -67,7 +67,7 @@ import { buildConsolePath, QUESTION_TYPE_OPTIONS } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 
 const subjectInput = ref('')
 const keyword = ref('')

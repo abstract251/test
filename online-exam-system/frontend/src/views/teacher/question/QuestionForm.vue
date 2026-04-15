@@ -43,7 +43,7 @@ import { buildConsolePath } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 const draft = readQuestionDraft()
 const questionWorkbenchPath = buildConsolePath(consoleRole, 'questions')
 const isEdit = computed(() => String(route.name || '').endsWith('question-edit'))

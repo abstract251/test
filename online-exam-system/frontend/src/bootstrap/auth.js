@@ -1,5 +1,12 @@
 import { getCurrentUser } from '@/api/authApi'
-import { clearSession, getSession, mergeCurrentUser } from '@/utils/auth'
+import { getStudentProfile } from '@/api/profileApi'
+import {
+  clearSession,
+  getSession,
+  mergeCurrentUser,
+  updateSessionRawUser
+} from '@/utils/auth'
+import { AUTH_ROLES } from '@/utils/constants'
 
 export async function restoreAuthSession() {
   const session = getSession()
@@ -15,7 +22,20 @@ export async function restoreAuthSession() {
       return null
     }
 
-    return mergeCurrentUser(response.data)
+    const nextSession = mergeCurrentUser(response.data)
+    if (!nextSession) {
+      clearSession()
+      return null
+    }
+
+    if (nextSession.authRole === AUTH_ROLES.STUDENT) {
+      const profileResponse = await getStudentProfile(nextSession.userId)
+      if (profileResponse?.code === 200 && profileResponse?.data) {
+        updateSessionRawUser(profileResponse.data)
+      }
+    }
+
+    return getSession()
   } catch (error) {
     clearSession()
     return null
