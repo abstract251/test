@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+  HTML 模板（单页应用唯一入口页面）
+
+  Vue CLI 构建时会自动把打包后的 JS/CSS 注入到本文件中的 <div id="app"> 内。
+  开发时 npm run serve 同样使用该模板作为页面骨架。
+-->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- 移动端视口：适配不同屏幕宽度 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+    <!-- 标题来自 package.json 的 name 或 vue.config.js 中可配置 -->
+    <title>在线考试系统</title>
+  </head>
+  <body>
+    <!-- 未启用 JavaScript 时的提示（爬虫/极简浏览器） -->
+    <noscript>
+      <strong>请启用 JavaScript 后访问本应用。</strong>
+    </noscript>
+    <!-- Vue 应用挂载点：与 src/main.js 中的 app.mount('#app') 对应 -->
+    <div id="app"></div>
+  </body>
+</html>

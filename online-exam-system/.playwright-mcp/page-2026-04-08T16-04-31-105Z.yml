@@ -1,0 +1,841 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e8]
+      - generic [ref=e12]:
+        - generic [ref=e13]: 在线考试管理台
+        - generic [ref=e14]: 试卷编辑
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: 教师
+        - strong [ref=e18]: 张小风
+      - button "账户操作" [ref=e20] [cursor=pointer]:
+        - text: 账户操作
+        - img [ref=e22]
+  - generic [ref=e24]:
+    - complementary [ref=e25]:
+      - menubar [ref=e26]:
+        - menuitem "控制台" [ref=e27] [cursor=pointer]:
+          - img [ref=e29]
+          - generic [ref=e31]: 控制台
+        - menuitem "学生管理" [ref=e32] [cursor=pointer]:
+          - img [ref=e34]
+          - generic [ref=e36]: 学生管理
+        - menuitem "考试管理" [ref=e37] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 考试管理
+        - menuitem "题库工作台" [ref=e43] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e47]: 题库工作台
+        - menuitem "成绩统计" [ref=e48] [cursor=pointer]:
+          - img [ref=e50]
+          - generic [ref=e52]: 成绩统计
+    - main [ref=e53]:
+      - navigation "Breadcrumb" [ref=e55]:
+        - generic [ref=e56]:
+          - link "后台" [ref=e57]
+          - text: /
+        - link "试卷编辑" [ref=e284]
+      - generic [ref=e285]:
+        - generic [ref=e286]:
+          - generic [ref=e287]:
+            - generic [ref=e288]:
+              - heading "试卷编辑" [level=1] [ref=e289]
+              - paragraph [ref=e290]: 左侧为当前科目题库，右侧为已加入试卷的题目。题目分值以当前后端规则为准。
+            - generic [ref=e291]:
+              - button "返回考试列表" [ref=e292] [cursor=pointer]:
+                - generic [ref=e293]: 返回考试列表
+              - button "清空试卷" [ref=e294] [cursor=pointer]:
+                - generic [ref=e295]: 清空试卷
+          - generic [ref=e296]:
+            - generic [ref=e297]:
+              - generic [ref=e298]:
+                - generic [ref=e299]: 科目
+                - strong [ref=e300]: 计算机网络
+              - generic [ref=e301]:
+                - generic [ref=e302]: 考试时间
+                - strong [ref=e303]: 2023-03-21 00:00
+              - generic [ref=e304]:
+                - generic [ref=e305]: 时长
+                - strong [ref=e306]: 90 分钟
+              - generic [ref=e307]:
+                - generic [ref=e308]: 总分
+                - strong [ref=e309]: 86 分
+              - generic [ref=e310]:
+                - generic [ref=e311]: 年级 / 专业
+                - strong [ref=e312]: 2023 / 计算机科学与技术
+              - generic [ref=e313]:
+                - generic [ref=e314]: 学院
+                - strong [ref=e315]: 软件工程学院
+            - alert [ref=e316]:
+              - img [ref=e318]
+              - generic [ref=e321]: 快乐千万条，学习第一条，平时不努力，考试两行泪。
+          - generic [ref=e322]:
+            - article [ref=e323]:
+              - text: 题库题量
+              - strong [ref=e324]: "73"
+              - paragraph [ref=e325]: 按当前考试科目加载
+            - article [ref=e326]:
+              - text: 已选题量
+              - strong [ref=e327]: "43"
+              - paragraph [ref=e328]: 每次增删题后立即刷新
+            - article [ref=e329]:
+              - text: 试卷总分
+              - strong [ref=e330]: "86"
+              - paragraph [ref=e331]: 当前后端规则为总题数乘以 2 分
+          - textbox "按题干或章节筛选当前页面题目" [ref=e334]
+        - generic [ref=e335]:
+          - generic [ref=e336]:
+            - generic [ref=e337]:
+              - generic [ref=e338]:
+                - heading "科目题库" [level=2] [ref=e339]
+                - paragraph [ref=e340]: "来自 /practice/{source}，可直接加入当前试卷。"
+              - generic [ref=e341]: 73 题
+            - generic [ref=e342]:
+              - generic [ref=e343]:
+                - generic [ref=e344]:
+                  - generic [ref=e345]:
+                    - heading "选择题" [level=3] [ref=e346]
+                    - paragraph [ref=e347]: 科目题库中的选择题
+                  - generic [ref=e348]: 31 题
+                - generic [ref=e349]:
+                  - article [ref=e350]:
+                    - generic [ref=e351]:
+                      - strong [ref=e352]: DNS 服务器和DHCP服务器的作用是什么（）
+                      - paragraph [ref=e353]: 应用层2
+                    - button "加入试卷" [disabled] [ref=e354]:
+                      - generic [ref=e355]: 加入试卷
+                  - article [ref=e356]:
+                    - generic [ref=e357]:
+                      - strong [ref=e358]: HTTP协议通常使用什么协议进行传输（）
+                      - paragraph [ref=e359]: 应用层2
+                    - button "加入试卷" [ref=e360] [cursor=pointer]:
+                      - generic [ref=e361]: 加入试卷
+                  - article [ref=e362]:
+                    - generic [ref=e363]:
+                      - strong [ref=e364]: 查看DNS缓存记录的命令（）
+                      - paragraph [ref=e365]: 应用层3
+                    - button "加入试卷" [disabled] [ref=e366]:
+                      - generic [ref=e367]: 加入试卷
+                  - article [ref=e368]:
+                    - generic [ref=e369]:
+                      - strong [ref=e370]: DHCP( )报文的目的IP地址为255.255.255.255
+                      - paragraph [ref=e371]: 应用层2
+                    - button "加入试卷" [ref=e372] [cursor=pointer]:
+                      - generic [ref=e373]: 加入试卷
+                  - article [ref=e374]:
+                    - generic [ref=e375]:
+                      - strong [ref=e376]: 下列地址中，（ ）不是DHCP服务器分配的IP地址
+                      - paragraph [ref=e377]: 应用层2
+                    - button "加入试卷" [ref=e378] [cursor=pointer]:
+                      - generic [ref=e379]: 加入试卷
+                  - article [ref=e380]:
+                    - generic [ref=e381]:
+                      - strong [ref=e382]: DHCP通常可以为客户端自动配置哪些网络参数（）
+                      - paragraph [ref=e383]: 应用层2
+                    - button "加入试卷" [disabled] [ref=e384]:
+                      - generic [ref=e385]: 加入试卷
+                  - article [ref=e386]:
+                    - generic [ref=e387]:
+                      - strong [ref=e388]: DNS服务器在名称解析过程中正确的查询顺序为（）
+                      - paragraph [ref=e389]: 应用层3
+                    - button "加入试卷" [ref=e390] [cursor=pointer]:
+                      - generic [ref=e391]: 加入试卷
+                  - article [ref=e392]:
+                    - generic [ref=e393]:
+                      - strong [ref=e394]: 在TCP/IP协议中，序号小于（ ）的端口称为熟知端口(well-known port)。
+                      - paragraph [ref=e395]: 传输层1
+                    - button "加入试卷" [disabled] [ref=e396]:
+                      - generic [ref=e397]: 加入试卷
+                  - article [ref=e398]:
+                    - generic [ref=e399]:
+                      - strong [ref=e400]: 在Internet上用TCP/IP播放视频，想用传输层的最快协议，以减少时延，要使用（ ）
+                      - paragraph [ref=e401]: 传输层2
+                    - button "加入试卷" [disabled] [ref=e402]:
+                      - generic [ref=e403]: 加入试卷
+                  - article [ref=e404]:
+                    - generic [ref=e405]:
+                      - strong [ref=e406]: 在TCP协议中采用（ ）来区分不同的应用进程
+                      - paragraph [ref=e407]: 传输层3
+                    - button "加入试卷" [disabled] [ref=e408]:
+                      - generic [ref=e409]: 加入试卷
+                  - article [ref=e410]:
+                    - generic [ref=e411]:
+                      - strong [ref=e412]: 可靠的传输协议中的“可靠”指的是（ ）
+                      - paragraph [ref=e413]: 传输层2
+                    - button "加入试卷" [disabled] [ref=e414]:
+                      - generic [ref=e415]: 加入试卷
+                  - article [ref=e416]:
+                    - generic [ref=e417]:
+                      - strong [ref=e418]: 假设拥塞窗口为50KB，接收窗口为80KB，TCP能够发送的最大字节数为（ ）
+                      - paragraph [ref=e419]: 传输层4
+                    - button "加入试卷" [ref=e420] [cursor=pointer]:
+                      - generic [ref=e421]: 加入试卷
+                  - article [ref=e422]:
+                    - generic [ref=e423]:
+                      - strong [ref=e424]: 主机A向主机B发送一个（SYN=1，seq=2000）的TCP报文，期望与主机B建立连接，若主机B接受连接请求，则主机B发送的正确有TCP报文可能是（ ）
+                      - paragraph [ref=e425]: 传输层2
+                    - button "加入试卷" [ref=e426] [cursor=pointer]:
+                      - generic [ref=e427]: 加入试卷
+                  - article [ref=e428]:
+                    - generic [ref=e429]:
+                      - strong [ref=e430]: 主机A向主机B连续发送了两个TCP报文段，其序号分别为70和100。试问： （1）第一个报文段携带了（）个字节的数据？
+                      - paragraph [ref=e431]: 传输层3
+                    - button "加入试卷" [disabled] [ref=e432]:
+                      - generic [ref=e433]: 加入试卷
+                  - article [ref=e434]:
+                    - generic [ref=e435]:
+                      - strong [ref=e436]: PCM脉码调制的过程（ ）
+                      - paragraph [ref=e437]: 物理层4
+                    - button "加入试卷" [ref=e438] [cursor=pointer]:
+                      - generic [ref=e439]: 加入试卷
+                  - article [ref=e440]:
+                    - generic [ref=e441]:
+                      - strong [ref=e442]: 若某采用4相位调制的通信链路的数据传输速率为2400bps，则该链路的波特率为（）
+                      - paragraph [ref=e443]: 物理层1
+                    - button "加入试卷" [disabled] [ref=e444]:
+                      - generic [ref=e445]: 加入试卷
+                  - article [ref=e446]:
+                    - generic [ref=e447]:
+                      - strong [ref=e448]: 以下关于数据传输速率的描述中，错误的是( )
+                      - paragraph [ref=e449]: 物理层2
+                    - button "加入试卷" [disabled] [ref=e450]:
+                      - generic [ref=e451]: 加入试卷
+                  - article [ref=e452]:
+                    - generic [ref=e453]:
+                      - strong [ref=e454]: 以下关于时分多路复用概念的描述中，错误的是.( ).
+                      - paragraph [ref=e455]: 物理层2
+                    - button "加入试卷" [ref=e456] [cursor=pointer]:
+                      - generic [ref=e457]: 加入试卷
+                  - article [ref=e458]:
+                    - generic [ref=e459]:
+                      - strong [ref=e460]: 1000BASE-T标准支持的传输介质是（）
+                      - paragraph [ref=e461]: 物理层1
+                    - button "加入试卷" [ref=e462] [cursor=pointer]:
+                      - generic [ref=e463]: 加入试卷
+                  - article [ref=e464]:
+                    - generic [ref=e465]:
+                      - strong [ref=e466]: 一个以太网交换机，读取整个数据帧，对数据帧进行差错校验后再转发出去，这种交换方式称为 （）
+                      - paragraph [ref=e467]: 数据链路层2
+                    - button "加入试卷" [ref=e468] [cursor=pointer]:
+                      - generic [ref=e469]: 加入试卷
+                  - article [ref=e470]:
+                    - generic [ref=e471]:
+                      - strong [ref=e472]: 关于VLAN，下面的描述中正确的是（）
+                      - paragraph [ref=e473]: 数据链路层2
+                    - button "加入试卷" [disabled] [ref=e474]:
+                      - generic [ref=e475]: 加入试卷
+                  - article [ref=e476]:
+                    - generic [ref=e477]:
+                      - strong [ref=e478]: 以太网协议中使用物理地址作用是什么？
+                      - paragraph [ref=e479]: 数据链路层2
+                    - button "加入试卷" [disabled] [ref=e480]:
+                      - generic [ref=e481]: 加入试卷
+                  - article [ref=e482]:
+                    - generic [ref=e483]:
+                      - strong [ref=e484]: 以太网采用的CSMA/CD协议，当冲突发生时要通过二进制指数后退算法计算后退延时， 关于这个算法，以下论述中错误的是 （）
+                      - paragraph [ref=e485]: 数据链路层3
+                    - button "加入试卷" [disabled] [ref=e486]:
+                      - generic [ref=e487]: 加入试卷
+                  - article [ref=e488]:
+                    - generic [ref=e489]:
+                      - strong [ref=e490]: 以下关于交换机获取与其端口连接设备的MAC地址的叙述中，正确的是（）
+                      - paragraph [ref=e491]: 数据链路层2
+                    - button "加入试卷" [disabled] [ref=e492]:
+                      - generic [ref=e493]: 加入试卷
+                  - article [ref=e494]:
+                    - generic [ref=e495]:
+                      - strong [ref=e496]: 如果G (x）为11010010，以下4个CRC校验比特序列中只有哪个可能是正确的 ？
+                      - paragraph [ref=e497]: 数据链路层1
+                    - button "加入试卷" [disabled] [ref=e498]:
+                      - generic [ref=e499]: 加入试卷
+                  - article [ref=e500]:
+                    - generic [ref=e501]:
+                      - strong [ref=e502]: 以下关于Ethernet物理地址的描述中，错误的是
+                      - paragraph [ref=e503]: 数据链路层3
+                    - button "加入试卷" [disabled] [ref=e504]:
+                      - generic [ref=e505]: 加入试卷
+                  - article [ref=e506]:
+                    - generic [ref=e507]:
+                      - strong [ref=e508]: 下列帧类型中，不属于HDLC帧类型的是（）
+                      - paragraph [ref=e509]: 数据链路层1
+                    - button "加入试卷" [disabled] [ref=e510]:
+                      - generic [ref=e511]: 加入试卷
+                  - article [ref=e512]:
+                    - generic [ref=e513]:
+                      - strong [ref=e514]: 通过交换机连接的一组站点，关于它们的广播域和冲突域说法正确的是（）
+                      - paragraph [ref=e515]: 数据链路层3
+                    - button "加入试卷" [ref=e516] [cursor=pointer]:
+                      - generic [ref=e517]: 加入试卷
+                  - article [ref=e518]:
+                    - generic [ref=e519]:
+                      - strong [ref=e520]: 数据链路层的数据单位是（）
+                      - paragraph [ref=e521]: 数据链路层1
+                    - button "加入试卷" [disabled] [ref=e522]:
+                      - generic [ref=e523]: 加入试卷
+                  - article [ref=e524]:
+                    - generic [ref=e525]:
+                      - strong [ref=e526]: LAN参考模型可分为物理层、（ ）
+                      - paragraph [ref=e527]: 数据链路层3
+                    - button "加入试卷" [disabled] [ref=e528]:
+                      - generic [ref=e529]: 加入试卷
+                  - article [ref=e530]:
+                    - generic [ref=e531]:
+                      - strong [ref=e532]: DNS 服务器和DHCP服务器的作用是（）
+                      - paragraph [ref=e533]: 解析：哦解析
+                      - paragraph [ref=e534]: 网络层2
+                    - button "加入试卷" [disabled] [ref=e535]:
+                      - generic [ref=e536]: 加入试卷
+              - generic [ref=e537]:
+                - generic [ref=e538]:
+                  - generic [ref=e539]:
+                    - heading "填空题" [level=3] [ref=e540]
+                    - paragraph [ref=e541]: 科目题库中的填空题
+                  - generic [ref=e542]: 30 题
+                - generic [ref=e543]:
+                  - article [ref=e544]:
+                    - generic [ref=e545]:
+                      - strong [ref=e546]: 从计算机网络系统组成的角度看，计算机网络可以分为()和()
+                      - paragraph [ref=e547]: 未分节3
+                    - button "加入试卷" [ref=e548] [cursor=pointer]:
+                      - generic [ref=e549]: 加入试卷
+                  - article [ref=e550]:
+                    - generic [ref=e551]:
+                      - strong [ref=e552]: 收发电子邮件，属于ISO/OSI RM中 ()层的功能。
+                      - paragraph [ref=e553]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e554]:
+                      - generic [ref=e555]: 加入试卷
+                  - article [ref=e556]:
+                    - generic [ref=e557]:
+                      - strong [ref=e558]: 在TCP/IP层次模型中与OSI参考模型第四层相对应的主要协议有()和(),其中后者提供无连接的不可靠传输服
+                      - paragraph [ref=e559]: 未分节2
+                    - button "加入试卷" [ref=e560] [cursor=pointer]:
+                      - generic [ref=e561]: 加入试卷
+                  - article [ref=e562]:
+                    - generic [ref=e563]:
+                      - strong [ref=e564]: 计算机网络中常用的三种有线媒体是 (),()和 ()
+                      - paragraph [ref=e565]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e566]:
+                      - generic [ref=e567]: 加入试卷
+                  - article [ref=e568]:
+                    - generic [ref=e569]:
+                      - strong [ref=e570]: 国内最早的四大网络包括原邮电部的ChinaNet. 原电子部的ChinaGBN. 教育部的()和中科院的CSTnet
+                      - paragraph [ref=e571]: 未分节4
+                    - button "加入试卷" [disabled] [ref=e572]:
+                      - generic [ref=e573]: 加入试卷
+                  - article [ref=e574]:
+                    - generic [ref=e575]:
+                      - strong [ref=e576]: 复盖一个国家，地区或几个洲的计算机网络称为()，在同一建筑或复盖几公里内范围的网络称为()，而介于两者之间的是()
+                      - paragraph [ref=e577]: 未分节1
+                    - button "加入试卷" [ref=e578] [cursor=pointer]:
+                      - generic [ref=e579]: 加入试卷
+                  - article [ref=e580]:
+                    - generic [ref=e581]:
+                      - strong [ref=e582]: Outlook等常用电子邮件软件接收邮件使用的协议是(),发送邮件时使用的协议是()
+                      - paragraph [ref=e583]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e584]:
+                      - generic [ref=e585]: 加入试卷
+                  - article [ref=e586]:
+                    - generic [ref=e587]:
+                      - strong [ref=e588]: 通信系统中，称调制前的电信号为()信号，调制后的信号为调制信号
+                      - paragraph [ref=e589]: 未分节1
+                    - button "加入试卷" [ref=e590] [cursor=pointer]:
+                      - generic [ref=e591]: 加入试卷
+                  - article [ref=e592]:
+                    - generic [ref=e593]:
+                      - strong [ref=e594]: 按照IPV4标准,IP地址205.3.127.13属于()类地址
+                      - paragraph [ref=e595]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e596]:
+                      - generic [ref=e597]: 加入试卷
+                  - article [ref=e598]:
+                    - generic [ref=e599]:
+                      - strong [ref=e600]: 计算机网络采用()技术，而传统电话网络则采用()技术
+                      - paragraph [ref=e601]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e602]:
+                      - generic [ref=e603]: 加入试卷
+                  - article [ref=e604]:
+                    - generic [ref=e605]:
+                      - strong [ref=e606]: 计算机内传输的信号是()，而公用电话系统的传输系统只能传输()
+                      - paragraph [ref=e607]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e608]:
+                      - generic [ref=e609]: 加入试卷
+                  - article [ref=e610]:
+                    - generic [ref=e611]:
+                      - strong [ref=e612]: 通信系统中，称调制前的电信号为()，调制后的信号叫()。
+                      - paragraph [ref=e613]: 未分节1
+                    - button "加入试卷" [ref=e614] [cursor=pointer]:
+                      - generic [ref=e615]: 加入试卷
+                  - article [ref=e616]:
+                    - generic [ref=e617]:
+                      - strong [ref=e618]: IP地址分()和()两个部分
+                      - paragraph [ref=e619]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e620]:
+                      - generic [ref=e621]: 加入试卷
+                  - article [ref=e622]:
+                    - generic [ref=e623]:
+                      - strong [ref=e624]: IP地址协议作网间网中()层协议，提供无连接的数据报传输机制，IP数据报也分为()和()两个部分
+                      - paragraph [ref=e625]: 未分节2
+                    - button "加入试卷" [disabled] [ref=e626]:
+                      - generic [ref=e627]: 加入试卷
+                  - article [ref=e628]:
+                    - generic [ref=e629]:
+                      - strong [ref=e630]: ()是一个简单的远程终端协议。
+                      - paragraph [ref=e631]: 未分节1
+                    - button "加入试卷" [ref=e632] [cursor=pointer]:
+                      - generic [ref=e633]: 加入试卷
+                  - article [ref=e634]:
+                    - generic [ref=e635]:
+                      - strong [ref=e636]: 在同一个系统内，相邻层之间交换信息的连接点称之为()，而低层模块向高层提供功能性的支持称之为()。
+                      - paragraph [ref=e637]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e638]:
+                      - generic [ref=e639]: 加入试卷
+                  - article [ref=e640]:
+                    - generic [ref=e641]:
+                      - strong [ref=e642]: Internet广泛使用的电子邮件传送协议是()
+                      - paragraph [ref=e643]: 未分节1
+                    - button "加入试卷" [ref=e644] [cursor=pointer]:
+                      - generic [ref=e645]: 加入试卷
+                  - article [ref=e646]:
+                    - generic [ref=e647]:
+                      - strong [ref=e648]: 按交换方式来分类，计算机网络可以分为电路交换网， 报文交换网 和()三种
+                      - paragraph [ref=e649]: 未分节3
+                    - button "加入试卷" [disabled] [ref=e650]:
+                      - generic [ref=e651]: 加入试卷
+                  - article [ref=e652]:
+                    - generic [ref=e653]:
+                      - strong [ref=e654]: Intranet分层结构包括网络、(),应用三个层次。
+                      - paragraph [ref=e655]: 未分节1
+                    - button "加入试卷" [ref=e656] [cursor=pointer]:
+                      - generic [ref=e657]: 加入试卷
+                  - article [ref=e658]:
+                    - generic [ref=e659]:
+                      - strong [ref=e660]: WWW上的每一个网页都有一个独立的地址，这些地址称为 ()
+                      - paragraph [ref=e661]: 未分节2
+                    - button "加入试卷" [ref=e662] [cursor=pointer]:
+                      - generic [ref=e663]: 加入试卷
+                  - article [ref=e664]:
+                    - generic [ref=e665]:
+                      - strong [ref=e666]: 分组交换网中，附加信息用来在网络中进行路由选择、() 和流量控制
+                      - paragraph [ref=e667]: 未分节4
+                    - button "加入试卷" [disabled] [ref=e668]:
+                      - generic [ref=e669]: 加入试卷
+                  - article [ref=e670]:
+                    - generic [ref=e671]:
+                      - strong [ref=e672]: 根据IEEE802模型的标准将数据链路层划分为LLC子层和 ()子层。
+                      - paragraph [ref=e673]: 未分节3
+                    - button "加入试卷" [disabled] [ref=e674]:
+                      - generic [ref=e675]: 加入试卷
+                  - article [ref=e676]:
+                    - generic [ref=e677]:
+                      - strong [ref=e678]: 据交换的路由信息的不同，路由算法可以分为两大类： () 和链路状态算法
+                      - paragraph [ref=e679]: 未分节3
+                    - button "加入试卷" [ref=e680] [cursor=pointer]:
+                      - generic [ref=e681]: 加入试卷
+                  - article [ref=e682]:
+                    - generic [ref=e683]:
+                      - strong [ref=e684]: 假定某信道受奈氏准则限制的最高码元速率为2000码元/秒。如果采用振幅调制，把码元的振幅划分为16个不同等级来传送，那么可以获得的数据率为 () b/s。
+                      - paragraph [ref=e685]: 未分节5
+                    - button "加入试卷" [ref=e686] [cursor=pointer]:
+                      - generic [ref=e687]: 加入试卷
+                  - article [ref=e688]:
+                    - generic [ref=e689]:
+                      - strong [ref=e690]: 交换型以太网系统中的 () ，以其为核心联接站点或者网段，端口之间帧的输入和输出已不再受到CSMA/CD媒体访问控制协议的约束。
+                      - paragraph [ref=e691]: 未分节5
+                    - button "加入试卷" [ref=e692] [cursor=pointer]:
+                      - generic [ref=e693]: 加入试卷
+                  - article [ref=e694]:
+                    - generic [ref=e695]:
+                      - strong [ref=e696]: 局域网络参考模型是以 ()标准为基础的
+                      - paragraph [ref=e697]: 未分节5
+                    - button "加入试卷" [ref=e698] [cursor=pointer]:
+                      - generic [ref=e699]: 加入试卷
+                  - article [ref=e700]:
+                    - generic [ref=e701]:
+                      - strong [ref=e702]: 路由器的核心是 () 。
+                      - paragraph [ref=e703]: 未分节3
+                    - button "加入试卷" [ref=e704] [cursor=pointer]:
+                      - generic [ref=e705]: 加入试卷
+                  - article [ref=e706]:
+                    - generic [ref=e707]:
+                      - strong [ref=e708]: 若 HDLC 帧数据段中出现比特串“ 01011111110 ”，则比特填充后的输出为()
+                      - paragraph [ref=e709]: 未分节5
+                    - button "加入试卷" [ref=e710] [cursor=pointer]:
+                      - generic [ref=e711]: 加入试卷
+                  - article [ref=e712]:
+                    - generic [ref=e713]:
+                      - strong [ref=e714]: 数字调制的三种基本形式：移幅键控法ASK、 ()、移相键控法PSK
+                      - paragraph [ref=e715]: 未分节5
+                    - button "加入试卷" [ref=e716] [cursor=pointer]:
+                      - generic [ref=e717]: 加入试卷
+                  - article [ref=e718]:
+                    - generic [ref=e719]:
+                      - strong [ref=e720]: 从计算机网络系统组成的角度看，计算机网络可以分为()和()
+                      - paragraph [ref=e721]: 网络系统5
+                    - button "加入试卷" [disabled] [ref=e722]:
+                      - generic [ref=e723]: 加入试卷
+              - generic [ref=e724]:
+                - generic [ref=e725]:
+                  - generic [ref=e726]:
+                    - heading "判断题" [level=3] [ref=e727]
+                    - paragraph [ref=e728]: 科目题库中的判断题
+                  - generic [ref=e729]: 12 题
+                - generic [ref=e730]:
+                  - article [ref=e731]:
+                    - generic [ref=e732]:
+                      - strong [ref=e733]: 与有线网相比,无线网的数据传输率一般相对较慢
+                      - paragraph [ref=e734]: 未分节1
+                    - button "加入试卷" [ref=e735] [cursor=pointer]:
+                      - generic [ref=e736]: 加入试卷
+                  - article [ref=e737]:
+                    - generic [ref=e738]:
+                      - strong [ref=e739]: OSI参考模型中,不同节点的同等层具有不同的功能
+                      - paragraph [ref=e740]: OSI模型1
+                    - button "加入试卷" [disabled] [ref=e741]:
+                      - generic [ref=e742]: 加入试卷
+                  - article [ref=e743]:
+                    - generic [ref=e744]:
+                      - strong [ref=e745]: 普通电脑不能作为服务器
+                      - paragraph [ref=e746]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e747]:
+                      - generic [ref=e748]: 加入试卷
+                  - article [ref=e749]:
+                    - generic [ref=e750]:
+                      - strong [ref=e751]: 没有网线的电脑不能连入互联网
+                      - paragraph [ref=e752]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e753]:
+                      - generic [ref=e754]: 加入试卷
+                  - article [ref=e755]:
+                    - generic [ref=e756]:
+                      - strong [ref=e757]: 网卡必须安装驱动程序
+                      - paragraph [ref=e758]: 未分节2
+                    - button "加入试卷" [disabled] [ref=e759]:
+                      - generic [ref=e760]: 加入试卷
+                  - article [ref=e761]:
+                    - generic [ref=e762]:
+                      - strong [ref=e763]: UTP为屏蔽双绞线
+                      - paragraph [ref=e764]: 未分节2
+                    - button "加入试卷" [disabled] [ref=e765]:
+                      - generic [ref=e766]: 加入试卷
+                  - article [ref=e767]:
+                    - generic [ref=e768]:
+                      - strong [ref=e769]: 网络接口卡又称为网卡,它是构成网络的基本部件
+                      - paragraph [ref=e770]: 未分节2
+                    - button "加入试卷" [ref=e771] [cursor=pointer]:
+                      - generic [ref=e772]: 加入试卷
+                  - article [ref=e773]:
+                    - generic [ref=e774]:
+                      - strong [ref=e775]: 无线AP可以成倍地扩展网络覆盖范围
+                      - paragraph [ref=e776]: 未分节3
+                    - button "加入试卷" [disabled] [ref=e777]:
+                      - generic [ref=e778]: 加入试卷
+                  - article [ref=e779]:
+                    - generic [ref=e780]:
+                      - strong [ref=e781]: SMTP是一组用于由源地址到目的地址传送邮件的协议
+                      - paragraph [ref=e782]: 未分节4
+                    - button "加入试卷" [disabled] [ref=e783]:
+                      - generic [ref=e784]: 加入试卷
+                  - article [ref=e785]:
+                    - generic [ref=e786]:
+                      - strong [ref=e787]: 任务管理器可以关闭所有的进程
+                      - paragraph [ref=e788]: 未分节3
+                    - button "加入试卷" [ref=e789] [cursor=pointer]:
+                      - generic [ref=e790]: 加入试卷
+                  - article [ref=e791]:
+                    - generic [ref=e792]:
+                      - strong [ref=e793]: 利用BT下载时,用户越多,下载速度越快
+                      - paragraph [ref=e794]: 未分节2
+                    - button "加入试卷" [disabled] [ref=e795]:
+                      - generic [ref=e796]: 加入试卷
+                  - article [ref=e797]:
+                    - generic [ref=e798]:
+                      - strong [ref=e799]: INTERNET上向朋友发送电子邮件,必须知道对方的真实姓名和家庭住址
+                      - paragraph [ref=e800]: 未分节1
+                    - button "加入试卷" [disabled] [ref=e801]:
+                      - generic [ref=e802]: 加入试卷
+          - generic [ref=e803]:
+            - generic [ref=e804]:
+              - generic [ref=e805]:
+                - heading "当前试卷" [level=2] [ref=e806]
+                - paragraph [ref=e807]: "来自 /paper/{paperId}，可直接从试卷中移除。"
+              - generic [ref=e808]: 43 题
+            - generic [ref=e809]:
+              - generic [ref=e810]:
+                - generic [ref=e811]:
+                  - generic [ref=e812]:
+                    - heading "选择题" [level=3] [ref=e813]
+                    - paragraph [ref=e814]: 当前试卷中的选择题
+                  - generic [ref=e815]: 20 题
+                - generic [ref=e816]:
+                  - article [ref=e817]:
+                    - generic [ref=e818]:
+                      - strong [ref=e819]: DNS 服务器和DHCP服务器的作用是什么（）
+                      - paragraph [ref=e820]: 应用层2
+                    - button "移出试卷" [ref=e821] [cursor=pointer]:
+                      - generic [ref=e822]: 移出试卷
+                  - article [ref=e823]:
+                    - generic [ref=e824]:
+                      - strong [ref=e825]: 若某采用4相位调制的通信链路的数据传输速率为2400bps，则该链路的波特率为（）
+                      - paragraph [ref=e826]: 物理层1
+                    - button "移出试卷" [ref=e827] [cursor=pointer]:
+                      - generic [ref=e828]: 移出试卷
+                  - article [ref=e829]:
+                    - generic [ref=e830]:
+                      - strong [ref=e831]: DNS 服务器和DHCP服务器的作用是（）
+                      - paragraph [ref=e832]: 解析：哦解析
+                      - paragraph [ref=e833]: 网络层2
+                    - button "移出试卷" [ref=e834] [cursor=pointer]:
+                      - generic [ref=e835]: 移出试卷
+                  - article [ref=e836]:
+                    - generic [ref=e837]:
+                      - strong [ref=e838]: 如果G (x）为11010010，以下4个CRC校验比特序列中只有哪个可能是正确的 ？
+                      - paragraph [ref=e839]: 数据链路层1
+                    - button "移出试卷" [ref=e840] [cursor=pointer]:
+                      - generic [ref=e841]: 移出试卷
+                  - article [ref=e842]:
+                    - generic [ref=e843]:
+                      - strong [ref=e844]: LAN参考模型可分为物理层、（ ）
+                      - paragraph [ref=e845]: 数据链路层3
+                    - button "移出试卷" [ref=e846] [cursor=pointer]:
+                      - generic [ref=e847]: 移出试卷
+                  - article [ref=e848]:
+                    - generic [ref=e849]:
+                      - strong [ref=e850]: 以下关于数据传输速率的描述中，错误的是( )
+                      - paragraph [ref=e851]: 物理层2
+                    - button "移出试卷" [ref=e852] [cursor=pointer]:
+                      - generic [ref=e853]: 移出试卷
+                  - article [ref=e854]:
+                    - generic [ref=e855]:
+                      - strong [ref=e856]: 下列帧类型中，不属于HDLC帧类型的是（）
+                      - paragraph [ref=e857]: 数据链路层1
+                    - button "移出试卷" [ref=e858] [cursor=pointer]:
+                      - generic [ref=e859]: 移出试卷
+                  - article [ref=e860]:
+                    - generic [ref=e861]:
+                      - strong [ref=e862]: 以太网采用的CSMA/CD协议，当冲突发生时要通过二进制指数后退算法计算后退延时， 关于这个算法，以下论述中错误的是 （）
+                      - paragraph [ref=e863]: 数据链路层3
+                    - button "移出试卷" [ref=e864] [cursor=pointer]:
+                      - generic [ref=e865]: 移出试卷
+                  - article [ref=e866]:
+                    - generic [ref=e867]:
+                      - strong [ref=e868]: 主机A向主机B连续发送了两个TCP报文段，其序号分别为70和100。试问： （1）第一个报文段携带了（）个字节的数据？
+                      - paragraph [ref=e869]: 传输层3
+                    - button "移出试卷" [ref=e870] [cursor=pointer]:
+                      - generic [ref=e871]: 移出试卷
+                  - article [ref=e872]:
+                    - generic [ref=e873]:
+                      - strong [ref=e874]: 在Internet上用TCP/IP播放视频，想用传输层的最快协议，以减少时延，要使用（ ）
+                      - paragraph [ref=e875]: 传输层2
+                    - button "移出试卷" [ref=e876] [cursor=pointer]:
+                      - generic [ref=e877]: 移出试卷
+                  - article [ref=e878]:
+                    - generic [ref=e879]:
+                      - strong [ref=e880]: 在TCP/IP协议中，序号小于（ ）的端口称为熟知端口(well-known port)。
+                      - paragraph [ref=e881]: 传输层1
+                    - button "移出试卷" [ref=e882] [cursor=pointer]:
+                      - generic [ref=e883]: 移出试卷
+                  - article [ref=e884]:
+                    - generic [ref=e885]:
+                      - strong [ref=e886]: 可靠的传输协议中的“可靠”指的是（ ）
+                      - paragraph [ref=e887]: 传输层2
+                    - button "移出试卷" [ref=e888] [cursor=pointer]:
+                      - generic [ref=e889]: 移出试卷
+                  - article [ref=e890]:
+                    - generic [ref=e891]:
+                      - strong [ref=e892]: 在TCP协议中采用（ ）来区分不同的应用进程
+                      - paragraph [ref=e893]: 传输层3
+                    - button "移出试卷" [ref=e894] [cursor=pointer]:
+                      - generic [ref=e895]: 移出试卷
+                  - article [ref=e896]:
+                    - generic [ref=e897]:
+                      - strong [ref=e898]: 关于VLAN，下面的描述中正确的是（）
+                      - paragraph [ref=e899]: 数据链路层2
+                    - button "移出试卷" [ref=e900] [cursor=pointer]:
+                      - generic [ref=e901]: 移出试卷
+                  - article [ref=e902]:
+                    - generic [ref=e903]:
+                      - strong [ref=e904]: 以太网协议中使用物理地址作用是什么？
+                      - paragraph [ref=e905]: 数据链路层2
+                    - button "移出试卷" [ref=e906] [cursor=pointer]:
+                      - generic [ref=e907]: 移出试卷
+                  - article [ref=e908]:
+                    - generic [ref=e909]:
+                      - strong [ref=e910]: 以下关于Ethernet物理地址的描述中，错误的是
+                      - paragraph [ref=e911]: 数据链路层3
+                    - button "移出试卷" [ref=e912] [cursor=pointer]:
+                      - generic [ref=e913]: 移出试卷
+                  - article [ref=e914]:
+                    - generic [ref=e915]:
+                      - strong [ref=e916]: DHCP通常可以为客户端自动配置哪些网络参数（）
+                      - paragraph [ref=e917]: 应用层2
+                    - button "移出试卷" [ref=e918] [cursor=pointer]:
+                      - generic [ref=e919]: 移出试卷
+                  - article [ref=e920]:
+                    - generic [ref=e921]:
+                      - strong [ref=e922]: 数据链路层的数据单位是（）
+                      - paragraph [ref=e923]: 数据链路层1
+                    - button "移出试卷" [ref=e924] [cursor=pointer]:
+                      - generic [ref=e925]: 移出试卷
+                  - article [ref=e926]:
+                    - generic [ref=e927]:
+                      - strong [ref=e928]: 以下关于交换机获取与其端口连接设备的MAC地址的叙述中，正确的是（）
+                      - paragraph [ref=e929]: 数据链路层2
+                    - button "移出试卷" [ref=e930] [cursor=pointer]:
+                      - generic [ref=e931]: 移出试卷
+                  - article [ref=e932]:
+                    - generic [ref=e933]:
+                      - strong [ref=e934]: 查看DNS缓存记录的命令（）
+                      - paragraph [ref=e935]: 应用层3
+                    - button "移出试卷" [ref=e936] [cursor=pointer]:
+                      - generic [ref=e937]: 移出试卷
+              - generic [ref=e938]:
+                - generic [ref=e939]:
+                  - generic [ref=e940]:
+                    - heading "填空题" [level=3] [ref=e941]
+                    - paragraph [ref=e942]: 当前试卷中的填空题
+                  - generic [ref=e943]: 14 题
+                - generic [ref=e944]:
+                  - article [ref=e945]:
+                    - generic [ref=e946]:
+                      - strong [ref=e947]: 按交换方式来分类，计算机网络可以分为电路交换网， 报文交换网 和()三种
+                      - paragraph [ref=e948]: 未分节3
+                    - button "移出试卷" [ref=e949] [cursor=pointer]:
+                      - generic [ref=e950]: 移出试卷
+                  - article [ref=e951]:
+                    - generic [ref=e952]:
+                      - strong [ref=e953]: IP地址分()和()两个部分
+                      - paragraph [ref=e954]: 未分节1
+                    - button "移出试卷" [ref=e955] [cursor=pointer]:
+                      - generic [ref=e956]: 移出试卷
+                  - article [ref=e957]:
+                    - generic [ref=e958]:
+                      - strong [ref=e959]: 国内最早的四大网络包括原邮电部的ChinaNet. 原电子部的ChinaGBN. 教育部的()和中科院的CSTnet
+                      - paragraph [ref=e960]: 未分节4
+                    - button "移出试卷" [ref=e961] [cursor=pointer]:
+                      - generic [ref=e962]: 移出试卷
+                  - article [ref=e963]:
+                    - generic [ref=e964]:
+                      - strong [ref=e965]: 计算机网络中常用的三种有线媒体是 (),()和 ()
+                      - paragraph [ref=e966]: 未分节1
+                    - button "移出试卷" [ref=e967] [cursor=pointer]:
+                      - generic [ref=e968]: 移出试卷
+                  - article [ref=e969]:
+                    - generic [ref=e970]:
+                      - strong [ref=e971]: 按照IPV4标准,IP地址205.3.127.13属于()类地址
+                      - paragraph [ref=e972]: 未分节1
+                    - button "移出试卷" [ref=e973] [cursor=pointer]:
+                      - generic [ref=e974]: 移出试卷
+                  - article [ref=e975]:
+                    - generic [ref=e976]:
+                      - strong [ref=e977]: 分组交换网中，附加信息用来在网络中进行路由选择、() 和流量控制
+                      - paragraph [ref=e978]: 未分节4
+                    - button "移出试卷" [ref=e979] [cursor=pointer]:
+                      - generic [ref=e980]: 移出试卷
+                  - article [ref=e981]:
+                    - generic [ref=e982]:
+                      - strong [ref=e983]: IP地址协议作网间网中()层协议，提供无连接的数据报传输机制，IP数据报也分为()和()两个部分
+                      - paragraph [ref=e984]: 未分节2
+                    - button "移出试卷" [ref=e985] [cursor=pointer]:
+                      - generic [ref=e986]: 移出试卷
+                  - article [ref=e987]:
+                    - generic [ref=e988]:
+                      - strong [ref=e989]: Outlook等常用电子邮件软件接收邮件使用的协议是(),发送邮件时使用的协议是()
+                      - paragraph [ref=e990]: 未分节1
+                    - button "移出试卷" [ref=e991] [cursor=pointer]:
+                      - generic [ref=e992]: 移出试卷
+                  - article [ref=e993]:
+                    - generic [ref=e994]:
+                      - strong [ref=e995]: 在同一个系统内，相邻层之间交换信息的连接点称之为()，而低层模块向高层提供功能性的支持称之为()。
+                      - paragraph [ref=e996]: 未分节1
+                    - button "移出试卷" [ref=e997] [cursor=pointer]:
+                      - generic [ref=e998]: 移出试卷
+                  - article [ref=e999]:
+                    - generic [ref=e1000]:
+                      - strong [ref=e1001]: 根据IEEE802模型的标准将数据链路层划分为LLC子层和 ()子层。
+                      - paragraph [ref=e1002]: 未分节3
+                    - button "移出试卷" [ref=e1003] [cursor=pointer]:
+                      - generic [ref=e1004]: 移出试卷
+                  - article [ref=e1005]:
+                    - generic [ref=e1006]:
+                      - strong [ref=e1007]: 计算机内传输的信号是()，而公用电话系统的传输系统只能传输()
+                      - paragraph [ref=e1008]: 未分节1
+                    - button "移出试卷" [ref=e1009] [cursor=pointer]:
+                      - generic [ref=e1010]: 移出试卷
+                  - article [ref=e1011]:
+                    - generic [ref=e1012]:
+                      - strong [ref=e1013]: 计算机网络采用()技术，而传统电话网络则采用()技术
+                      - paragraph [ref=e1014]: 未分节1
+                    - button "移出试卷" [ref=e1015] [cursor=pointer]:
+                      - generic [ref=e1016]: 移出试卷
+                  - article [ref=e1017]:
+                    - generic [ref=e1018]:
+                      - strong [ref=e1019]: 从计算机网络系统组成的角度看，计算机网络可以分为()和()
+                      - paragraph [ref=e1020]: 网络系统5
+                    - button "移出试卷" [ref=e1021] [cursor=pointer]:
+                      - generic [ref=e1022]: 移出试卷
+                  - article [ref=e1023]:
+                    - generic [ref=e1024]:
+                      - strong [ref=e1025]: 收发电子邮件，属于ISO/OSI RM中 ()层的功能。
+                      - paragraph [ref=e1026]: 未分节1
+                    - button "移出试卷" [ref=e1027] [cursor=pointer]:
+                      - generic [ref=e1028]: 移出试卷
+              - generic [ref=e1029]:
+                - generic [ref=e1030]:
+                  - generic [ref=e1031]:
+                    - heading "判断题" [level=3] [ref=e1032]
+                    - paragraph [ref=e1033]: 当前试卷中的判断题
+                  - generic [ref=e1034]: 9 题
+                - generic [ref=e1035]:
+                  - article [ref=e1036]:
+                    - generic [ref=e1037]:
+                      - strong [ref=e1038]: OSI参考模型中,不同节点的同等层具有不同的功能
+                      - paragraph [ref=e1039]: OSI模型1
+                    - button "移出试卷" [ref=e1040] [cursor=pointer]:
+                      - generic [ref=e1041]: 移出试卷
+                  - article [ref=e1042]:
+                    - generic [ref=e1043]:
+                      - strong [ref=e1044]: SMTP是一组用于由源地址到目的地址传送邮件的协议
+                      - paragraph [ref=e1045]: 未分节4
+                    - button "移出试卷" [ref=e1046] [cursor=pointer]:
+                      - generic [ref=e1047]: 移出试卷
+                  - article [ref=e1048]:
+                    - generic [ref=e1049]:
+                      - strong [ref=e1050]: 普通电脑不能作为服务器
+                      - paragraph [ref=e1051]: 未分节1
+                    - button "移出试卷" [ref=e1052] [cursor=pointer]:
+                      - generic [ref=e1053]: 移出试卷
+                  - article [ref=e1054]:
+                    - generic [ref=e1055]:
+                      - strong [ref=e1056]: 没有网线的电脑不能连入互联网
+                      - paragraph [ref=e1057]: 未分节1
+                    - button "移出试卷" [ref=e1058] [cursor=pointer]:
+                      - generic [ref=e1059]: 移出试卷
+                  - article [ref=e1060]:
+                    - generic [ref=e1061]:
+                      - strong [ref=e1062]: INTERNET上向朋友发送电子邮件,必须知道对方的真实姓名和家庭住址
+                      - paragraph [ref=e1063]: 未分节1
+                    - button "移出试卷" [ref=e1064] [cursor=pointer]:
+                      - generic [ref=e1065]: 移出试卷
+                  - article [ref=e1066]:
+                    - generic [ref=e1067]:
+                      - strong [ref=e1068]: 利用BT下载时,用户越多,下载速度越快
+                      - paragraph [ref=e1069]: 未分节2
+                    - button "移出试卷" [ref=e1070] [cursor=pointer]:
+                      - generic [ref=e1071]: 移出试卷
+                  - article [ref=e1072]:
+                    - generic [ref=e1073]:
+                      - strong [ref=e1074]: UTP为屏蔽双绞线
+                      - paragraph [ref=e1075]: 未分节2
+                    - button "移出试卷" [ref=e1076] [cursor=pointer]:
+                      - generic [ref=e1077]: 移出试卷
+                  - article [ref=e1078]:
+                    - generic [ref=e1079]:
+                      - strong [ref=e1080]: 无线AP可以成倍地扩展网络覆盖范围
+                      - paragraph [ref=e1081]: 未分节3
+                    - button "移出试卷" [ref=e1082] [cursor=pointer]:
+                      - generic [ref=e1083]: 移出试卷
+                  - article [ref=e1084]:
+                    - generic [ref=e1085]:
+                      - strong [ref=e1086]: 网卡必须安装驱动程序
+                      - paragraph [ref=e1087]: 未分节2
+                    - button "移出试卷" [ref=e1088] [cursor=pointer]:
+                      - generic [ref=e1089]: 移出试卷
