@@ -30,7 +30,7 @@ import AppHeader from '@/components/common/AppHeader.vue'
 import SideMenu from '@/components/common/SideMenu.vue'
 import { logout } from '@/api/authApi'
 import { useAuthSession } from '@/composables/useAuthSession'
-import { clearSession } from '@/utils/auth'
+import { clearSession, getRefreshToken } from '@/utils/auth'
 import { CONSOLE_MENU } from '@/utils/constants'
 
 const route = useRoute()
@@ -41,7 +41,10 @@ const menuItems = computed(() => CONSOLE_MENU[session.value?.role] || [])
 
 async function handleLogout() {
   try {
-    await logout()
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      await logout({ refreshToken })
+    }
   } catch (error) {
     // ignore and continue cleanup
   }

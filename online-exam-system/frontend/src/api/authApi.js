@@ -2,16 +2,34 @@ import request from '@/utils/request'
 
 export function login(payload) {
   return request({
-    url: '/login',
+    url: '/auth/login',
     method: 'post',
     data: payload
   })
 }
 
-export function logout() {
+export function refreshToken(payload) {
   return request({
-    url: '/logout',
-    method: 'post'
+    url: '/auth/refresh',
+    method: 'post',
+    data: payload,
+    skipAuthRefresh: true
+  })
+}
+
+export function logout(payload) {
+  return request({
+    url: '/auth/logout',
+    method: 'post',
+    data: payload,
+    skipAuthRefresh: true
+  })
+}
+
+export function getCurrentUser() {
+  return request({
+    url: '/auth/me',
+    method: 'get'
   })
 }
 

@@ -5,13 +5,12 @@
         <span class="hero-tag">在线考试</span>
         <h1>在线考试系统</h1>
         <p>
-          支持管理员、教师、学生三类账号登录，登录后自动进入对应工作区。
-          请使用学校分配的账号密码进行操作。
+          系统现已切换为 JWT 登录认证。请先选择身份，再输入学校分配的账号和密码登录。
         </p>
         <ul class="hero-points">
-          <li>登录后自动识别角色并跳转首页</li>
-          <li>学生考试中心支持手机端访问</li>
-          <li>支持在页面内修改密码与退出登录</li>
+          <li>管理员、教师、学生使用同一登录页，按身份分别鉴权</li>
+          <li>登录后自动加载当前登录信息，刷新页面不会直接丢失会话</li>
+          <li>学生端在线考试支持基于登录身份的会话校验</li>
         </ul>
       </div>
     </div>
@@ -24,11 +23,23 @@
           </div>
           <div>
             <h2>账号登录</h2>
-            <p>请输入账号和密码，系统会自动识别管理员、教师或学生身份。</p>
+            <p>请填写账号、密码并选择身份，系统将按所选角色调用对应鉴权接口。</p>
           </div>
         </div>
 
         <el-form @submit.prevent="handleLogin">
+          <el-form-item label="登录身份">
+            <el-radio-group v-model="form.role" class="login-role-group">
+              <el-radio-button
+                v-for="item in AUTH_ROLE_OPTIONS"
+                :key="item.value"
+                :label="item.value"
+              >
+                {{ item.label }}
+              </el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+
           <el-form-item label="账号">
             <el-input
               v-model="form.username"
@@ -65,8 +76,8 @@
         </el-form>
 
         <div class="login-card__footer">
-          <span>如无法登录，请联系管理员</span>
-          <span>默认密码可在首次登录后修改</span>
+          <span>如无法登录，请确认密码已完成 BCrypt 迁移</span>
+          <span>登录态由 access token 和 refresh token 共同维护</span>
         </div>
       </div>
     </div>
@@ -79,7 +90,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { Lock, School, User } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { login } from '@/api/authApi'
-import { resolveHomePath, setSessionFromUser } from '@/utils/auth'
+import { setSessionFromAuthResponse, resolveHomePath } from '@/utils/auth'
+import { AUTH_ROLES, AUTH_ROLE_OPTIONS } from '@/utils/constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -87,12 +99,13 @@ const router = useRouter()
 const submitting = ref(false)
 const form = reactive({
   username: '',
-  password: ''
+  password: '',
+  role: AUTH_ROLES.STUDENT
 })
 
 function resolveLoginErrorMessage(response) {
-  if (response?.code === 400) {
-    return '账号或密码错误'
+  if (response?.code === 400 || response?.code === 401) {
+    return '账号、密码或登录身份不正确'
   }
 
   if (response?.message) {
@@ -104,7 +117,7 @@ function resolveLoginErrorMessage(response) {
 
 async function handleLogin() {
   if (!/^\d+$/.test(form.username)) {
-    ElMessage.warning('账号必须是数字')
+    ElMessage.warning('账号必须是纯数字')
     return
   }
 
@@ -117,24 +130,26 @@ async function handleLogin() {
 
   try {
     const response = await login({
-      username: Number(form.username),
-      password: form.password
+      username: String(form.username).trim(),
+      password: form.password,
+      role: form.role
     })
 
-    if (response.code !== 200 || !response.data) {
+    if (response?.code !== 200 || !response?.data) {
       ElMessage.error(resolveLoginErrorMessage(response))
       return
     }
 
-    const session = setSessionFromUser(response.data)
+    const session = setSessionFromAuthResponse(response.data)
     if (!session) {
-      ElMessage.error('登录成功，但会话初始化失败，请联系管理员检查返回数据')
+      ElMessage.error('登录成功，但会话初始化失败，请检查认证返回结构')
       return
     }
+
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
 
     ElMessage.success('登录成功')
-    await router.replace(redirect || resolveHomePath(session.role))
+    await router.replace(redirect || resolveHomePath(session.authRole))
   } catch (error) {
     ElMessage.error(error?.message || '登录请求失败，请确认后端服务已启动')
   } finally {
@@ -262,6 +277,19 @@ async function handleLogin() {
   margin: 8px 0 0;
 }
 
+.login-role-group {
+  display: flex;
+  width: 100%;
+}
+
+.login-role-group :deep(.el-radio-button) {
+  flex: 1;
+}
+
+.login-role-group :deep(.el-radio-button__inner) {
+  width: 100%;
+}
+
 .login-card__submit {
   width: 100%;
   height: 48px;
@@ -301,6 +329,11 @@ async function handleLogin() {
 
   .login-view h1 {
     font-size: 40px;
+  }
+
+  .login-role-group {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 </style>

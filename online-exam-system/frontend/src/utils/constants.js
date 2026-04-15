@@ -1,5 +1,8 @@
 export const STORAGE_KEYS = {
   SESSION: 'oes_session',
+  ACCESS_TOKEN: 'oes_access_token',
+  REFRESH_TOKEN: 'oes_refresh_token',
+  CURRENT_USER: 'oes_current_user',
   QUESTION_DRAFT: 'oes_question_draft'
 }
 
@@ -7,6 +10,35 @@ export const ROLES = {
   ADMIN: '0',
   TEACHER: '1',
   STUDENT: '2'
+}
+
+export const AUTH_ROLES = {
+  ADMIN: 'ADMIN',
+  TEACHER: 'TEACHER',
+  STUDENT: 'STUDENT'
+}
+
+export const AUTH_ROLE_OPTIONS = [
+  { value: AUTH_ROLES.ADMIN, label: '管理员' },
+  { value: AUTH_ROLES.TEACHER, label: '教师' },
+  { value: AUTH_ROLES.STUDENT, label: '学生' }
+]
+
+export const AUTH_ROLE_LABELS = AUTH_ROLE_OPTIONS.reduce((accumulator, item) => {
+  accumulator[item.value] = item.label
+  return accumulator
+}, {})
+
+export const AUTH_ROLE_TO_LEGACY_ROLE = {
+  [AUTH_ROLES.ADMIN]: ROLES.ADMIN,
+  [AUTH_ROLES.TEACHER]: ROLES.TEACHER,
+  [AUTH_ROLES.STUDENT]: ROLES.STUDENT
+}
+
+export const LEGACY_ROLE_TO_AUTH_ROLE = {
+  [ROLES.ADMIN]: AUTH_ROLES.ADMIN,
+  [ROLES.TEACHER]: AUTH_ROLES.TEACHER,
+  [ROLES.STUDENT]: AUTH_ROLES.STUDENT
 }
 
 export const ROLE_LABELS = {
