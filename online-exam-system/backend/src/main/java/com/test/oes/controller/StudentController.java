@@ -51,7 +51,7 @@ public class StudentController {
         return ApiResultHandler.buildApiResult(200, "删除成功", studentService.deleteById(studentId));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @currentUserService.isCurrentUserId(#student.studentId)")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
     @PutMapping("/studentPWD")
     public ApiResult<Void> updatePwd(@RequestBody Student student) {
         if (!currentUserService.hasAnyRole("ADMIN")) {
@@ -64,7 +64,7 @@ public class StudentController {
         return ApiResultHandler.buildApiResult(400, "密码更新失败", null);
     }
 
-    @PreAuthorize("hasRole('ADMIN') or @currentUserService.isCurrentUserId(#student.studentId)")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STUDENT')")
     @PutMapping("/student")
     public ApiResult<Integer> update(@RequestBody Student student) {
         if (!currentUserService.hasAnyRole("ADMIN")) {

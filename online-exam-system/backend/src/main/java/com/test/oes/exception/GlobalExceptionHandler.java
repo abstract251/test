@@ -2,9 +2,12 @@ package com.test.oes.exception;
 
 import com.test.oes.entity.ApiResult;
 import com.test.oes.util.ApiResultHandler;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,6 +23,14 @@ public class GlobalExceptionHandler {
     public ApiResult<Void> handleExamBusiness(ExamBusinessException e) {
         log.warn("考试业务规则: {}", e.getMessage());
         return ApiResultHandler.buildApiResult(e.getHttpStyleCode(), e.getMessage(), null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResult<Void> handleAccessDenied(AccessDeniedException e) {
+        log.warn("权限不足: {}", e.getMessage());
+        return ApiResultHandler.buildApiResult(403, "Forbidden", null);
     }
 
     /**
