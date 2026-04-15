@@ -61,4 +61,18 @@ CREATE TABLE IF NOT EXISTS `exam_revoke_audit` (
   KEY `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='超级管理员撤销考试审计';
 
+-- 4) 学生作答会话
+CREATE TABLE IF NOT EXISTS `exam_attempt` (
+  `attempt_id` BIGINT NOT NULL AUTO_INCREMENT,
+  `exam_code` INT NOT NULL,
+  `student_id` INT NOT NULL,
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '0=作答中 1=已交卷',
+  `answers_json` MEDIUMTEXT NULL,
+  `started_at` DATETIME NOT NULL,
+  `submitted_at` DATETIME NULL,
+  PRIMARY KEY (`attempt_id`),
+  UNIQUE KEY `uk_exam_student` (`exam_code`, `student_id`),
+  KEY `idx_student` (`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学生考试作答会话';
+
 SET FOREIGN_KEY_CHECKS = 1;
