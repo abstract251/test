@@ -4,11 +4,13 @@ import com.test.oes.entity.Admin;
 import com.test.oes.entity.ApiResult;
 import com.test.oes.service.impl.AdminServiceImpl;
 import com.test.oes.util.ApiResultHandler;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final AdminServiceImpl adminService;

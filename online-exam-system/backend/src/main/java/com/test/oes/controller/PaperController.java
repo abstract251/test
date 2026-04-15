@@ -1,16 +1,14 @@
 package com.test.oes.controller;
 
 import com.test.oes.entity.*;
-import com.test.oes.exception.ExamBusinessException;
 import com.test.oes.service.FillQuestionService;
 import com.test.oes.service.JudgeQuestionService;
 import com.test.oes.service.MultiQuestionService;
 import com.test.oes.service.PaperService;
 import com.test.oes.util.ApiResultHandler;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -36,9 +34,9 @@ public class PaperController {
     }
 
     // 根据试卷ID查询所有题目（选择、填空、判断）；学生角色禁止调用，防止考前泄题（正式试题仅通过开考接口下发）
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping("/paper/{paperId}")
-    public ApiResult<Map<Integer, List<?>>> findById(@PathVariable Integer paperId, HttpServletRequest request) {
-        assertNotStudentRole(request);
+    public ApiResult<Map<Integer, List<?>>> findById(@PathVariable Integer paperId) {
         List<MultiQuestion> multiQuestionRes = multiQuestionService.findByIdAndType(paperId);   //选择题题库 1
         List<FillQuestion> fillQuestionsRes = fillQuestionService.findByIdAndType(paperId);     //填空题题库 2
         List<JudgeQuestion> judgeQuestionRes = judgeQuestionService.findByIdAndType(paperId);   //判断题题库 3
@@ -97,24 +95,5 @@ public class PaperController {
     public ApiResult<Integer> getMaxScore(@PathVariable Integer paperId) {
         Integer score = paperService.getMaxScore(paperId);
         return ApiResultHandler.buildApiResult(200, "查询成功", score);
-    }
-
-    private static void assertNotStudentRole(HttpServletRequest request) {
-        if ("2".equals(readCookie(request, "rb_role"))) {
-            throw new ExamBusinessException(403, "学生无法查看完整试卷内容，请在开考后从答题页进入");
-        }
-    }
-
-    private static String readCookie(HttpServletRequest request, String name) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return null;
-        }
-        for (Cookie c : cookies) {
-            if (name.equals(c.getName())) {
-                return c.getValue();
-            }
-        }
-        return null;
     }
 }
