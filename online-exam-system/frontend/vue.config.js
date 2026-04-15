@@ -16,6 +16,39 @@
 const { defineConfig } = require('@vue/cli-service')
 module.exports = defineConfig({
   transpileDependencies: true,
+  productionSourceMap: false,
+  configureWebpack: {
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vueCore: {
+            name: 'chunk-vue-core',
+            test: /[\\/]node_modules[\\/](vue|vue-router)[\\/]/,
+            priority: 30,
+            enforce: true
+          },
+          elementPlus: {
+            name: 'chunk-element-plus',
+            test: /[\\/]node_modules[\\/](element-plus|@element-plus)[\\/]/,
+            priority: 25,
+            enforce: true
+          },
+          axiosDayjs: {
+            name: 'chunk-axios-dayjs',
+            test: /[\\/]node_modules[\\/](axios|dayjs)[\\/]/,
+            priority: 20,
+            enforce: true
+          }
+        }
+      }
+    },
+    performance: {
+      hints: 'warning',
+      maxAssetSize: 460000,
+      maxEntrypointSize: 980000
+    }
+  },
   devServer: {
     port: 8081
   }
