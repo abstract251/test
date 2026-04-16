@@ -1,16 +1,17 @@
 <template>
-  <div v-if="exam" class="student-page">
+  <div v-if="exam || bootError" class="student-page">
     <PageContainer>
       <PageHeader
         title="在线答题"
         description="题目已按本场考试固定，系统会自动暂存作答，请在结束前完成并交卷。"
       >
         <template #actions>
-          <el-button @click="router.push(`/student/exams/${exam.examCode}`)">返回考试详情</el-button>
+          <el-button v-if="exam" @click="router.push(`/student/exams/${exam.examCode}`)">返回考试详情</el-button>
+          <el-button v-else @click="router.push('/student/home')">返回考试中心</el-button>
         </template>
       </PageHeader>
 
-      <ExamMetaPanel :exam="examForPanel" />
+      <ExamMetaPanel v-if="examForPanel" :exam="examForPanel" />
       <el-alert v-if="bootError" :title="bootError" type="error" show-icon :closable="false" />
       <el-alert
         v-else-if="restoreNotice"
@@ -87,7 +88,6 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import StatusCard from '@/components/common/StatusCard.vue'
 import ExamMetaPanel from '@/components/exam/ExamMetaPanel.vue'
 import {
-  getExamById,
   saveStudentExamAnswers,
   startStudentExamSession,
   submitStudentExamSession
@@ -266,19 +266,13 @@ async function flushSave() {
 
 async function bootstrap() {
   try {
-    const examRes = await getExamById(route.params.examCode)
-    if (examRes.code !== 200 || !examRes.data) {
-      bootError.value = examRes.message || '无法加载考试'
-      return
-    }
-    exam.value = examRes.data
-
     const startRes = await startStudentExamSession(route.params.examCode)
     if (startRes.code !== 200 || !startRes.data) {
-      bootError.value = startRes.message || '无法进入考试（时间、资格或快照未就绪）'
+      bootError.value = startRes.message || '无法进入考试，可能不在考试时间内或不在本场考试范围内'
       return
     }
 
+    exam.value = startRes.data.exam || null
     sessionPayload.value = startRes.data
     const srv = startRes.data.serverTime
     if (srv) {
@@ -297,8 +291,8 @@ async function bootstrap() {
     }
     updateClock()
     tickTimer = setInterval(updateClock, 1000)
-  } catch {
-    bootError.value = '加载失败，请稍后重试'
+  } catch (error) {
+    bootError.value = error?.response?.data?.message || '加载失败，请稍后重试'
   }
 }
 
