@@ -6,6 +6,7 @@ import com.test.oes.exception.ExamBusinessException;
 import com.test.oes.mapper.StudentMapper;
 import com.test.oes.security.AccountRole;
 import com.test.oes.security.CurrentUserService;
+import com.test.oes.service.StudentExamQueryService;
 import com.test.oes.service.StudentExamSessionService;
 import com.test.oes.util.ApiResultHandler;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +18,22 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StudentExamController {
 
+    private final StudentExamQueryService studentExamQueryService;
     private final StudentExamSessionService studentExamSessionService;
     private final StudentMapper studentMapper;
     private final CurrentUserService currentUserService;
+
+    @GetMapping("/student/exams")
+    public ApiResult<Map<String, Object>> exams() {
+        Student student = requireStudent();
+        return ApiResultHandler.buildApiResult(200, "ok", studentExamQueryService.getStudentExamList(student));
+    }
+
+    @GetMapping("/student/exam/{examCode}")
+    public ApiResult<Map<String, Object>> examDetail(@PathVariable Integer examCode) {
+        Student student = requireStudent();
+        return ApiResultHandler.buildApiResult(200, "ok", studentExamQueryService.getStudentExamDetail(examCode, student));
+    }
 
     @PostMapping("/student/exam/{examCode}/attempt/start")
     public ApiResult<Map<String, Object>> start(@PathVariable Integer examCode) {

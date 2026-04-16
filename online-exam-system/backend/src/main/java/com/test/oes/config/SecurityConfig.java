@@ -60,7 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/me", "/auth/logout").authenticated()
                         .requestMatchers("/messages/**", "/message/**", "/replay/**", "/practice/**").authenticated()
-                        .requestMatchers("/student/exam/**", "/answer/submit").hasRole("STUDENT")
+                        .requestMatchers("/student/exams", "/student/exam/**", "/answer/submit").hasRole("STUDENT")
                         .requestMatchers("/admin/exam/**", "/admins/**", "/admin/**").hasRole("ADMIN")
                         .requestMatchers("/teacher/**", "/teachers/**", "/student/**", "/students/**")
                         .hasAnyRole("ADMIN", "TEACHER", "STUDENT")
