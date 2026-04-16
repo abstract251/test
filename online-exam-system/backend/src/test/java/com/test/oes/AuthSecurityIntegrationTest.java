@@ -285,6 +285,80 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    void studentExamListShouldFilterByScopeAndExposeStudentFacingStatusFields() throws Exception {
+        Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+        int hiddenExamCode = 20990001;
+
+        jdbcTemplate.update("""
+                INSERT INTO exam_manage(
+                    examCode, description, source, paperId, examDate, exam_start_at, totalTime,
+                    grade, term, major, institute, totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+                ) VALUES (?, ?, ?, ?, DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 1 DAY), '%Y-%m-%d %H:%i:%s'),
+                          DATE_ADD(NOW(), INTERVAL 1 DAY), ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)
+                """,
+                hiddenExamCode, "不属于当前学生的考试", "数据库系统", 1001, 60,
+                "2025", "1", "软件工程", "信息工程学院", 6, "阶段测验", "hidden");
+
+        jdbcTemplate.update("""
+                INSERT INTO exam_attempt(exam_code, student_id, status, answers_json, started_at, submitted_at)
+                VALUES (?, ?, 0, '{}', DATE_SUB(NOW(), INTERVAL 2 MINUTE), NULL)
+                """, EXAM_CODE, STUDENT_ID);
+
+        MvcResult result = mockMvc.perform(get("/student/exams")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.serverTime").exists())
+                .andExpect(jsonPath("$.data.records").isArray())
+                .andReturn();
+
+        JsonNode records = json(result).path("data").path("records");
+        assertThat(records.isArray()).isTrue();
+        JsonNode currentExam = findExam(records, EXAM_CODE);
+        assertThat(currentExam).isNotNull();
+        assertThat(findExam(records, hiddenExamCode)).isNull();
+        assertThat(currentExam.path("examState").asText()).isEqualTo("ONGOING");
+        assertThat(currentExam.path("attemptStatus").asText()).isEqualTo("IN_PROGRESS");
+        assertThat(currentExam.path("canEnter").asBoolean()).isTrue();
+        assertThat(currentExam.path("windowEndAt").isMissingNode()).isFalse();
+        assertThat(currentExam.path("freezeAt").isMissingNode()).isFalse();
+    }
+
+    @Test
+    void studentExamDetailShouldReturnSummaryWithoutLeakingPaperContent() throws Exception {
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+
+        MvcResult result = mockMvc.perform(get("/student/exam/" + EXAM_CODE)
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.serverTime").exists())
+                .andExpect(jsonPath("$.data.exam.examCode").value(EXAM_CODE))
+                .andExpect(jsonPath("$.data.exam.examState").value("ONGOING"))
+                .andExpect(jsonPath("$.data.exam.attemptStatus").value("NOT_STARTED"))
+                .andExpect(jsonPath("$.data.exam.questionSummary").isArray())
+                .andExpect(jsonPath("$.data.exam.totalQuestionCount").value(3))
+                .andExpect(jsonPath("$.data.exam.summarySource").value("FROZEN_SNAPSHOT"))
+                .andReturn();
+
+        JsonNode exam = json(result).path("data").path("exam");
+        assertThat(exam.path("paper").isMissingNode()).isTrue();
+        assertThat(exam.path("questions").isMissingNode()).isTrue();
+        assertThat(exam.path("question").isMissingNode()).isTrue();
+
+        JsonNode summary = exam.path("questionSummary");
+        assertThat(summary.size()).isEqualTo(3);
+        assertThat(summary.get(0).path("questionType").asInt()).isEqualTo(1);
+        assertThat(summary.get(0).path("count").asInt()).isEqualTo(1);
+        assertThat(summary.get(0).path("score").asInt()).isEqualTo(2);
+        assertThat(summary.get(1).path("questionType").asInt()).isEqualTo(2);
+        assertThat(summary.get(1).path("count").asInt()).isEqualTo(1);
+        assertThat(summary.get(2).path("questionType").asInt()).isEqualTo(3);
+        assertThat(summary.get(2).path("count").asInt()).isEqualTo(1);
+    }
+
+    @Test
     void answerSubmitShouldUseCurrentStudentInsteadOfPayloadStudentId() throws Exception {
         String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
 
@@ -418,6 +492,15 @@ class AuthSecurityIntegrationTest {
 
     private JsonNode json(MvcResult result) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private JsonNode findExam(JsonNode records, int examCode) {
+        for (JsonNode item : records) {
+            if (item.path("examCode").asInt() == examCode) {
+                return item;
+            }
+        }
+        return null;
     }
 
     private boolean hasTable(String tableName) {
