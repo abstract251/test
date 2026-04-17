@@ -3,6 +3,7 @@ package com.test.oes;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,7 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
 @TestPropertySource(properties = {
         "DB_HOST=localhost",
         "DB_PORT=3306",
@@ -39,7 +38,9 @@ class AuthSecurityIntegrationTest {
     private static final int TEACHER_ID = 20081001;
     private static final int STUDENT_ID = 20224001;
     private static final int OTHER_STUDENT_ID = 20224084;
-    private static final int EXAM_CODE = 20230001;
+    private static final int EXAM_CODE = 21990001;
+    private static final int HIDDEN_EXAM_CODE = 21990002;
+    private static final int PAPER_ID = 1001;
 
     private static final String ADMIN_PASSWORD = "Admin@123";
     private static final String TEACHER_PASSWORD = "Teacher@123";
@@ -72,21 +73,27 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
                 String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
         if (examAttemptTableExists) {
-            jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code = ? AND student_id = ?", EXAM_CODE, STUDENT_ID);
+            jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
         }
-        jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code = ?", EXAM_CODE);
-        jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code = ?", EXAM_CODE);
-        jdbcTemplate.update("DELETE FROM score WHERE examCode = ? AND studentId = ?", EXAM_CODE, STUDENT_ID);
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         ensurePaperQuestions();
-        jdbcTemplate.update("""
-                UPDATE exam_manage
-                SET exam_start_at = DATE_SUB(NOW(), INTERVAL 5 MINUTE),
-                    examDate = DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MINUTE), '%Y-%m-%d %H:%i:%s'),
-                    revoked_at = NULL,
-                    revoke_reason = NULL,
-                    totalTime = 90
-                WHERE examCode = ?
-                """, EXAM_CODE);
+        insertVisibleExam();
+    }
+
+    @AfterEach
+    void cleanUpExamData() {
+        if (examAttemptTableExists) {
+            jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
+        }
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
+                String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
     }
 
     @Test
@@ -139,6 +146,21 @@ class AuthSecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.userId").value(ADMIN_ID));
+    }
+
+    @Test
+    void actuatorHealthAndPrometheusShouldBePublic() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+
+        MvcResult result = mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("# HELP");
+        assertThat(body).contains("jvm_memory_used_bytes");
     }
 
     @Test
@@ -288,7 +310,6 @@ class AuthSecurityIntegrationTest {
     void studentExamListShouldFilterByScopeAndExposeStudentFacingStatusFields() throws Exception {
         Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
         String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
-        int hiddenExamCode = 20990001;
 
         jdbcTemplate.update("""
                 INSERT INTO exam_manage(
@@ -297,7 +318,7 @@ class AuthSecurityIntegrationTest {
                 ) VALUES (?, ?, ?, ?, DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 1 DAY), '%Y-%m-%d %H:%i:%s'),
                           DATE_ADD(NOW(), INTERVAL 1 DAY), ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)
                 """,
-                hiddenExamCode, "不属于当前学生的考试", "数据库系统", 1001, 60,
+                HIDDEN_EXAM_CODE, "不属于当前学生的考试", "数据库系统", PAPER_ID, 60,
                 "2025", "1", "软件工程", "信息工程学院", 6, "阶段测验", "hidden");
 
         jdbcTemplate.update("""
@@ -317,7 +338,7 @@ class AuthSecurityIntegrationTest {
         assertThat(records.isArray()).isTrue();
         JsonNode currentExam = findExam(records, EXAM_CODE);
         assertThat(currentExam).isNotNull();
-        assertThat(findExam(records, hiddenExamCode)).isNull();
+        assertThat(findExam(records, HIDDEN_EXAM_CODE)).isNull();
         assertThat(currentExam.path("examState").asText()).isEqualTo("ONGOING");
         assertThat(currentExam.path("attemptStatus").asText()).isEqualTo("IN_PROGRESS");
         assertThat(currentExam.path("canEnter").asBoolean()).isTrue();
@@ -517,13 +538,40 @@ class AuthSecurityIntegrationTest {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM paper_manage WHERE paperId = ?",
                 Integer.class,
-                1001
+                PAPER_ID
         );
         if (count != null && count > 0) {
             return;
         }
-        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (1001, 1, 10001)");
-        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (1001, 2, 10001)");
-        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (1001, 3, 10001)");
+        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (?, 1, 10001)", PAPER_ID);
+        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (?, 2, 10001)", PAPER_ID);
+        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (?, 3, 10001)", PAPER_ID);
+    }
+
+    private void insertVisibleExam() {
+        jdbcTemplate.update("""
+                INSERT INTO exam_manage(
+                    examCode, description, source, paperId, examDate, exam_start_at, totalTime,
+                    grade, term, major, institute, totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+                ) VALUES (
+                    ?, ?, ?, ?,
+                    DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MINUTE), '%Y-%m-%d %H:%i:%s'),
+                    DATE_SUB(NOW(), INTERVAL 5 MINUTE),
+                    ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL
+                )
+                """,
+                EXAM_CODE,
+                "测试专用考试",
+                "计算机网络",
+                PAPER_ID,
+                90,
+                "2023",
+                "1",
+                "计算机科学与技术",
+                "软件工程学院",
+                6,
+                "期末考试",
+                "integration-test"
+        );
     }
 }

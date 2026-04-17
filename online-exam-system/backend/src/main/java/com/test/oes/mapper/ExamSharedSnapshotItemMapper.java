@@ -18,4 +18,7 @@ public interface ExamSharedSnapshotItemMapper {
     @Select("SELECT id, exam_code, question_type, question_id, display_order FROM exam_shared_snapshot_item "
             + "WHERE exam_code = #{examCode} ORDER BY display_order")
     List<ExamSharedSnapshotItem> findByExamCode(@Param("examCode") Integer examCode);
+
+    @Select("SELECT COUNT(*) FROM exam_shared_snapshot_item WHERE exam_code = #{examCode}")
+    int countByExamCode(@Param("examCode") Integer examCode);
 }

@@ -1,0 +1,194 @@
+{
+    "metrics": {
+        "http_reqs": {
+            "count": 100,
+            "rate": 244.61677968369582
+        },
+        "iterations": {
+            "count": 20,
+            "rate": 48.92335593673916
+        },
+        "http_req_duration": {
+            "min": 10.2425,
+            "med": 45.81675,
+            "max": 206.0636,
+            "p(90)": 197.28205,
+            "p(95)": 200.99951499999997,
+            "avg": 76.53665999999997,
+            "thresholds": {
+                "p(95)<3000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_sending": {
+            "avg": 0.148168,
+            "min": 0,
+            "med": 0,
+            "max": 1.5759,
+            "p(90)": 0.6658300000000006,
+            "p(95)": 1.0063
+        },
+        "data_received": {
+            "count": 144797,
+            "rate": 354197.75847860106
+        },
+        "http_req_blocked": {
+            "avg": 1.2276190000000002,
+            "min": 0,
+            "med": 0,
+            "max": 10.2596,
+            "p(90)": 4.987510000000005,
+            "p(95)": 5.967654999999998
+        },
+        "http_req_waiting": {
+            "med": 45.18355,
+            "max": 205.3228,
+            "p(90)": 197.2181,
+            "p(95)": 200.9492,
+            "avg": 76.03841399999997,
+            "min": 10.2425
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 76.53665999999997,
+            "min": 10.2425,
+            "med": 45.81675,
+            "max": 206.0636,
+            "p(90)": 197.28205,
+            "p(95)": 200.99951499999997
+        },
+        "http_req_connecting": {
+            "p(95)": 2.629,
+            "avg": 0.44592800000000005,
+            "min": 0,
+            "med": 0,
+            "max": 6.4246,
+            "p(90)": 1.1002
+        },
+        "iteration_duration": {
+            "avg": 389.93312000000003,
+            "min": 371.7534,
+            "med": 393.9307,
+            "max": 407.7621,
+            "p(90)": 402.53775,
+            "p(95)": 405.46614
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 100,
+            "thresholds": {
+                "rate<0.05": false
+            },
+            "value": 0
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "data_sent": {
+            "count": 49820,
+            "rate": 121868.07963841726
+        },
+        "checks": {
+            "passes": 220,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_receiving": {
+            "avg": 0.35007800000000006,
+            "min": 0,
+            "med": 0.44055,
+            "max": 1.4042,
+            "p(90)": 0.83125,
+            "p(95)": 0.9517
+        }
+    },
+    "root_group": {
+        "checks": {
+            "login http 200": {
+                "name": "login http 200",
+                "path": "::login http 200",
+                "id": "0ca761b99d34354b6cfc99d071e0a2b3",
+                "passes": 20,
+                "fails": 0
+            },
+            "login business 200": {
+                "fails": 0,
+                "name": "login business 200",
+                "path": "::login business 200",
+                "id": "3fe89639e48f5ffcf0ac7b08f32fbd3d",
+                "passes": 20
+            },
+            "login returns access token": {
+                "fails": 0,
+                "name": "login returns access token",
+                "path": "::login returns access token",
+                "id": "6293b1160fa705bac3d194d14543619f",
+                "passes": 20
+            },
+            "student exams http 200": {
+                "name": "student exams http 200",
+                "path": "::student exams http 200",
+                "id": "c94ffd95951bf4e8be6a49ebe2247c56",
+                "passes": 20,
+                "fails": 0
+            },
+            "student exams business 200": {
+                "name": "student exams business 200",
+                "path": "::student exams business 200",
+                "id": "0f760e484a5b5fd4d60f16b699c81462",
+                "passes": 20,
+                "fails": 0
+            },
+            "attempt start http 200": {
+                "path": "::attempt start http 200",
+                "id": "d05e4da61998f8fb5571c25a5b2912dd",
+                "passes": 20,
+                "fails": 0,
+                "name": "attempt start http 200"
+            },
+            "attempt start business 200": {
+                "id": "3a7fdc6606239917f5dc06a9926e2206",
+                "passes": 20,
+                "fails": 0,
+                "name": "attempt start business 200",
+                "path": "::attempt start business 200"
+            },
+            "answer save http 200": {
+                "id": "80a31f7c7ca2fa8b34c9ea22ba433250",
+                "passes": 20,
+                "fails": 0,
+                "name": "answer save http 200",
+                "path": "::answer save http 200"
+            },
+            "answer save business 200": {
+                "name": "answer save business 200",
+                "path": "::answer save business 200",
+                "id": "3cdbbdd0fffd277cf191fc1278b5602d",
+                "passes": 20,
+                "fails": 0
+            },
+            "attempt submit http 200": {
+                "name": "attempt submit http 200",
+                "path": "::attempt submit http 200",
+                "id": "819aa590c50a3f7ac264bff52a37ce2e",
+                "passes": 20,
+                "fails": 0
+            },
+            "attempt submit business 200": {
+                "name": "attempt submit business 200",
+                "path": "::attempt submit business 200",
+                "id": "897c9bf32722b5018839f38542e83414",
+                "passes": 20,
+                "fails": 0
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {}
+    }
+}

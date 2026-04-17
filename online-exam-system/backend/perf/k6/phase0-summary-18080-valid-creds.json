@@ -1,0 +1,218 @@
+{
+    "metrics": {
+        "vus": {
+            "value": 5,
+            "min": 5,
+            "max": 30
+        },
+        "vus_max": {
+            "value": 30,
+            "min": 30,
+            "max": 30
+        },
+        "iterations": {
+            "count": 1625,
+            "rate": 19.103486341114245
+        },
+        "http_req_duration": {
+            "avg": 48.95718121532357,
+            "min": 1.7656,
+            "med": 26.8811,
+            "max": 196.054,
+            "p(90)": 105.7325,
+            "p(95)": 110.0574,
+            "thresholds": {
+                "p(95)<3000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "iteration_duration": {
+            "p(90)": 1134.69868,
+            "p(95)": 1141.35356,
+            "avg": 1114.9959107076938,
+            "min": 1093.895,
+            "med": 1109.8674,
+            "max": 1308.344
+        },
+        "http_req_blocked": {
+            "max": 10.7477,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.025059048877146644,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 196.054,
+            "p(90)": 105.7325,
+            "p(95)": 110.0574,
+            "avg": 48.95718121532357,
+            "min": 1.7656,
+            "med": 26.8811
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 3785,
+            "thresholds": {
+                "rate<0.05": false
+            },
+            "value": 0
+        },
+        "http_reqs": {
+            "count": 3785,
+            "rate": 44.496428185303024
+        },
+        "http_req_receiving": {
+            "min": 0,
+            "med": 0.527,
+            "max": 2.9036,
+            "p(90)": 1.07744,
+            "p(95)": 1.3254799999999987,
+            "avg": 0.5297384412153239
+        },
+        "data_sent": {
+            "count": 1439470,
+            "rate": 16922.39722058075
+        },
+        "data_received": {
+            "count": 4593976,
+            "rate": 54006.74324148102
+        },
+        "http_req_connecting": {
+            "p(95)": 0,
+            "avg": 0.010305389696169088,
+            "min": 0,
+            "med": 0,
+            "max": 2.2993,
+            "p(90)": 0
+        },
+        "http_req_waiting": {
+            "min": 0.5305,
+            "med": 26.6896,
+            "max": 194.8113,
+            "p(90)": 105.31967999999999,
+            "p(95)": 109.68525999999999,
+            "avg": 48.41309807133414
+        },
+        "checks": {
+            "passes": 7305,
+            "fails": 270,
+            "value": 0.9643564356435643
+        },
+        "http_req_sending": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.01434470277410832,
+            "min": 0,
+            "med": 0,
+            "max": 3.9603
+        }
+    },
+    "root_group": {
+        "groups": {},
+        "checks": {
+                "login http 200": {
+                    "name": "login http 200",
+                    "path": "::login http 200",
+                    "id": "0ca761b99d34354b6cfc99d071e0a2b3",
+                    "passes": 1625,
+                    "fails": 0
+                },
+                "login business 200": {
+                    "id": "3fe89639e48f5ffcf0ac7b08f32fbd3d",
+                    "passes": 1625,
+                    "fails": 0,
+                    "name": "login business 200",
+                    "path": "::login business 200"
+                },
+                "login returns access token": {
+                    "id": "6293b1160fa705bac3d194d14543619f",
+                    "passes": 1625,
+                    "fails": 0,
+                    "name": "login returns access token",
+                    "path": "::login returns access token"
+                },
+                "student exams http 200": {
+                    "passes": 265,
+                    "fails": 0,
+                    "name": "student exams http 200",
+                    "path": "::student exams http 200",
+                    "id": "c94ffd95951bf4e8be6a49ebe2247c56"
+                },
+                "student exams business 200": {
+                    "name": "student exams business 200",
+                    "path": "::student exams business 200",
+                    "id": "0f760e484a5b5fd4d60f16b699c81462",
+                    "passes": 265,
+                    "fails": 0
+                },
+                "attempt start http 200": {
+                    "id": "d05e4da61998f8fb5571c25a5b2912dd",
+                    "passes": 275,
+                    "fails": 0,
+                    "name": "attempt start http 200",
+                    "path": "::attempt start http 200"
+                },
+                "attempt start business 200/400": {
+                    "fails": 0,
+                    "name": "attempt start business 200/400",
+                    "path": "::attempt start business 200/400",
+                    "id": "f5aa91d2299900d928ace1dc4c2d210e",
+                    "passes": 275
+                },
+                "answer save http 200": {
+                    "name": "answer save http 200",
+                    "path": "::answer save http 200",
+                    "id": "80a31f7c7ca2fa8b34c9ea22ba433250",
+                    "passes": 270,
+                    "fails": 0
+                },
+                "answer save business 200": {
+                    "name": "answer save business 200",
+                    "path": "::answer save business 200",
+                    "id": "3cdbbdd0fffd277cf191fc1278b5602d",
+                    "passes": 0,
+                    "fails": 270
+                },
+                "attempt submit http 200": {
+                    "name": "attempt submit http 200",
+                    "path": "::attempt submit http 200",
+                    "id": "819aa590c50a3f7ac264bff52a37ce2e",
+                    "passes": 270,
+                    "fails": 0
+                },
+                "attempt submit business 200/400": {
+                    "name": "attempt submit business 200/400",
+                    "path": "::attempt submit business 200/400",
+                    "id": "91a46272642f23055694e5da1dec4173",
+                    "passes": 270,
+                    "fails": 0
+                },
+                "question bank page http 200": {
+                    "name": "question bank page http 200",
+                    "path": "::question bank page http 200",
+                    "id": "f7b6577ad387eca80ed724c7f875aba0",
+                    "passes": 270,
+                    "fails": 0
+                },
+                "question bank page business 200": {
+                    "id": "5ef521551b9e031a0c1e728a58eb916c",
+                    "passes": 270,
+                    "fails": 0,
+                    "name": "question bank page business 200",
+                    "path": "::question bank page business 200"
+                }
+            },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+}

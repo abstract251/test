@@ -38,7 +38,6 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
     private final JudgeQuestionMapper judgeQuestionMapper;
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> startOrResumeAttempt(Integer examCode, Student student) {
         ExamManage exam = requireExamForStudent(examCode, student);
         LocalDateTime now = examTimeHelper.nowShanghai();
