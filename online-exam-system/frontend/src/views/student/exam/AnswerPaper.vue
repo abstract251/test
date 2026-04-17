@@ -108,6 +108,7 @@ const ended = ref(false)
 const restoreNotice = ref('')
 const saveState = ref('idle')
 const lastSavedAt = ref('')
+const dirty = ref(false)
 
 const totalQuestionCount = computed(() => {
   return [1, 2, 3].reduce((sum, type) => sum + questionsOf(type).length, 0)
@@ -166,6 +167,9 @@ const examForPanel = computed(() => {
 
 let saveTimer = null
 let tickTimer = null
+let retryTimer = null
+let saveInFlight = null
+let lastSavedSignature = ''
 
 function answerKey(type, qid) {
   return `${type}_${qid}`
@@ -187,34 +191,127 @@ function updateSavedAt() {
   lastSavedAt.value = dayjs(Date.now() + serverSkewMs.value).format('YYYY-MM-DD HH:mm:ss')
 }
 
-async function persistAnswers() {
+function clearSaveTimer() {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+}
+
+function clearRetryTimer() {
+  if (retryTimer) {
+    clearTimeout(retryTimer)
+    retryTimer = null
+  }
+}
+
+function buildAnswerSnapshot() {
+  return Object.keys(answers)
+    .sort()
+    .reduce((accumulator, key) => {
+      accumulator[key] = answers[key]
+      return accumulator
+    }, {})
+}
+
+function buildAnswerSignature() {
+  return JSON.stringify(buildAnswerSnapshot())
+}
+
+function updateDirtyStateAfterEdit() {
+  const currentSignature = buildAnswerSignature()
+  if (currentSignature === lastSavedSignature) {
+    dirty.value = false
+    clearSaveTimer()
+    clearRetryTimer()
+    saveState.value = currentSignature === '{}' ? 'idle' : 'saved'
+    return
+  }
+
+  dirty.value = true
+  clearRetryTimer()
+  if (saveState.value === 'saved') {
+    saveState.value = 'idle'
+  }
+}
+
+function scheduleSave(delayMs = 3000) {
+  if (!ready.value || ended.value || !dirty.value) {
+    return
+  }
+  clearSaveTimer()
+  saveTimer = setTimeout(() => {
+    void persistAnswers()
+  }, delayMs)
+}
+
+function scheduleRetry() {
+  clearRetryTimer()
+  if (!ready.value || ended.value || !dirty.value) {
+    return
+  }
+  retryTimer = setTimeout(() => {
+    void persistAnswers()
+  }, 5000)
+}
+
+async function persistAnswers(force = false) {
   if (!ready.value || ended.value) {
     return true
   }
 
-  saveState.value = 'saving'
-  try {
-    const response = await saveStudentExamAnswers(route.params.examCode, { ...answers })
-    if (response?.code === 200) {
-      saveState.value = 'saved'
-      updateSavedAt()
-      return true
-    }
-    saveState.value = 'failed'
-    return false
-  } catch {
-    saveState.value = 'failed'
-    return false
+  const requestSignature = buildAnswerSignature()
+  if (!force && (!dirty.value || requestSignature === lastSavedSignature)) {
+    return true
   }
-}
 
-function scheduleSave() {
-  if (saveTimer) {
-    clearTimeout(saveTimer)
+  if (saveInFlight) {
+    return saveInFlight
   }
-  saveTimer = setTimeout(() => {
-    void persistAnswers()
-  }, 900)
+
+  const payload = buildAnswerSnapshot()
+  saveState.value = 'saving'
+  clearSaveTimer()
+  clearRetryTimer()
+
+  saveInFlight = (async () => {
+    let requestSucceeded = false
+    try {
+      const response = await saveStudentExamAnswers(route.params.examCode, payload)
+      requestSucceeded = response?.code === 200
+      if (!requestSucceeded) {
+        saveState.value = 'failed'
+        dirty.value = true
+        scheduleRetry()
+        return false
+      }
+
+      lastSavedSignature = requestSignature
+      updateSavedAt()
+
+      if (buildAnswerSignature() === requestSignature) {
+        dirty.value = false
+        saveState.value = requestSignature === '{}' ? 'idle' : 'saved'
+        return true
+      }
+
+      dirty.value = true
+      saveState.value = 'saving'
+      return true
+    } catch {
+      saveState.value = 'failed'
+      dirty.value = true
+      scheduleRetry()
+      return false
+    } finally {
+      saveInFlight = null
+      if (requestSucceeded && dirty.value && !ended.value) {
+        scheduleSave(0)
+      }
+    }
+  })()
+
+  return saveInFlight
 }
 
 function updateClock() {
@@ -238,18 +335,19 @@ function updateClock() {
 
 function handleVisibilityChange() {
   if (document.visibilityState === 'hidden') {
-    void persistAnswers()
+    void flushSave()
   }
 }
 
 function handlePageHide() {
-  void persistAnswers()
+  void flushSave()
 }
 
 watch(
   () => ({ ...answers }),
   () => {
     if (ready.value && !ended.value) {
+      updateDirtyStateAfterEdit()
       scheduleSave()
     }
   },
@@ -257,9 +355,11 @@ watch(
 )
 
 async function flushSave() {
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    saveTimer = null
+  clearSaveTimer()
+  clearRetryTimer()
+
+  if (saveInFlight) {
+    await saveInFlight
   }
   return persistAnswers()
 }
@@ -281,6 +381,8 @@ async function bootstrap() {
 
     Object.keys(answers).forEach((key) => delete answers[key])
     Object.assign(answers, startRes.data.answers || {})
+    lastSavedSignature = buildAnswerSignature()
+    dirty.value = false
     restoreNotice.value = Object.keys(startRes.data.answers || {}).length
       ? '已恢复上次暂存的作答内容'
       : ''
@@ -349,9 +451,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
   window.removeEventListener('pagehide', handlePageHide)
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-  }
+  clearSaveTimer()
+  clearRetryTimer()
   if (tickTimer) {
     clearInterval(tickTimer)
   }

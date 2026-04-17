@@ -105,6 +105,11 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import ExamMetaPanel from '@/components/exam/ExamMetaPanel.vue'
 import { getStudentExamDetail } from '@/api/examApi'
 import { formatDateTime } from '@/utils/date'
+import { createRequestCoordinator } from '@/utils/requestCoordinator'
+
+const examDetailCoordinator = createRequestCoordinator('student-exams:detail', {
+  defaultTtlMs: 3000
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -218,7 +223,11 @@ async function fetchExamDetail() {
   loadError.value = ''
 
   try {
-    const response = await getStudentExamDetail(route.params.examCode)
+    const cacheKey = `student-exams:detail:${route.params.examCode}`
+    const response = await examDetailCoordinator.load(
+      cacheKey,
+      () => getStudentExamDetail(route.params.examCode)
+    )
     if (response.code !== 200 || !response.data?.exam) {
       loadError.value = response.message || '考试详情加载失败'
       return

@@ -117,6 +117,11 @@ import { getAllExams } from '@/api/examApi'
 import { getExamScores, getScoreStatistics } from '@/api/scoreApi'
 import { formatDateTime } from '@/utils/date'
 import { SCORE_DISTRIBUTION_LABELS } from '@/utils/constants'
+import { createRequestCoordinator } from '@/utils/requestCoordinator'
+
+const gradeCenterCoordinator = createRequestCoordinator('grade-center', {
+  defaultTtlMs: 15000
+})
 
 const route = useRoute()
 
@@ -301,7 +306,11 @@ function formatExamLabel(exam) {
 async function fetchExamOptions() {
   loadingExamOptions.value = true
   try {
-    const response = await getAllExams()
+    const response = await gradeCenterCoordinator.load(
+      'grade-center:exam-options',
+      () => getAllExams(),
+      { ttlMs: 30000 }
+    )
     if (response.code === 200) {
       exams.value = Array.isArray(response.data) ? response.data : []
 
@@ -321,7 +330,7 @@ async function fetchExamOptions() {
   }
 }
 
-async function fetchGradeData() {
+async function fetchGradeData(force = false) {
   if (!selectedExamCode.value) {
     scoreRecords.value = []
     statistics.value = null
@@ -329,9 +338,19 @@ async function fetchGradeData() {
   }
 
   loadingData.value = true
+  const scoresKey = `grade-center:scores:${selectedExamCode.value}`
+  const statsKey = `grade-center:stats:${selectedExamCode.value}`
   const [scoresResult, statisticsResult] = await Promise.allSettled([
-    getExamScores(selectedExamCode.value),
-    getScoreStatistics(selectedExamCode.value)
+    gradeCenterCoordinator.load(
+      scoresKey,
+      () => getExamScores(selectedExamCode.value),
+      { force }
+    ),
+    gradeCenterCoordinator.load(
+      statsKey,
+      () => getScoreStatistics(selectedExamCode.value),
+      { force }
+    )
   ])
 
   let listLoaded = false
@@ -365,7 +384,7 @@ function handleExamChange() {
 }
 
 function refreshCurrentExam() {
-  void fetchGradeData()
+  void fetchGradeData(true)
 }
 
 onMounted(async () => {

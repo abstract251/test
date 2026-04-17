@@ -202,6 +202,11 @@ import {
   normalizeReplyList,
   resolveMessageId
 } from '@/utils/message'
+import { createRequestCoordinator } from '@/utils/requestCoordinator'
+
+const messageManageDetailCoordinator = createRequestCoordinator('message-manage:detail', {
+  defaultTtlMs: 15000
+})
 
 const statusOptions = [
   { label: '全部留言', value: 'all' },
@@ -347,9 +352,17 @@ async function loadMessageDetail(messageId, fallbackRow = null) {
   }
 
   try {
+    const detailKey = `messages:detail:${messageId}`
+    const repliesKey = `messages:replies:${messageId}`
     const [messageResult, replyResult] = await Promise.allSettled([
-      getMessageById(messageId),
-      getReplyList(messageId)
+      messageManageDetailCoordinator.load(
+        detailKey,
+        () => getMessageById(messageId)
+      ),
+      messageManageDetailCoordinator.load(
+        repliesKey,
+        () => getReplyList(messageId)
+      )
     ])
 
     let nextMessage = fallbackRow ? normalizeMessage(fallbackRow) : null
@@ -421,6 +434,8 @@ async function handleReplySubmit() {
     })
 
     if (response.code === 200) {
+      messageManageDetailCoordinator.invalidate(`messages:detail:${messageId}`)
+      messageManageDetailCoordinator.invalidate(`messages:replies:${messageId}`)
       replyForm.content = ''
       ElMessage.success('回复已发送')
       await loadMessageDetail(messageId, activeMessage.value)
@@ -461,6 +476,8 @@ async function handleDelete(row) {
   try {
     const response = await deleteMessage(messageId)
     if (response.code === 200) {
+      messageManageDetailCoordinator.invalidate(`messages:detail:${messageId}`)
+      messageManageDetailCoordinator.invalidate(`messages:replies:${messageId}`)
       ElMessage.success('留言已删除')
 
       if (activeMessageId.value === messageId) {

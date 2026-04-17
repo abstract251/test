@@ -77,11 +77,12 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { useDebouncedWatch } from '@/composables/useDebouncedWatch'
 import { usePagination } from '@/composables/usePagination'
 import { deleteStudent, getStudentPage } from '@/api/studentApi'
 import { getSession } from '@/utils/auth'
@@ -100,6 +101,31 @@ const filters = reactive({
   clazz: ''
 })
 const createStudentPath = buildConsolePath(consoleRole, 'students/new')
+const filterSignature = computed(() => JSON.stringify({
+  studentId: filters.studentId.trim(),
+  name: filters.name.trim(),
+  grade: filters.grade.trim(),
+  tel: filters.tel.trim(),
+  institute: filters.institute.trim(),
+  major: filters.major.trim(),
+  clazz: filters.clazz.trim()
+}))
+
+let fetchSequence = 0
+let skipNextAutoSearch = 0
+
+const { cancel: cancelAutoSearch, flush: flushAutoSearch } = useDebouncedWatch(
+  filterSignature,
+  () => {
+    if (skipNextAutoSearch > 0) {
+      skipNextAutoSearch -= 1
+      return
+    }
+    pagination.current = 1
+    void fetchStudents()
+  },
+  400
+)
 
 function formatSexDisplay(row) {
   return normalizeSex(row.sex, '-')
@@ -110,12 +136,16 @@ function openStudentEdit(studentId) {
 }
 
 async function fetchStudents() {
+  const requestId = ++fetchSequence
   try {
     const response = await getStudentPage({
       page: pagination.current,
       size: pagination.size,
       filters
     })
+    if (requestId !== fetchSequence) {
+      return
+    }
     if (response.code === 200) {
       Object.assign(pagination, response.data)
       return
@@ -149,6 +179,7 @@ async function handleDelete(studentId) {
 }
 
 function resetFilters() {
+  skipNextAutoSearch += 1
   Object.assign(filters, {
     studentId: '',
     name: '',
@@ -158,13 +189,14 @@ function resetFilters() {
     major: '',
     clazz: ''
   })
+  cancelAutoSearch()
   pagination.current = 1
   void fetchStudents()
 }
 
 function handleSearch() {
   pagination.current = 1
-  void fetchStudents()
+  void flushAutoSearch()
 }
 
 onMounted(fetchStudents)

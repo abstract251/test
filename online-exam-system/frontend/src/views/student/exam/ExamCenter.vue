@@ -55,6 +55,11 @@ import ExamCard from '@/components/exam/ExamCard.vue'
 import { useAuthSession } from '@/composables/useAuthSession'
 import { useStudentExamFilter } from '@/composables/useStudentExamFilter'
 import { getStudentExams } from '@/api/examApi'
+import { createRequestCoordinator } from '@/utils/requestCoordinator'
+
+const examCenterCoordinator = createRequestCoordinator('student-exams:list', {
+  defaultTtlMs: 15000
+})
 
 const router = useRouter()
 const { session } = useAuthSession()
@@ -77,7 +82,10 @@ async function fetchExams() {
   loadError.value = ''
 
   try {
-    const response = await getStudentExams()
+    const response = await examCenterCoordinator.load(
+      'student-exams:list',
+      () => getStudentExams()
+    )
     if (response.code === 200 && response.data) {
       exams.value = response.data.records || []
       return
