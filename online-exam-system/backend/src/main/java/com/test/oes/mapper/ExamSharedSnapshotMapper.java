@@ -6,6 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+
 @Mapper
 public interface ExamSharedSnapshotMapper {
 
@@ -14,4 +16,16 @@ public interface ExamSharedSnapshotMapper {
 
     @Select("SELECT COUNT(*) FROM exam_shared_snapshot WHERE exam_code = #{examCode}")
     int countByExamCode(@Param("examCode") Integer examCode);
+
+    @Select({
+            "<script>",
+            "SELECT DISTINCT exam_code",
+            "FROM exam_shared_snapshot",
+            "WHERE exam_code IN",
+            "<foreach collection='examCodes' item='examCode' open='(' separator=',' close=')'>",
+            "#{examCode}",
+            "</foreach>",
+            "</script>"
+    })
+    List<Integer> findExistingExamCodes(@Param("examCodes") List<Integer> examCodes);
 }

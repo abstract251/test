@@ -8,6 +8,7 @@ import com.test.oes.service.ExamManageService;
 import com.test.oes.service.ExamSnapshotService;
 import com.test.oes.service.exam.ExamTimeHelper;
 import com.test.oes.util.ApiResultHandler;
+import com.test.oes.vo.TeacherExamListItemVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -36,10 +37,10 @@ public class ExamManageController {
 
     // 分页查询所有试卷
     @GetMapping("/exams/{page}/{size}")
-    public ApiResult<IPage<ExamManage>> findAll(@PathVariable Integer page, @PathVariable Integer size) {
+    public ApiResult<IPage<TeacherExamListItemVO>> findAll(@PathVariable Integer page, @PathVariable Integer size) {
         System.out.println("分页查询所有试卷");
         Page<ExamManage> examManage = new Page<>(page, size);
-        IPage<ExamManage> all = examManageService.findAll(examManage);
+        IPage<TeacherExamListItemVO> all = examManageService.findAll(examManage);
         return ApiResultHandler.buildApiResult(200, "请求成功！", all);
     }
 

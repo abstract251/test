@@ -3,6 +3,7 @@ package com.test.oes.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.ExamManage;
+import com.test.oes.vo.TeacherExamListItemVO;
 
 import java.util.List;
 
@@ -12,7 +13,7 @@ public interface ExamManageService {
      * 不分页查询所有考试信息
      */
     List<ExamManage> findAll();
-    IPage<ExamManage> findAll(Page<ExamManage> page);
+    IPage<TeacherExamListItemVO> findAll(Page<ExamManage> page);
 
     ExamManage findById(Integer examCode);
 

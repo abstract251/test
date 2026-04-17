@@ -4,6 +4,7 @@ import com.test.oes.entity.PaperManage;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface PaperMapper {
@@ -12,6 +13,19 @@ public interface PaperMapper {
 
     @Select("select paperId, questionType,questionId from paper_manage where paperId = #{paperId}")
     List<PaperManage> findById(Integer paperId);
+
+    @Select({
+            "<script>",
+            "select paperId as paperId, count(*) as questionCount",
+            "from paper_manage",
+            "where paperId in",
+            "<foreach collection='paperIds' item='paperId' open='(' separator=',' close=')'>",
+            "#{paperId}",
+            "</foreach>",
+            "group by paperId",
+            "</script>"
+    })
+    List<Map<String, Object>> countQuestionsByPaperIds(@Param("paperIds") List<Integer> paperIds);
 
     @Insert("insert into paper_manage(paperId,questionType,questionId) values " +
             "(#{paperId},#{questionType},#{questionId})")

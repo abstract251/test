@@ -307,6 +307,34 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    void teacherExamListShouldExposeAggregatedPolicyFields() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update("""
+                INSERT INTO exam_shared_snapshot(exam_code, paper_id, created_at)
+                VALUES (?, ?, NOW())
+                """, EXAM_CODE, PAPER_ID);
+
+        MvcResult result = mockMvc.perform(get("/exams/1/100")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.records").isArray())
+                .andReturn();
+
+        JsonNode records = json(result).path("data").path("records");
+        JsonNode currentExam = findExam(records, EXAM_CODE);
+        assertThat(currentExam).isNotNull();
+        assertThat(currentExam.path("totalScore").asInt()).isEqualTo(6);
+        assertThat(currentExam.path("paperLocked").isMissingNode()).isFalse();
+        assertThat(currentExam.path("revoked").asBoolean()).isFalse();
+        assertThat(currentExam.path("inExamWindow").asBoolean()).isTrue();
+        assertThat(currentExam.path("snapshotReady").asBoolean()).isTrue();
+        assertThat(currentExam.path("windowEndAt").isMissingNode()).isFalse();
+        assertThat(currentExam.path("freezeAt").isMissingNode()).isFalse();
+        assertThat(currentExam.path("paperId").asInt()).isEqualTo(PAPER_ID);
+    }
+
+    @Test
     void studentExamListShouldFilterByScopeAndExposeStudentFacingStatusFields() throws Exception {
         Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
         String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
