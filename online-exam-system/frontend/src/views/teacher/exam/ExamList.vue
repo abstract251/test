@@ -157,7 +157,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import dayjs from 'dayjs'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ExamMetaPanel from '@/components/exam/ExamMetaPanel.vue'
@@ -188,7 +187,6 @@ const previewExam = ref(null)
 const previewPolicy = ref(null)
 const previewQuestionMap = ref(ensureQuestionMap())
 const previewMode = ref('current')
-const policyMap = ref({})
 const createExamPath = buildConsolePath(consoleRole, 'exams/new')
 
 const groupedPreview = computed(() =>
@@ -246,46 +244,11 @@ const previewExamForPanel = computed(() => {
   }
 })
 
-function getCachedPolicy(examCode) {
-  return policyMap.value[String(examCode)] || null
-}
-
-function getPolicyValue(row, key, fallback = null) {
-  const policy = getCachedPolicy(row.examCode)
-  return policy && key in policy ? policy[key] : fallback
-}
-
-function buildFallbackFreezeAt(row) {
-  if (!row?.examDate) {
-    return ''
-  }
-  const parsed = dayjs(row.examDate)
-  return parsed.isValid() ? parsed.subtract(1, 'hour').format('YYYY-MM-DD HH:mm:ss') : ''
-}
-
-function buildFallbackWindowEndAt(row) {
-  if (!row?.examDate) {
-    return ''
-  }
-  const parsed = dayjs(row.examDate)
-  return parsed.isValid()
-    ? parsed.add(Number(row.totalTime || 0), 'minute').format('YYYY-MM-DD HH:mm:ss')
-    : ''
-}
-
 function isExamRevoked(row) {
-  const policyRevoked = getPolicyValue(row, 'revoked', null)
-  if (typeof policyRevoked === 'boolean') {
-    return policyRevoked
-  }
-  return Boolean(row?.revokedAt)
+  return Boolean(row?.revoked || row?.revokedAt)
 }
 
 function isPaperLocked(row) {
-  const policyLocked = getPolicyValue(row, 'paperLocked', null)
-  if (typeof policyLocked === 'boolean') {
-    return policyLocked
-  }
   return Boolean(row?.paperLocked || row?.revokedAt)
 }
 
@@ -294,22 +257,7 @@ function isPaperReadOnly(row) {
 }
 
 function isInExamWindow(row) {
-  const policyWindow = getPolicyValue(row, 'inExamWindow', null)
-  if (typeof policyWindow === 'boolean') {
-    return policyWindow
-  }
-
-  if (!row?.examDate) {
-    return false
-  }
-
-  const start = dayjs(row.examDate)
-  if (!start.isValid()) {
-    return false
-  }
-  const end = start.add(Number(row.totalTime || 0), 'minute')
-  const now = dayjs()
-  return (now.isAfter(start) || now.isSame(start)) && (now.isBefore(end) || now.isSame(end))
+  return Boolean(row?.inExamWindow)
 }
 
 function resolveStatusTags(row) {
@@ -326,7 +274,7 @@ function resolveStatusTags(row) {
     tags.push({ label: '待开考', type: 'info' })
   }
 
-  if (!revoked && getPolicyValue(row, 'snapshotReady', false)) {
+  if (!revoked && row?.snapshotReady) {
     tags.push({ label: '固定题面可预览', type: 'success' })
   }
 
@@ -339,45 +287,19 @@ function resolveStatusMeta(row) {
   }
 
   if (isInExamWindow(row)) {
-    const windowEndAt = getPolicyValue(row, 'windowEndAt', buildFallbackWindowEndAt(row))
-    return `考试窗口截止 ${formatDateTime(windowEndAt)}`
+    return `考试窗口截止 ${formatDateTime(row.windowEndAt)}`
   }
 
   if (isPaperLocked(row)) {
-    const freezeAt = getPolicyValue(row, 'freezeAt', buildFallbackFreezeAt(row))
-    return `已在 ${formatDateTime(freezeAt)} 锁定题面`
+    return `已在 ${formatDateTime(row.freezeAt)} 锁定题面`
   }
 
-  const freezeAt = getPolicyValue(row, 'freezeAt', buildFallbackFreezeAt(row))
-  return `预计 ${formatDateTime(freezeAt)} 进入冻结窗口`
+  return `预计 ${formatDateTime(row.freezeAt)} 进入冻结窗口`
 }
 
-async function fetchExamPolicies(exams) {
-  const results = await Promise.allSettled(
-    exams.map((item) => getExamPolicy(item.examCode))
-  )
-
-  const nextMap = {}
-  results.forEach((result, index) => {
-    if (result.status === 'fulfilled' && result.value.code === 200 && result.value.data) {
-      nextMap[String(exams[index].examCode)] = result.value.data
-    }
-  })
-  policyMap.value = nextMap
-}
-
-async function ensureExamPolicy(examCode) {
-  const cached = getCachedPolicy(examCode)
-  if (cached) {
-    return cached
-  }
-
+async function fetchExamPolicy(examCode) {
   const response = await getExamPolicy(examCode)
   if (response.code === 200 && response.data) {
-    policyMap.value = {
-      ...policyMap.value,
-      [String(examCode)]: response.data
-    }
     return response.data
   }
   return null
@@ -397,7 +319,6 @@ async function fetchExams() {
     const response = await getExamList(pagination.current, pagination.size)
     if (response.code === 200 && response.data) {
       Object.assign(pagination, response.data)
-      await fetchExamPolicies(Array.isArray(response.data.records) ? response.data.records : [])
       return
     }
     ElMessage.error(response.message || '加载考试列表失败')
@@ -411,12 +332,12 @@ async function fetchExams() {
 async function openPreview(exam) {
   previewLoading.value = true
   try {
-    const policy = await ensureExamPolicy(exam.examCode)
+    const policy = await fetchExamPolicy(exam.examCode)
     previewPolicy.value = policy
     previewExam.value = {
       ...exam,
-      freezeAt: policy?.freezeAt || buildFallbackFreezeAt(exam),
-      windowEndAt: policy?.windowEndAt || buildFallbackWindowEndAt(exam)
+      freezeAt: policy?.freezeAt || exam.freezeAt,
+      windowEndAt: policy?.windowEndAt || exam.windowEndAt
     }
 
     const shouldUseFrozen = !!policy?.paperLocked && !policy?.revoked

@@ -7,7 +7,7 @@ import {
   setSessionFromAuthResponse
 } from '@/utils/auth'
 
-const baseURL = 'http://localhost:8080'
+const baseURL = process.env.VUE_APP_API_BASE_URL || '/api'
 const authFreePaths = ['/auth/login', '/auth/refresh', '/auth/logout']
 
 const service = axios.create({
