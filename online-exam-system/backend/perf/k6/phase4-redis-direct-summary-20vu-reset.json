@@ -1,0 +1,194 @@
+{
+    "metrics": {
+        "http_req_connecting": {
+            "max": 1.8172,
+            "p(90)": 0.535,
+            "p(95)": 0.5651999999999984,
+            "avg": 0.140064,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_receiving": {
+            "p(90)": 1.0973600000000001,
+            "p(95)": 1.1387149999999995,
+            "avg": 0.5593469999999998,
+            "min": 0,
+            "med": 0.5329999999999999,
+            "max": 1.654
+        },
+        "iteration_duration": {
+            "avg": 291.93130999999994,
+            "min": 277.0866,
+            "med": 290.46614999999997,
+            "max": 309.3238,
+            "p(90)": 306.81985000000003,
+            "p(95)": 308.826475
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 56.375786,
+            "min": 6.8234,
+            "med": 20.1535,
+            "max": 221.7632,
+            "p(90)": 126.40599000000077,
+            "p(95)": 211.691165
+        },
+        "http_req_sending": {
+            "avg": 0.06599400000000001,
+            "min": 0,
+            "med": 0,
+            "max": 0.6782,
+            "p(90)": 0.053480000000004566,
+            "p(95)": 0.6782
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "iterations": {
+            "count": 20,
+            "rate": 64.65716508073417
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 100,
+            "thresholds": {
+                "rate<0.05": false
+            },
+            "value": 0
+        },
+        "data_received": {
+            "count": 120469,
+            "rate": 389459.20100554824
+        },
+        "checks": {
+            "passes": 194,
+            "fails": 26,
+            "value": 0.8818181818181818
+        },
+        "http_req_duration": {
+            "max": 221.7632,
+            "p(90)": 126.40599000000077,
+            "p(95)": 211.691165,
+            "avg": 56.375786,
+            "min": 6.8234,
+            "med": 20.1535,
+            "thresholds": {
+                "p(95)<3000": false,
+                "p(99)<5000": false
+            }
+        },
+        "data_sent": {
+            "count": 49820,
+            "rate": 161060.99821610883
+        },
+        "http_reqs": {
+            "count": 100,
+            "rate": 323.28582540367086
+        },
+        "http_req_waiting": {
+            "max": 221.1961,
+            "p(90)": 125.72491000000076,
+            "p(95)": 210.54,
+            "avg": 55.75044500000003,
+            "min": 5.7192,
+            "med": 19.61665
+        },
+        "http_req_blocked": {
+            "p(95)": 8.690809999999999,
+            "avg": 1.7653090000000007,
+            "min": 0,
+            "med": 0,
+            "max": 9.3351,
+            "p(90)": 8.6569
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "login http 200": {
+                    "name": "login http 200",
+                    "path": "::login http 200",
+                    "id": "0ca761b99d34354b6cfc99d071e0a2b3",
+                    "passes": 20,
+                    "fails": 0
+                },
+                "login business 200": {
+                    "fails": 0,
+                    "name": "login business 200",
+                    "path": "::login business 200",
+                    "id": "3fe89639e48f5ffcf0ac7b08f32fbd3d",
+                    "passes": 20
+                },
+                "login returns access token": {
+                    "fails": 0,
+                    "name": "login returns access token",
+                    "path": "::login returns access token",
+                    "id": "6293b1160fa705bac3d194d14543619f",
+                    "passes": 20
+                },
+                "student exams http 200": {
+                    "fails": 0,
+                    "name": "student exams http 200",
+                    "path": "::student exams http 200",
+                    "id": "c94ffd95951bf4e8be6a49ebe2247c56",
+                    "passes": 20
+                },
+                "student exams business 200": {
+                    "id": "0f760e484a5b5fd4d60f16b699c81462",
+                    "passes": 20,
+                    "fails": 0,
+                    "name": "student exams business 200",
+                    "path": "::student exams business 200"
+                },
+                "attempt start http 200": {
+                    "fails": 0,
+                    "name": "attempt start http 200",
+                    "path": "::attempt start http 200",
+                    "id": "d05e4da61998f8fb5571c25a5b2912dd",
+                    "passes": 20
+                },
+                "attempt start business 200": {
+                    "name": "attempt start business 200",
+                    "path": "::attempt start business 200",
+                    "id": "3a7fdc6606239917f5dc06a9926e2206",
+                    "passes": 13,
+                    "fails": 7
+                },
+                "answer save http 200": {
+                    "id": "80a31f7c7ca2fa8b34c9ea22ba433250",
+                    "passes": 20,
+                    "fails": 0,
+                    "name": "answer save http 200",
+                    "path": "::answer save http 200"
+                },
+                "answer save business 200": {
+                    "name": "answer save business 200",
+                    "path": "::answer save business 200",
+                    "id": "3cdbbdd0fffd277cf191fc1278b5602d",
+                    "passes": 11,
+                    "fails": 9
+                },
+                "attempt submit http 200": {
+                    "passes": 20,
+                    "fails": 0,
+                    "name": "attempt submit http 200",
+                    "path": "::attempt submit http 200",
+                    "id": "819aa590c50a3f7ac264bff52a37ce2e"
+                },
+                "attempt submit business 200": {
+                    "id": "897c9bf32722b5018839f38542e83414",
+                    "passes": 10,
+                    "fails": 10,
+                    "name": "attempt submit business 200",
+                    "path": "::attempt submit business 200"
+                }
+            }
+    }
+}

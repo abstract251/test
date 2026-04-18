@@ -1,5 +1,8 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.cache.CacheProperties;
+import com.test.oes.cache.ExamCacheFacade;
+import com.test.oes.cache.FrozenSnapshotViewCacheValue;
 import com.test.oes.entity.*;
 import com.test.oes.exception.ExamBusinessException;
 import com.test.oes.mapper.*;
@@ -8,6 +11,7 @@ import com.test.oes.service.exam.ExamTimeHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -25,6 +29,8 @@ public class ExamSnapshotServiceImpl implements ExamSnapshotService {
     private final JudgeQuestionMapper judgeQuestionMapper;
     private final ExamTimeHelper examTimeHelper;
     private final ExamSharedSnapshotMaterializer snapshotMaterializer;
+    private final ExamCacheFacade examCacheFacade;
+    private final CacheProperties cacheProperties;
 
     @Override
     public boolean hasSharedSnapshot(Integer examCode) {
@@ -34,32 +40,24 @@ public class ExamSnapshotServiceImpl implements ExamSnapshotService {
     @Override
     public void ensureSharedSnapshot(Integer examCode) {
         snapshotMaterializer.materializeIfAbsent(examCode);
+        examCacheFacade.evictExamMeta(examCode);
+        examCacheFacade.evictSnapshotCaches(examCode);
     }
 
     @Override
     public Map<Integer, List<?>> buildFrozenPaperMap(Integer examCode) {
-        List<ExamSharedSnapshotItem> items = requireSnapshotItems(examCode);
-        return rebuildFrozenPaper(items);
+        FrozenSnapshotViewCacheValue value = examCacheFacade.getSnapshotView(examCode,
+                () -> FrozenSnapshotViewCacheValue.fromPaperMap(buildFrozenPaperMapRaw(examCode)),
+                snapshotRedisTtl(examCode));
+        return value == null ? Map.of(1, List.of(), 2, List.of(), 3, List.of()) : value.toPaperMap();
     }
 
     @Override
     public Map<String, String> buildAnswerKeyMap(Integer examCode) {
-        List<ExamSharedSnapshotItem> items = requireSnapshotItems(examCode);
-        Map<Integer, MultiQuestion> multiMap = toMap(multiQuestionMapper.findByQuestionIds(extractQuestionIds(items, 1)), MultiQuestion::getQuestionId);
-        Map<Integer, FillQuestion> fillMap = toMap(fillQuestionMapper.findByQuestionIds(extractQuestionIds(items, 2)), FillQuestion::getQuestionId);
-        Map<Integer, JudgeQuestion> judgeMap = toMap(judgeQuestionMapper.findByQuestionIds(extractQuestionIds(items, 3)), JudgeQuestion::getQuestionId);
-
-        Map<String, String> answerKey = new LinkedHashMap<>();
-        for (ExamSharedSnapshotItem item : items) {
-            String key = item.getQuestionType() + "_" + item.getQuestionId();
-            switch (item.getQuestionType()) {
-                case 1 -> answerKey.put(key, requireMultiQuestion(multiMap, item.getQuestionId()).getRightAnswer());
-                case 2 -> answerKey.put(key, requireFillQuestion(fillMap, item.getQuestionId()).getAnswer());
-                case 3 -> answerKey.put(key, requireJudgeQuestion(judgeMap, item.getQuestionId()).getAnswer());
-                default -> throw new ExamBusinessException(500, "未知题型");
-            }
-        }
-        return answerKey;
+        Map<String, String> answerKey = examCacheFacade.getAnswerKey(examCode,
+                () -> buildAnswerKeyMapRaw(examCode),
+                snapshotRedisTtl(examCode));
+        return answerKey == null ? Map.of() : answerKey;
     }
 
     @Override
@@ -97,6 +95,30 @@ public class ExamSnapshotServiceImpl implements ExamSnapshotService {
             throw new ExamBusinessException(500, "本场快照题目缺失，请稍后重试");
         }
         return items;
+    }
+
+    private Map<Integer, List<?>> buildFrozenPaperMapRaw(Integer examCode) {
+        List<ExamSharedSnapshotItem> items = requireSnapshotItems(examCode);
+        return rebuildFrozenPaper(items);
+    }
+
+    private Map<String, String> buildAnswerKeyMapRaw(Integer examCode) {
+        List<ExamSharedSnapshotItem> items = requireSnapshotItems(examCode);
+        Map<Integer, MultiQuestion> multiMap = toMap(multiQuestionMapper.findByQuestionIds(extractQuestionIds(items, 1)), MultiQuestion::getQuestionId);
+        Map<Integer, FillQuestion> fillMap = toMap(fillQuestionMapper.findByQuestionIds(extractQuestionIds(items, 2)), FillQuestion::getQuestionId);
+        Map<Integer, JudgeQuestion> judgeMap = toMap(judgeQuestionMapper.findByQuestionIds(extractQuestionIds(items, 3)), JudgeQuestion::getQuestionId);
+
+        Map<String, String> answerKey = new LinkedHashMap<>();
+        for (ExamSharedSnapshotItem item : items) {
+            String key = item.getQuestionType() + "_" + item.getQuestionId();
+            switch (item.getQuestionType()) {
+                case 1 -> answerKey.put(key, requireMultiQuestion(multiMap, item.getQuestionId()).getRightAnswer());
+                case 2 -> answerKey.put(key, requireFillQuestion(fillMap, item.getQuestionId()).getAnswer());
+                case 3 -> answerKey.put(key, requireJudgeQuestion(judgeMap, item.getQuestionId()).getAnswer());
+                default -> throw new ExamBusinessException(500, "未知题型");
+            }
+        }
+        return answerKey;
     }
 
     private Map<Integer, List<?>> rebuildFrozenPaper(List<ExamSharedSnapshotItem> items) {
@@ -169,5 +191,18 @@ public class ExamSnapshotServiceImpl implements ExamSnapshotService {
             return null;
         }
         return Integer.parseInt(String.valueOf(value));
+    }
+
+    private Duration snapshotRedisTtl(Integer examCode) {
+        ExamManage exam = examManageMapper.findById(examCode);
+        if (exam == null) {
+            return cacheProperties.getDraft().getPostExamTtl();
+        }
+        LocalDateTime windowEndAt = examTimeHelper.examWindowEnd(exam);
+        if (windowEndAt == null) {
+            return cacheProperties.getDraft().getPostExamTtl();
+        }
+        Duration ttl = Duration.between(examTimeHelper.nowShanghai(), windowEndAt.plus(cacheProperties.getDraft().getPostExamTtl()));
+        return ttl.isNegative() || ttl.isZero() ? Duration.ofMinutes(1) : ttl;
     }
 }

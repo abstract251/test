@@ -1,5 +1,7 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.cache.RefreshTokenHotState;
+import com.test.oes.cache.RefreshTokenHotStateService;
 import com.test.oes.dto.auth.AuthTokenResponse;
 import com.test.oes.dto.auth.LoginRequest;
 import com.test.oes.entity.Admin;
@@ -36,10 +38,12 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenService jwtTokenService;
     private final AuthRefreshTokenMapper authRefreshTokenMapper;
     private final CurrentUserService currentUserService;
+    private final RefreshTokenHotStateService refreshTokenHotStateService;
 
     public AuthServiceImpl(AdminMapper adminMapper, TeacherMapper teacherMapper, StudentMapper studentMapper,
                            PasswordService passwordService, JwtTokenService jwtTokenService,
-                           AuthRefreshTokenMapper authRefreshTokenMapper, CurrentUserService currentUserService) {
+                           AuthRefreshTokenMapper authRefreshTokenMapper, CurrentUserService currentUserService,
+                           RefreshTokenHotStateService refreshTokenHotStateService) {
         this.adminMapper = adminMapper;
         this.teacherMapper = teacherMapper;
         this.studentMapper = studentMapper;
@@ -47,6 +51,7 @@ public class AuthServiceImpl implements AuthService {
         this.jwtTokenService = jwtTokenService;
         this.authRefreshTokenMapper = authRefreshTokenMapper;
         this.currentUserService = currentUserService;
+        this.refreshTokenHotStateService = refreshTokenHotStateService;
     }
 
     @Override
@@ -69,18 +74,34 @@ public class AuthServiceImpl implements AuthService {
             throw new ExamBusinessException(400, "refreshToken 不能为空");
         }
         JwtTokenService.RefreshTokenClaims claims = jwtTokenService.parseRefreshToken(refreshToken);
-        AuthRefreshToken stored = authRefreshTokenMapper.findByJti(claims.jti());
-        if (stored == null || (stored.getRevoked() != null && stored.getRevoked() == 1)) {
+        RefreshTokenHotState hotState = refreshTokenHotStateService.getOrLoad(claims.jti(),
+                () -> authRefreshTokenMapper.findByJti(claims.jti()));
+        if (hotState == null || Boolean.TRUE.equals(hotState.getRevoked())) {
             throw new ExamBusinessException(401, "refreshToken 已失效");
         }
-        if (stored.getExpiresAt() != null && stored.getExpiresAt().isBefore(LocalDateTime.now(SHANGHAI))) {
-            authRefreshTokenMapper.revokeById(stored.getId());
+        if (hotState.getExpiresAt() != null && hotState.getExpiresAt().isBefore(LocalDateTime.now(SHANGHAI))) {
+            authRefreshTokenMapper.revokeById(hotState.getId());
+            AuthRefreshToken expired = new AuthRefreshToken();
+            expired.setId(hotState.getId());
+            expired.setJti(claims.jti());
+            expired.setExpiresAt(hotState.getExpiresAt());
+            expired.setRevoked(1);
+            refreshTokenHotStateService.markRevoked(claims.jti(), expired);
             throw new ExamBusinessException(401, "refreshToken 已过期");
         }
-        if (authRefreshTokenMapper.revokeIfActiveById(stored.getId()) == 0) {
+        if (authRefreshTokenMapper.revokeIfActiveById(hotState.getId()) == 0) {
             throw new ExamBusinessException(401, "refreshToken 已失效");
         }
-        LoginUser loginUser = loadUser(AccountRole.valueOf(stored.getRole()), stored.getUsername());
+        AuthRefreshToken revoked = new AuthRefreshToken();
+        revoked.setId(hotState.getId());
+        revoked.setJti(claims.jti());
+        revoked.setUserId(hotState.getUserId());
+        revoked.setRole(hotState.getRole());
+        revoked.setUsername(hotState.getUsername());
+        revoked.setExpiresAt(hotState.getExpiresAt());
+        revoked.setRevoked(1);
+        refreshTokenHotStateService.markRevoked(claims.jti(), revoked);
+        LoginUser loginUser = loadUser(AccountRole.valueOf(hotState.getRole()), hotState.getUsername());
         return buildAuthResponse(loginUser);
     }
 
@@ -94,6 +115,8 @@ public class AuthServiceImpl implements AuthService {
         AuthRefreshToken stored = authRefreshTokenMapper.findByJti(claims.jti());
         if (stored != null) {
             authRefreshTokenMapper.revokeById(stored.getId());
+            stored.setRevoked(1);
+            refreshTokenHotStateService.markRevoked(claims.jti(), stored);
         }
     }
 
@@ -114,6 +137,7 @@ public class AuthServiceImpl implements AuthService {
         entity.setRevoked(0);
         entity.setCreatedAt(LocalDateTime.now(SHANGHAI));
         authRefreshTokenMapper.insert(entity);
+        refreshTokenHotStateService.store(entity);
         return new AuthTokenResponse(
                 accessToken,
                 refreshToken.token(),

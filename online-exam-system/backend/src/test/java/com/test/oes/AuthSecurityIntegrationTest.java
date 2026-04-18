@@ -1,5 +1,6 @@
 package com.test.oes;
 
+import com.test.oes.cache.ExamCacheFacade;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assumptions;
@@ -9,12 +10,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -58,6 +62,12 @@ class AuthSecurityIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private Optional<StringRedisTemplate> stringRedisTemplate;
+
+    @Autowired
+    private ExamCacheFacade examCacheFacade;
+
     private boolean examAttemptTableExists;
 
     @BeforeEach
@@ -80,6 +90,7 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         ensurePaperQuestions();
+        clearExamCaches();
         insertVisibleExam();
     }
 
@@ -94,6 +105,8 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
                 String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
+        deleteRedisKey("oes:student:draft:" + EXAM_CODE + ":" + STUDENT_ID);
+        clearExamCaches();
     }
 
     @Test
@@ -516,8 +529,11 @@ class AuthSecurityIntegrationTest {
                 EXAM_CODE,
                 STUDENT_ID
         );
-        assertThat(persistedAnswers).contains("1_10001");
-        assertThat(persistedAnswers).contains("2_20001");
+        String draftKey = "oes:student:draft:" + EXAM_CODE + ":" + STUDENT_ID;
+        String draftJson = stringRedisTemplate.map(template -> template.opsForValue().get(draftKey)).orElse(null);
+        assertThat(draftJson).contains("1_10001");
+        assertThat(draftJson).contains("2_20001");
+        assertThat(persistedAnswers).isNotNull();
 
         mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/submit")
                         .header("Authorization", "Bearer " + studentToken))
@@ -541,6 +557,16 @@ class AuthSecurityIntegrationTest {
                 STUDENT_ID
         );
         assertThat(status).isEqualTo(1);
+
+        String finalAnswers = jdbcTemplate.queryForObject(
+                "SELECT answers_json FROM exam_attempt WHERE exam_code = ? AND student_id = ?",
+                String.class,
+                EXAM_CODE,
+                STUDENT_ID
+        );
+        assertThat(finalAnswers).contains("1_10001");
+        assertThat(finalAnswers).contains("2_20001");
+        assertThat(stringRedisTemplate.map(template -> template.opsForValue().get(draftKey)).orElse(null)).isNull();
 
         mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/submit")
                         .header("Authorization", "Bearer " + studentToken))
@@ -649,5 +675,20 @@ class AuthSecurityIntegrationTest {
                 "期末考试",
                 "integration-test"
         );
+    }
+
+    private void deleteRedisKey(String key) {
+        stringRedisTemplate.ifPresent(template -> template.delete(key));
+    }
+
+    private void clearExamCaches() {
+        examCacheFacade.evictExamMeta(EXAM_CODE);
+        examCacheFacade.evictExamMeta(HIDDEN_EXAM_CODE);
+        examCacheFacade.evictSnapshotCaches(EXAM_CODE);
+        examCacheFacade.evictSnapshotCaches(HIDDEN_EXAM_CODE);
+        examCacheFacade.evictPaperAggregates(PAPER_ID);
+        examCacheFacade.evictStudentExamList(STUDENT_ID);
+        examCacheFacade.evictStudentExamDetail(STUDENT_ID, EXAM_CODE);
+        examCacheFacade.bumpScopeExamVersion();
     }
 }

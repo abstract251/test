@@ -1,9 +1,11 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.cache.ExamCacheFacade;
 import com.test.oes.entity.FillQuestion;
 import com.test.oes.entity.JudgeQuestion;
 import com.test.oes.entity.MultiQuestion;
 import com.test.oes.entity.PaperManage;
+import com.test.oes.mapper.ExamManageMapper;
 import com.test.oes.mapper.PaperMapper;
 import com.test.oes.service.*;
 import com.test.oes.service.exam.ExamPaperEditPolicy;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class PaperServiceImpl implements PaperService {
 
     private final PaperMapper paperMapper;
+    private final ExamManageMapper examManageMapper;
 
     private final JudgeQuestionService judgeQuestionService;
 
@@ -27,6 +30,7 @@ public class PaperServiceImpl implements PaperService {
     private final FillQuestionService fillQuestionService;
 
     private final ExamPaperEditPolicy examPaperEditPolicy;
+    private final ExamCacheFacade examCacheFacade;
 
     // 查询所有试卷
     @Override
@@ -44,7 +48,9 @@ public class PaperServiceImpl implements PaperService {
     @Override
     public int add(PaperManage paperManage) {
         examPaperEditPolicy.assertPaperEditable(paperManage.getPaperId());
-        return paperMapper.add(paperManage);
+        int rows = paperMapper.add(paperManage);
+        invalidatePaperRelatedCaches(paperManage.getPaperId());
+        return rows;
     }
 
     @Override
@@ -53,7 +59,9 @@ public class PaperServiceImpl implements PaperService {
             return 0;
         }
         examPaperEditPolicy.assertPaperEditable(paperManages.get(0).getPaperId());
-        return paperMapper.batchInsert(paperManages);
+        int rows = paperMapper.batchInsert(paperManages);
+        invalidatePaperRelatedCaches(paperManages.get(0).getPaperId());
+        return rows;
     }
 
     // 计算试卷总分：每题 2 分
@@ -62,8 +70,10 @@ public class PaperServiceImpl implements PaperService {
         if (paperId == null) {
             return 0;
         }
-        Integer questionCount = paperMapper.countByPaperId(paperId);
-        return (questionCount == null ? 0 : questionCount) * 2;
+        return examCacheFacade.getPaperScore(paperId, () -> {
+            Integer questionCount = paperMapper.countByPaperId(paperId);
+            return (questionCount == null ? 0 : questionCount) * 2;
+        });
     }
 
     @Override
@@ -72,11 +82,9 @@ public class PaperServiceImpl implements PaperService {
             return Map.of();
         }
         Map<Integer, Integer> totalScores = new HashMap<>();
-        for (Map<String, Object> row : paperMapper.countQuestionsByPaperIds(paperIds)) {
-            Integer paperId = toInteger(row.get("paperId"));
-            Integer questionCount = toInteger(row.get("questionCount"));
+        for (Integer paperId : paperIds) {
             if (paperId != null) {
-                totalScores.put(paperId, (questionCount == null ? 0 : questionCount) * 2);
+                totalScores.put(paperId, getMaxScore(paperId));
             }
         }
         return totalScores;
@@ -84,33 +92,53 @@ public class PaperServiceImpl implements PaperService {
 
     @Override
     public List<Integer> summarizeQuestionTypes(Integer paperId) {
-        int[] counts = new int[]{0, 0, 0};
         if (paperId == null) {
             return List.of(0, 0, 0);
         }
-        for (Map<String, Object> row : paperMapper.countQuestionsGroupedByType(paperId)) {
-            Integer questionType = toInteger(row.get("questionType"));
-            Integer questionCount = toInteger(row.get("questionCount"));
-            int index = questionType == null ? -1 : questionType - 1;
-            if (index >= 0 && index < counts.length) {
-                counts[index] = questionCount == null ? 0 : questionCount;
+        return examCacheFacade.getPaperSummary(paperId, () -> {
+            int[] counts = new int[]{0, 0, 0};
+            for (Map<String, Object> row : paperMapper.countQuestionsGroupedByType(paperId)) {
+                Integer questionType = toInteger(row.get("questionType"));
+                Integer questionCount = toInteger(row.get("questionCount"));
+                int index = questionType == null ? -1 : questionType - 1;
+                if (index >= 0 && index < counts.length) {
+                    counts[index] = questionCount == null ? 0 : questionCount;
+                }
             }
-        }
-        return List.of(counts[0], counts[1], counts[2]);
+            return List.of(counts[0], counts[1], counts[2]);
+        });
     }
 
     // 删除试卷中的单条试题关联
     @Override
     public int delete(Integer paperId, Integer type, Integer questionId) {
         examPaperEditPolicy.assertPaperEditable(paperId);
-        return paperMapper.delete(paperId, type, questionId);
+        int rows = paperMapper.delete(paperId, type, questionId);
+        invalidatePaperRelatedCaches(paperId);
+        return rows;
     }
 
     // 根据试卷ID删除所有题目关联
     @Override
     public int deleteByPaperId(Integer paperId) {
         examPaperEditPolicy.assertPaperEditable(paperId);
-        return paperMapper.deleteByPaperId(paperId);
+        int rows = paperMapper.deleteByPaperId(paperId);
+        invalidatePaperRelatedCaches(paperId);
+        return rows;
+    }
+
+    private void invalidatePaperRelatedCaches(Integer paperId) {
+        if (paperId == null) {
+            return;
+        }
+        examCacheFacade.evictPaperAggregates(paperId);
+        examManageMapper.findByPaperId(paperId).forEach(exam -> {
+            if (exam.getExamCode() != null) {
+                examCacheFacade.evictExamMeta(exam.getExamCode());
+                examCacheFacade.evictSnapshotCaches(exam.getExamCode());
+            }
+        });
+        examCacheFacade.bumpScopeExamVersion();
     }
 
     private Integer toInteger(Object value) {

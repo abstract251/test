@@ -1,10 +1,13 @@
 package com.test.oes.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.test.oes.cache.CacheKeys;
+import com.test.oes.cache.ExamCacheFacade;
 import com.test.oes.entity.FillQuestion;
 import com.test.oes.entity.JudgeQuestion;
 import com.test.oes.entity.MultiQuestion;
 import com.test.oes.exception.ExamBusinessException;
+import com.test.oes.mapper.ExamManageMapper;
 import com.test.oes.mapper.FillQuestionMapper;
 import com.test.oes.mapper.JudgeQuestionMapper;
 import com.test.oes.mapper.MultiQuestionMapper;
@@ -32,6 +35,8 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final FillQuestionMapper fillQuestionMapper;
     private final JudgeQuestionMapper judgeQuestionMapper;
     private final ExamPaperEditPolicy examPaperEditPolicy;
+    private final ExamManageMapper examManageMapper;
+    private final ExamCacheFacade examCacheFacade;
 
     @Override
     public Page<QuestionBankItemVO> findAll(Integer page,
@@ -44,6 +49,12 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         Integer normalizedType = normalizeQuestionType(questionType, false);
         String normalizedSubject = trimToNull(subject);
         String normalizedKeyword = trimToNull(keyword);
+        String cacheKey = CacheKeys.questionBank(normalizedType, normalizedSubject, normalizedKeyword, current, pageSize);
+
+        Page<QuestionBankItemVO> cached = examCacheFacade.getQuestionBankPage(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
 
         long total = countQuestions(normalizedType, normalizedSubject, normalizedKeyword);
         List<QuestionBankItemVO> records = List.of();
@@ -58,6 +69,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         Page<QuestionBankItemVO> result = new Page<>(current, pageSize);
         result.setTotal(total);
         result.setRecords(records);
+        examCacheFacade.putQuestionBankPage(cacheKey, result);
         return result;
     }
 
@@ -129,6 +141,17 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         result.put("questionId", questionId);
         result.put("deletedPaperRelations", relationRows);
         result.put("deletedQuestion", questionRows);
+        examCacheFacade.evictQuestionBankPages();
+        for (Integer paperId : paperIds) {
+            examCacheFacade.evictPaperAggregates(paperId);
+            examManageMapper.findByPaperId(paperId).forEach(exam -> {
+                if (exam.getExamCode() != null) {
+                    examCacheFacade.evictExamMeta(exam.getExamCode());
+                    examCacheFacade.evictSnapshotCaches(exam.getExamCode());
+                }
+            });
+        }
+        examCacheFacade.bumpScopeExamVersion();
         return result;
     }
 

@@ -1,5 +1,8 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.cache.ExamCacheFacade;
+import com.test.oes.cache.ExamMetaCacheValue;
+import com.test.oes.cache.QuestionSummaryCacheItem;
 import com.test.oes.entity.ExamAttempt;
 import com.test.oes.entity.ExamManage;
 import com.test.oes.entity.Score;
@@ -38,58 +41,63 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
     private final ExamSnapshotService examSnapshotService;
     private final PaperService paperService;
     private final ExamTimeHelper examTimeHelper;
+    private final ExamCacheFacade examCacheFacade;
 
     @Override
     public Map<String, Object> getStudentExamList(Student student) {
         int studentId = requireStudentId(student);
+        Map<String, Object> cached = examCacheFacade.getStudentExamList(studentId);
+        if (cached != null) {
+            return cached;
+        }
         LocalDateTime now = examTimeHelper.nowShanghai();
-        List<ExamManage> visibleExams = examManageMapper.findVisibleForStudent(student.getGrade(), student.getMajor(), student.getInstitute());
+        List<ExamManage> visibleExams = examCacheFacade.getScopeExams(
+                student.getGrade(),
+                student.getMajor(),
+                student.getInstitute(),
+                () -> examManageMapper.findVisibleForStudent(student.getGrade(), student.getMajor(), student.getInstitute()));
         Map<Integer, ExamAttempt> attempts = examAttemptMapper.findByStudentId(studentId).stream()
                 .collect(Collectors.toMap(ExamAttempt::getExamCode, row -> row, (left, right) -> left));
         Map<Integer, Score> scores = scoreMapper.findByStudentId(studentId).stream()
                 .collect(Collectors.toMap(Score::getExamCode, row -> row, (left, right) -> left));
-        Map<Integer, Integer> totalScores = paperService.getMaxScores(visibleExams.stream()
-                .map(ExamManage::getPaperId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList());
 
         List<Map<String, Object>> records = visibleExams.stream()
-                .map(exam -> buildExamPayload(
+                .map(exam -> buildExamPayload(resolveExamMeta(exam, now),
                         exam,
                         now,
                         attempts.get(exam.getExamCode()),
-                        scores.get(exam.getExamCode()),
-                        totalScores.getOrDefault(exam.getPaperId(), exam.getTotalScore())))
+                        scores.get(exam.getExamCode())))
                 .sorted(studentExamComparator())
                 .collect(Collectors.toList());
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("serverTime", now);
         body.put("records", records);
+        examCacheFacade.putStudentExamList(studentId, body);
         return body;
     }
 
     @Override
     public Map<String, Object> getStudentExamDetail(Integer examCode, Student student) {
+        int studentId = requireStudentId(student);
+        Map<String, Object> cached = examCacheFacade.getStudentExamDetail(studentId, examCode);
+        if (cached != null) {
+            return cached;
+        }
         LocalDateTime now = examTimeHelper.nowShanghai();
         ExamManage exam = requireExamForStudent(examCode, student);
-        int studentId = requireStudentId(student);
         ExamAttempt attempt = examAttemptMapper.findByExamAndStudent(examCode, studentId);
         Score score = scoreMapper.findByExamAndStudent(examCode, studentId);
-
-        Integer totalScore = exam.getTotalScore() != null || exam.getPaperId() == null
-                ? exam.getTotalScore()
-                : paperService.getMaxScore(exam.getPaperId());
-        Map<String, Object> examPayload = buildExamPayload(exam, now, attempt, score, totalScore);
-        List<Integer> counts = resolveQuestionCounts(exam, now);
-        examPayload.put("questionSummary", buildQuestionSummary(counts));
-        examPayload.put("totalQuestionCount", counts.stream().mapToInt(Integer::intValue).sum());
-        examPayload.put("summarySource", resolveSummarySource(exam, now));
+        ExamMetaCacheValue examMeta = resolveExamMeta(exam, now);
+        Map<String, Object> examPayload = buildExamPayload(examMeta, exam, now, attempt, score);
+        examPayload.put("questionSummary", buildQuestionSummaryPayload(examMeta));
+        examPayload.put("totalQuestionCount", examMeta.getTotalQuestionCount());
+        examPayload.put("summarySource", examMeta.getSummarySource());
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("serverTime", now);
         body.put("exam", examPayload);
+        examCacheFacade.putStudentExamDetail(studentId, examCode, body);
         return body;
     }
 
@@ -127,36 +135,34 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
         };
     }
 
-    private Map<String, Object> buildExamPayload(ExamManage exam,
+    private Map<String, Object> buildExamPayload(ExamMetaCacheValue examMeta,
+                                                 ExamManage exam,
                                                  LocalDateTime now,
                                                  ExamAttempt attempt,
-                                                 Score score,
-                                                 Integer totalScore) {
+                                                 Score score) {
         Map<String, Object> body = new LinkedHashMap<>();
         String attemptStatus = resolveAttemptStatus(attempt, score);
         String examState = resolveExamState(exam, now);
-        LocalDateTime freezeAt = examTimeHelper.freezeInstant(exam);
-        LocalDateTime windowEndAt = examTimeHelper.examWindowEnd(exam);
-        boolean revoked = examTimeHelper.isRevoked(exam);
+        boolean revoked = Boolean.TRUE.equals(examMeta.getRevoked());
         boolean inExamWindow = examTimeHelper.isWithinExamWindow(exam, now);
 
-        body.put("examCode", exam.getExamCode());
-        body.put("source", exam.getSource());
-        body.put("description", exam.getDescription());
-        body.put("type", exam.getType());
-        body.put("tips", exam.getTips());
-        body.put("examDate", exam.getExamDate());
-        body.put("examStartAt", exam.getExamStartAt());
-        body.put("totalTime", exam.getTotalTime());
-        body.put("totalScore", totalScore == null ? exam.getTotalScore() : totalScore);
-        body.put("grade", exam.getGrade());
-        body.put("major", exam.getMajor());
-        body.put("institute", exam.getInstitute());
-        body.put("freezeAt", freezeAt);
-        body.put("windowEndAt", windowEndAt);
+        body.put("examCode", examMeta.getExamCode());
+        body.put("source", examMeta.getSource());
+        body.put("description", examMeta.getDescription());
+        body.put("type", examMeta.getType());
+        body.put("tips", examMeta.getTips());
+        body.put("examDate", examMeta.getExamDate());
+        body.put("examStartAt", examMeta.getExamStartAt());
+        body.put("totalTime", examMeta.getTotalTime());
+        body.put("totalScore", examMeta.getTotalScore());
+        body.put("grade", examMeta.getGrade());
+        body.put("major", examMeta.getMajor());
+        body.put("institute", examMeta.getInstitute());
+        body.put("freezeAt", examMeta.getFreezeAt());
+        body.put("windowEndAt", examMeta.getWindowEndAt());
         body.put("paperLocked", examTimeHelper.isPaperLocked(exam, now));
         body.put("revoked", revoked);
-        body.put("revokeReason", exam.getRevokeReason());
+        body.put("revokeReason", examMeta.getRevokeReason());
         body.put("inExamWindow", inExamWindow);
         body.put("examState", examState);
         body.put("attemptStatus", attemptStatus);
@@ -164,6 +170,38 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
         body.put("submittedAt", attempt == null ? null : attempt.getSubmittedAt());
         body.put("canEnter", "ONGOING".equals(examState) && !"SUBMITTED".equals(attemptStatus));
         return body;
+    }
+
+    private ExamMetaCacheValue resolveExamMeta(ExamManage exam, LocalDateTime now) {
+        return examCacheFacade.getExamMeta(exam.getExamCode(), () -> buildExamMeta(exam, now));
+    }
+
+    private ExamMetaCacheValue buildExamMeta(ExamManage exam, LocalDateTime now) {
+        ExamMetaCacheValue meta = new ExamMetaCacheValue();
+        meta.setExamCode(exam.getExamCode());
+        meta.setSource(exam.getSource());
+        meta.setDescription(exam.getDescription());
+        meta.setType(exam.getType());
+        meta.setTips(exam.getTips());
+        meta.setExamDate(exam.getExamDate());
+        meta.setExamStartAt(exam.getExamStartAt());
+        meta.setTotalTime(exam.getTotalTime());
+        meta.setTotalScore(exam.getTotalScore() != null || exam.getPaperId() == null
+                ? exam.getTotalScore()
+                : paperService.getMaxScore(exam.getPaperId()));
+        meta.setGrade(exam.getGrade());
+        meta.setMajor(exam.getMajor());
+        meta.setInstitute(exam.getInstitute());
+        meta.setFreezeAt(examTimeHelper.freezeInstant(exam));
+        meta.setWindowEndAt(examTimeHelper.examWindowEnd(exam));
+        meta.setPaperLocked(examTimeHelper.isPaperLocked(exam, now));
+        meta.setRevoked(examTimeHelper.isRevoked(exam));
+        meta.setRevokeReason(exam.getRevokeReason());
+        List<Integer> counts = resolveQuestionCounts(exam, now);
+        meta.setQuestionSummary(buildQuestionSummary(counts));
+        meta.setTotalQuestionCount(counts.stream().mapToInt(Integer::intValue).sum());
+        meta.setSummarySource(resolveSummarySource(exam, now));
+        return meta;
     }
 
     private String resolveAttemptStatus(ExamAttempt attempt, Score score) {
@@ -234,19 +272,33 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
                 : "CURRENT_PAPER";
     }
 
-    private List<Map<String, Object>> buildQuestionSummary(List<Integer> counts) {
-        List<Map<String, Object>> summary = new ArrayList<>();
+    private List<QuestionSummaryCacheItem> buildQuestionSummary(List<Integer> counts) {
+        List<QuestionSummaryCacheItem> summary = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             int questionType = i + 1;
             int count = counts.size() > i ? counts.get(i) : 0;
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("questionType", questionType);
-            item.put("label", questionTypeLabel(questionType));
-            item.put("count", count);
-            item.put("score", count * 2);
+            QuestionSummaryCacheItem item = new QuestionSummaryCacheItem();
+            item.setQuestionType(questionType);
+            item.setLabel(questionTypeLabel(questionType));
+            item.setCount(count);
+            item.setScore(count * 2);
             summary.add(item);
         }
         return summary;
+    }
+
+    private List<Map<String, Object>> buildQuestionSummaryPayload(ExamMetaCacheValue examMeta) {
+        if (examMeta.getQuestionSummary() == null || examMeta.getQuestionSummary().isEmpty()) {
+            return List.of();
+        }
+        return examMeta.getQuestionSummary().stream().map(item -> {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("questionType", item.getQuestionType());
+            payload.put("label", item.getLabel());
+            payload.put("count", item.getCount());
+            payload.put("score", item.getScore());
+            return payload;
+        }).toList();
     }
 
     private String questionTypeLabel(int questionType) {

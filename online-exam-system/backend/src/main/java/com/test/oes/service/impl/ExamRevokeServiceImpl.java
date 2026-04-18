@@ -1,5 +1,6 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.cache.ExamCacheFacade;
 import com.test.oes.entity.Admin;
 import com.test.oes.entity.ExamManage;
 import com.test.oes.entity.ExamRevokeAudit;
@@ -21,6 +22,7 @@ public class ExamRevokeServiceImpl implements ExamRevokeService {
     private final ExamManageMapper examManageMapper;
     private final ExamRevokeAuditMapper examRevokeAuditMapper;
     private final ExamTimeHelper examTimeHelper;
+    private final ExamCacheFacade examCacheFacade;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -55,5 +57,8 @@ public class ExamRevokeServiceImpl implements ExamRevokeService {
         audit.setDetail("subject=" + exam.getSource() + ", paperId=" + exam.getPaperId());
         audit.setCreatedAt(now);
         examRevokeAuditMapper.insert(audit);
+        examCacheFacade.evictExamMeta(examCode);
+        examCacheFacade.evictSnapshotCaches(examCode);
+        examCacheFacade.bumpScopeExamVersion();
     }
 }

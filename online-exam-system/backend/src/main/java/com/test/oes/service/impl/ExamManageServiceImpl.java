@@ -2,6 +2,7 @@ package com.test.oes.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.test.oes.cache.ExamCacheFacade;
 import com.test.oes.entity.ExamManage;
 import com.test.oes.exception.ExamBusinessException;
 import com.test.oes.mapper.ExamSharedSnapshotMapper;
@@ -33,6 +34,7 @@ public class ExamManageServiceImpl implements ExamManageService {
     private final ExamSharedSnapshotMapper examSharedSnapshotMapper;
     private final PaperService paperService;
     private final ExamTimeHelper examTimeHelper;
+    private final ExamCacheFacade examCacheFacade;
 
     private void setMaxScore(List<ExamManage> examManageList) {
         for (ExamManage examManage : examManageList) {
@@ -181,7 +183,9 @@ public class ExamManageServiceImpl implements ExamManageService {
             throw new ExamBusinessException(400, "考试已进入冻结窗口或相关时间约束已生效，不能删除");
         }
         paperService.deleteByPaperId(examManage.getPaperId());
-        return examManageMapper.delete(examCode);
+        int rows = examManageMapper.delete(examCode);
+        invalidateExamCaches(examCode);
+        return rows;
     }
 
     @Override
@@ -204,7 +208,9 @@ public class ExamManageServiceImpl implements ExamManageService {
             if (newT < oldT) {
                 throw new ExamBusinessException(400, "冻结后考试时长只能延长，不能缩短");
             }
-            return examManageMapper.updateWhitelist(incoming.getExamCode(), incoming.getDescription(), incoming.getTips(), newT);
+            int rows = examManageMapper.updateWhitelist(incoming.getExamCode(), incoming.getDescription(), incoming.getTips(), newT);
+            invalidateExamCaches(incoming.getExamCode());
+            return rows;
         }
         LocalDateTime fallback = cur.getExamStartAt() != null
                 ? cur.getExamStartAt()
@@ -223,7 +229,9 @@ public class ExamManageServiceImpl implements ExamManageService {
         if (paperId != null) {
             incoming.setTotalScore(paperService.getMaxScore(paperId));
         }
-        return examManageMapper.update(incoming);
+        int rows = examManageMapper.update(incoming);
+        invalidateExamCaches(incoming.getExamCode());
+        return rows;
     }
 
     @Override
@@ -240,7 +248,9 @@ public class ExamManageServiceImpl implements ExamManageService {
         if (exammanage.getPaperId() != null) {
             exammanage.setTotalScore(paperService.getMaxScore(exammanage.getPaperId()));
         }
-        return examManageMapper.add(exammanage);
+        int rows = examManageMapper.add(exammanage);
+        invalidateExamCaches(exammanage.getExamCode());
+        return rows;
     }
 
     @Override
@@ -294,5 +304,13 @@ public class ExamManageServiceImpl implements ExamManageService {
         String x = a == null ? "" : a.trim();
         String y = b == null ? "" : b.trim();
         return x.equals(y);
+    }
+
+    private void invalidateExamCaches(Integer examCode) {
+        if (examCode != null) {
+            examCacheFacade.evictExamMeta(examCode);
+            examCacheFacade.evictSnapshotCaches(examCode);
+        }
+        examCacheFacade.bumpScopeExamVersion();
     }
 }
