@@ -45,6 +45,10 @@ class AuthSecurityIntegrationTest {
     private static final int EXAM_CODE = 21990001;
     private static final int HIDDEN_EXAM_CODE = 21990002;
     private static final int PAPER_ID = 1001;
+    private static final int TEST_MESSAGE_ID = 991001;
+    private static final int TEST_MESSAGE_ID_2 = 991002;
+    private static final int TEST_REPLAY_ID = 992001;
+    private static final int TEST_REPLAY_ID_2 = 992002;
 
     private static final String ADMIN_PASSWORD = "Admin@123";
     private static final String TEACHER_PASSWORD = "Teacher@123";
@@ -82,6 +86,8 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("UPDATE student SET role = '2' WHERE studentId = ?", OTHER_STUDENT_ID);
         jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
                 String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
+        jdbcTemplate.update("DELETE FROM replay WHERE replayId IN (?, ?)", TEST_REPLAY_ID, TEST_REPLAY_ID_2);
+        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2);
         if (examAttemptTableExists) {
             jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
         }
@@ -99,6 +105,8 @@ class AuthSecurityIntegrationTest {
         if (examAttemptTableExists) {
             jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
         }
+        jdbcTemplate.update("DELETE FROM replay WHERE replayId IN (?, ?)", TEST_REPLAY_ID, TEST_REPLAY_ID_2);
+        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2);
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
@@ -174,6 +182,26 @@ class AuthSecurityIntegrationTest {
         String body = result.getResponse().getContentAsString();
         assertThat(body).contains("# HELP");
         assertThat(body).contains("jvm_memory_used_bytes");
+    }
+
+    @Test
+    void readOnlyQueriesShouldExposeReplicaRouteMetrics() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+
+        mockMvc.perform(get("/score/statistics/" + EXAM_CODE)
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        MvcResult result = mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("oes_db_route_requests_total");
+        assertThat(body).contains("target=\"replica\"");
+        assertThat(body).contains("result=\"selected\"");
+        assertThat(body).contains("oes_db_replica_lag_seconds");
     }
 
     @Test
@@ -343,6 +371,75 @@ class AuthSecurityIntegrationTest {
         mockMvc.perform(get("/score/" + OTHER_STUDENT_ID)
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void scoreStatisticsShouldReturnAggregatedSummary() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update(
+                "INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                EXAM_CODE, STUDENT_ID, "计算机网络", 1, 80, 100, "2026-04-19"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                EXAM_CODE, OTHER_STUDENT_ID, "计算机网络", 0, 50, 100, "2026-04-19"
+        );
+
+        mockMvc.perform(get("/score/statistics/" + EXAM_CODE)
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.maxScore").value(80))
+                .andExpect(jsonPath("$.data.minScore").value(50))
+                .andExpect(jsonPath("$.data.avgScore").value(65.0))
+                .andExpect(jsonPath("$.data.passRate").value(0.5))
+                .andExpect(jsonPath("$.data.distribution").isArray());
+    }
+
+    @Test
+    void messageEndpointsShouldReturnRepliesWithoutNPlusOneShapeRegression() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update(
+                "INSERT INTO message(id, title, content, time) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID, "phase5-message-1", "message-one"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO message(id, title, content, time) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID_2, "phase5-message-2", "message-two"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO replay(messageId, replayId, replay, replayTime) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID, TEST_REPLAY_ID, "reply-one"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO replay(messageId, replayId, replay, replayTime) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID_2, TEST_REPLAY_ID_2, "reply-two"
+        );
+
+        MvcResult listResult = mockMvc.perform(get("/messages/1/10")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.records").isArray())
+                .andReturn();
+
+        JsonNode records = json(listResult).path("data").path("records");
+        JsonNode message = findMessage(records, TEST_MESSAGE_ID);
+        JsonNode secondMessage = findMessage(records, TEST_MESSAGE_ID_2);
+        assertThat(message).isNotNull();
+        assertThat(secondMessage).isNotNull();
+        assertThat(message.path("replays").isArray()).isTrue();
+        assertThat(message.path("replays").size()).isEqualTo(1);
+        assertThat(secondMessage.path("replays").size()).isEqualTo(1);
+
+        mockMvc.perform(get("/message/" + TEST_MESSAGE_ID)
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(TEST_MESSAGE_ID))
+                .andExpect(jsonPath("$.data.replays").isArray())
+                .andExpect(jsonPath("$.data.replays[0].replay").value("reply-one"));
     }
 
     @Test
@@ -620,6 +717,15 @@ class AuthSecurityIntegrationTest {
     private JsonNode findExam(JsonNode records, int examCode) {
         for (JsonNode item : records) {
             if (item.path("examCode").asInt() == examCode) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private JsonNode findMessage(JsonNode records, int messageId) {
+        for (JsonNode item : records) {
+            if (item.path("id").asInt() == messageId) {
                 return item;
             }
         }

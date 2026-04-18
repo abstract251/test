@@ -3,11 +3,11 @@ package com.test.oes.mapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Score;
+import com.test.oes.vo.ScoreStatisticsSummary;
 import org.apache.ibatis.annotations.*;
-import java.util.Map;
-import java.util.HashMap;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface ScoreMapper {
@@ -36,7 +36,7 @@ public interface ScoreMapper {
      * @return 分页结果
      */
     @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score " +
-            "where studentId = #{studentId} order by scoreId asc")
+            "where studentId = #{studentId} order by scoreId desc")
     IPage<Score> findById(Page<?> page, @Param("studentId") Integer studentId);
 
     /**
@@ -44,7 +44,7 @@ public interface ScoreMapper {
      * 注意：参考代码中 Service 层的 findById(Integer studentId) 对应此方法
      */
     @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score " +
-            "where studentId = #{studentId} order by scoreId asc")
+            "where studentId = #{studentId} order by scoreId desc")
     List<Score> findByStudentId(@Param("studentId") Integer studentId);
 
     /**
@@ -52,7 +52,8 @@ public interface ScoreMapper {
      * @param examCode 考试编号
      * @return 成绩列表
      */
-    @Select("select * from score where examCode = #{examCode}")
+    @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate " +
+            "from score where examCode = #{examCode} order by scoreId desc")
     List<Score> findByExamCode(Integer examCode);
 
     @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score " +
@@ -77,32 +78,13 @@ public interface ScoreMapper {
     /**
      * 获取某考试的平均分（etScore）
      */
-    @Select("SELECT AVG(etScore) FROM score WHERE examCode = #{examCode}")
-    Double getAvgScore(@Param("examCode") Integer examCode);
-
-    /**
-     * 获取某考试的最高分
-     */
-    @Select("SELECT MAX(etScore) FROM score WHERE examCode = #{examCode}")
-    Integer getMaxScore(@Param("examCode") Integer examCode);
-
-    /**
-     * 获取某考试的最低分
-     */
-    @Select("SELECT MIN(etScore) FROM score WHERE examCode = #{examCode}")
-    Integer getMinScore(@Param("examCode") Integer examCode);
-
-    /**
-     * 获取某考试的参考总人数
-     */
-    @Select("SELECT COUNT(*) FROM score WHERE examCode = #{examCode}")
-    Integer getTotalCount(@Param("examCode") Integer examCode);
-
-    /**
-     * 获取某考试的及格人数（etScore >= score * 0.6）
-     */
-    @Select("SELECT COUNT(*) FROM score WHERE examCode = #{examCode} AND etScore >= score * 0.6")
-    Integer getPassCount(@Param("examCode") Integer examCode);
+    @Select("SELECT AVG(etScore) AS avgScore, " +
+            "MAX(etScore) AS maxScore, " +
+            "MIN(etScore) AS minScore, " +
+            "COUNT(*) AS totalCount, " +
+            "SUM(CASE WHEN etScore >= score * 0.6 THEN 1 ELSE 0 END) AS passCount " +
+            "FROM score WHERE examCode = #{examCode}")
+    ScoreStatisticsSummary getStatisticsSummary(@Param("examCode") Integer examCode);
 
     /**
      * 获取某考试的分数段分布

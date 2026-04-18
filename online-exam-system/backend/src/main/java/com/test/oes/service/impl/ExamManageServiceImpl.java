@@ -14,6 +14,7 @@ import com.test.oes.service.exam.ExamTimeHelper;
 import com.test.oes.vo.TeacherExamListItemVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -62,6 +63,7 @@ public class ExamManageServiceImpl implements ExamManageService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ExamManage> findAll() {
         Page<ExamManage> examManage = new Page<>(0, 9999);
         List<ExamManage> examManageList = examManageMapper.findAll(examManage).getRecords();
@@ -70,6 +72,7 @@ public class ExamManageServiceImpl implements ExamManageService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public IPage<TeacherExamListItemVO> findAll(Page<ExamManage> page) {
         IPage<ExamManage> entityPage = examManageMapper.findAll(page);
         List<ExamManage> records = entityPage.getRecords();
@@ -89,6 +92,7 @@ public class ExamManageServiceImpl implements ExamManageService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ExamManage findById(Integer examCode) {
         ExamManage examManage = examManageMapper.findById(examCode);
         if (examManage == null) {

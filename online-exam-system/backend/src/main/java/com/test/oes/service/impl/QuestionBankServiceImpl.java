@@ -39,6 +39,7 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final ExamCacheFacade examCacheFacade;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<QuestionBankItemVO> findAll(Integer page,
                                             Integer size,
                                             Integer questionType,

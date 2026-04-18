@@ -8,6 +8,7 @@ import com.test.oes.security.PasswordService;
 import com.test.oes.service.StudentService;
 import com.test.oes.service.identity.CardIdUniquenessValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StudentServiceImpl implements StudentService {
@@ -23,6 +24,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public IPage<Student> findAll(
             Page<Student> page, String studentId, String name, String grade,
             String tel, String institute, String major, String clazz) {
@@ -37,6 +39,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Student findById(Integer studentId) {
         return studentMapper.findById(studentId);
     }

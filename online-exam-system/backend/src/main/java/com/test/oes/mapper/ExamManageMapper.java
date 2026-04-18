@@ -10,18 +10,23 @@ import java.util.List;
 @Mapper
 public interface ExamManageMapper {
 
-    @Select("select * from exam_manage")
+    String EXAM_COLUMNS = "examCode, description, source, paperId, examDate, exam_start_at as examStartAt, "
+            + "totalTime, grade, term, major, institute, totalScore, type, tips, "
+            + "paper_frozen_at as paperFrozenAt, revoked_at as revokedAt, revoke_reason as revokeReason";
+
+    @Select("select " + EXAM_COLUMNS + " from exam_manage order by exam_start_at desc, examCode desc")
     IPage<ExamManage> findAll(Page<ExamManage> page);
 
-    @Select("select * from exam_manage where examCode = #{examCode}")
+    @Select("select " + EXAM_COLUMNS + " from exam_manage where examCode = #{examCode}")
     ExamManage findById(Integer examCode);
 
     @Select({
             "<script>",
-            "select * from exam_manage",
+            "select " + EXAM_COLUMNS + " from exam_manage",
             "where (grade is null or trim(grade) = '' or grade = #{grade})",
             "and (major is null or trim(major) = '' or major = #{major})",
             "and (institute is null or trim(institute) = '' or institute = #{institute})",
+            "order by exam_start_at asc, examCode asc",
             "</script>"
     })
     List<ExamManage> findVisibleForStudent(@Param("grade") String grade,
@@ -30,7 +35,7 @@ public interface ExamManageMapper {
 
     @Select({
             "<script>",
-            "select * from exam_manage",
+            "select " + EXAM_COLUMNS + " from exam_manage",
             "where examCode = #{examCode}",
             "and (grade is null or trim(grade) = '' or grade = #{grade})",
             "and (major is null or trim(major) = '' or major = #{major})",
@@ -43,7 +48,7 @@ public interface ExamManageMapper {
                                                @Param("major") String major,
                                                @Param("institute") String institute);
 
-    @Select("select * from exam_manage where paperId = #{paperId}")
+    @Select("select " + EXAM_COLUMNS + " from exam_manage where paperId = #{paperId}")
     List<ExamManage> findByPaperId(@Param("paperId") Integer paperId);
 
     @Delete("delete from exam_manage where examCode = #{examCode}")

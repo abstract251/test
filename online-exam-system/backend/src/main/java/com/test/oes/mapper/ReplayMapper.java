@@ -14,6 +14,18 @@ public interface ReplayMapper {
     @Select("select messageId,replayId,replay,replayTime from replay where messageId = #{messageId}")
     List<Replay> findAllById(Integer messageId);
 
+    @Select({
+            "<script>",
+            "select messageId, replayId, replay, replayTime from replay",
+            "where messageId in",
+            "<foreach collection='messageIds' item='messageId' open='(' separator=',' close=')'>",
+            "#{messageId}",
+            "</foreach>",
+            "order by messageId asc, replayId asc",
+            "</script>"
+    })
+    List<Replay> findByMessageIds(@Param("messageIds") List<Integer> messageIds);
+
     @Select("select messageId,replayId,replay,replayTime from replay where messageId = #{messageId}")
     Replay findById(Integer messageId);
 

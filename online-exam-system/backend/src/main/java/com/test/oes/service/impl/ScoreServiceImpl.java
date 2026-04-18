@@ -5,18 +5,20 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Score;
 import com.test.oes.mapper.ScoreMapper;
 import com.test.oes.service.ScoreService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.test.oes.vo.ScoreStatisticsSummary;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.util.Map;
-import java.util.HashMap;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class ScoreServiceImpl implements ScoreService {
 
-    @Autowired
-    private ScoreMapper scoreMapper;
+    private final ScoreMapper scoreMapper;
 
     @Override
     public int add(Score score) {
@@ -24,61 +26,57 @@ public class ScoreServiceImpl implements ScoreService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Score> findAll() {
         return scoreMapper.findAll();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public IPage<Score> findById(Page<Score> page, Integer studentId) {
-        // 调用 Mapper 中定义的分页查询方法
         return scoreMapper.findById(page, studentId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Score> findById(Integer studentId) {
-        // 调用 Mapper 中定义的不分页查询方法
         return scoreMapper.findByStudentId(studentId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Score> findByExamCode(Integer examCode) {
         return scoreMapper.findByExamCode(examCode);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Score findByExamAndStudent(Integer examCode, Integer studentId) {
         return scoreMapper.findByExamAndStudent(examCode, studentId);
     }
 
-// 新增
-
     @Override
+    @Transactional(readOnly = true)
     public Map<String, Object> getStatistics(Integer examCode) {
         Map<String, Object> stats = new HashMap<>();
+        ScoreStatisticsSummary summary = scoreMapper.getStatisticsSummary(examCode);
+        Double avgScore = summary == null ? null : summary.getAvgScore();
+        Integer maxScore = summary == null ? null : summary.getMaxScore();
+        Integer minScore = summary == null ? null : summary.getMinScore();
+        Integer totalCount = summary == null ? null : summary.getTotalCount();
+        Integer passCount = summary == null ? null : summary.getPassCount();
 
-        // 基础统计
-        Double avgScore = scoreMapper.getAvgScore(examCode);
-        Integer maxScore = scoreMapper.getMaxScore(examCode);
-        Integer minScore = scoreMapper.getMinScore(examCode);
-        Integer totalCount = scoreMapper.getTotalCount(examCode);
-        Integer passCount = scoreMapper.getPassCount(examCode);
+        double passRate = (totalCount == null || totalCount == 0)
+                ? 0.0
+                : (passCount == null ? 0.0 : passCount.doubleValue() / totalCount.doubleValue());
 
-        // 及格率（避免除零）
-        Double passRate = (totalCount == null || totalCount == 0) ? 0.0
-                : (passCount != null ? passCount.doubleValue() / totalCount : 0.0);
-
-        // 分数段分布
         List<Map<String, Object>> distribution = scoreMapper.getScoreDistribution(examCode);
-
-        // 组装返回结果
         stats.put("avgScore", avgScore != null ? avgScore : 0.0);
         stats.put("maxScore", maxScore != null ? maxScore : 0);
         stats.put("minScore", minScore != null ? minScore : 0);
         stats.put("passRate", passRate);
         stats.put("totalCount", totalCount != null ? totalCount : 0);
         stats.put("distribution", distribution);
-
         return stats;
     }
-
 }
