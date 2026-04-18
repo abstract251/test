@@ -8,10 +8,11 @@
  * - devServer：本地开发服务器（npm run serve）选项。
  *
  * 端口说明（与本项目联调后端有关）：
- * - 后端 Spring Boot 默认使用 8080（见后端 application.properties）。
+ * - 联调 / 压测入口使用 8080（Nginx）。
  * - 前端开发服务器若也占用 8080 会冲突，因此此处将前端改为 8081。
+ * - 本地开发态后端单实例固定走 18080，避免 dev proxy 再绕到 Nginx 入口。
  * 访问前端：http://localhost:8081/
- * 请求后端：前端统一走 /api，由 devServer 代理到 http://localhost:8080
+ * 请求后端：前端统一走 /api，由 devServer 代理到 http://localhost:18080
  */
 const { defineConfig } = require('@vue/cli-service')
 module.exports = defineConfig({
@@ -53,7 +54,7 @@ module.exports = defineConfig({
     port: 8081,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:18080',
         changeOrigin: true,
         pathRewrite: {
           '^/api': ''
