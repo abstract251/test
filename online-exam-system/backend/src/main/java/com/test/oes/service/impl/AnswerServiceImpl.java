@@ -34,10 +34,7 @@ public class AnswerServiceImpl implements AnswerService {
         Integer studentId = vo.getStudentId();
 
         // 1. 检查是否已经提交过该考试
-        List<Score> existingScores = scoreService.findByExamCode(examCode);
-        boolean alreadySubmitted = existingScores.stream()
-                .anyMatch(score -> score.getStudentId() == studentId);
-        if (alreadySubmitted) {
+        if (scoreService.findByExamAndStudent(examCode, studentId) != null) {
             throw new RuntimeException("您已参加过本次考试，不能重复提交");
         }
 

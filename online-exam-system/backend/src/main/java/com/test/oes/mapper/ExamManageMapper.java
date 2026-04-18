@@ -16,6 +16,33 @@ public interface ExamManageMapper {
     @Select("select * from exam_manage where examCode = #{examCode}")
     ExamManage findById(Integer examCode);
 
+    @Select({
+            "<script>",
+            "select * from exam_manage",
+            "where (grade is null or trim(grade) = '' or grade = #{grade})",
+            "and (major is null or trim(major) = '' or major = #{major})",
+            "and (institute is null or trim(institute) = '' or institute = #{institute})",
+            "</script>"
+    })
+    List<ExamManage> findVisibleForStudent(@Param("grade") String grade,
+                                           @Param("major") String major,
+                                           @Param("institute") String institute);
+
+    @Select({
+            "<script>",
+            "select * from exam_manage",
+            "where examCode = #{examCode}",
+            "and (grade is null or trim(grade) = '' or grade = #{grade})",
+            "and (major is null or trim(major) = '' or major = #{major})",
+            "and (institute is null or trim(institute) = '' or institute = #{institute})",
+            "limit 1",
+            "</script>"
+    })
+    ExamManage findVisibleByExamCodeForStudent(@Param("examCode") Integer examCode,
+                                               @Param("grade") String grade,
+                                               @Param("major") String major,
+                                               @Param("institute") String institute);
+
     @Select("select * from exam_manage where paperId = #{paperId}")
     List<ExamManage> findByPaperId(@Param("paperId") Integer paperId);
 

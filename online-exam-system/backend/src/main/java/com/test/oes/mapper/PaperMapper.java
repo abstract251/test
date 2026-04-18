@@ -14,6 +14,9 @@ public interface PaperMapper {
     @Select("select paperId, questionType,questionId from paper_manage where paperId = #{paperId}")
     List<PaperManage> findById(Integer paperId);
 
+    @Select("select count(*) from paper_manage where paperId = #{paperId}")
+    Integer countByPaperId(@Param("paperId") Integer paperId);
+
     @Select({
             "<script>",
             "select paperId as paperId, count(*) as questionCount",
@@ -27,9 +30,23 @@ public interface PaperMapper {
     })
     List<Map<String, Object>> countQuestionsByPaperIds(@Param("paperIds") List<Integer> paperIds);
 
+    @Select("select questionType as questionType, count(*) as questionCount from paper_manage "
+            + "where paperId = #{paperId} group by questionType")
+    List<Map<String, Object>> countQuestionsGroupedByType(@Param("paperId") Integer paperId);
+
     @Insert("insert into paper_manage(paperId,questionType,questionId) values " +
             "(#{paperId},#{questionType},#{questionId})")
     int add(PaperManage paperManage);
+
+    @Insert({
+            "<script>",
+            "insert into paper_manage(paperId,questionType,questionId) values",
+            "<foreach collection='rows' item='row' separator=','>",
+            "(#{row.paperId},#{row.questionType},#{row.questionId})",
+            "</foreach>",
+            "</script>"
+    })
+    int batchInsert(@Param("rows") List<PaperManage> rows);
 
     @Delete("delete from paper_manage where paperId = #{paperId} and questionType = #{type} and questionId = #{questionId}")
     int delete(@Param("paperId") Integer paperId, @Param("type") Integer type, @Param("questionId") Integer questionId);

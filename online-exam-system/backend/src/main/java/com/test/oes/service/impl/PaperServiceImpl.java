@@ -10,7 +10,9 @@ import com.test.oes.service.exam.ExamPaperEditPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -45,14 +47,56 @@ public class PaperServiceImpl implements PaperService {
         return paperMapper.add(paperManage);
     }
 
+    @Override
+    public int addBatch(List<PaperManage> paperManages) {
+        if (paperManages == null || paperManages.isEmpty()) {
+            return 0;
+        }
+        examPaperEditPolicy.assertPaperEditable(paperManages.get(0).getPaperId());
+        return paperMapper.batchInsert(paperManages);
+    }
+
     // 计算试卷总分：每题 2 分
     @Override
     public Integer getMaxScore(Integer paperId) {
+        if (paperId == null) {
+            return 0;
+        }
+        Integer questionCount = paperMapper.countByPaperId(paperId);
+        return (questionCount == null ? 0 : questionCount) * 2;
+    }
 
-        List<MultiQuestion> multiQuestionRes = multiQuestionService.findByIdAndType(paperId);   //选择题题库 1
-        List<FillQuestion> fillQuestionsRes = fillQuestionService.findByIdAndType(paperId);     //填空题题库 2
-        List<JudgeQuestion> judgeQuestionRes = judgeQuestionService.findByIdAndType(paperId);   //判断题题库 3
-        return 2 * (multiQuestionRes.size() + fillQuestionsRes.size() + judgeQuestionRes.size());
+    @Override
+    public Map<Integer, Integer> getMaxScores(List<Integer> paperIds) {
+        if (paperIds == null || paperIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Integer, Integer> totalScores = new HashMap<>();
+        for (Map<String, Object> row : paperMapper.countQuestionsByPaperIds(paperIds)) {
+            Integer paperId = toInteger(row.get("paperId"));
+            Integer questionCount = toInteger(row.get("questionCount"));
+            if (paperId != null) {
+                totalScores.put(paperId, (questionCount == null ? 0 : questionCount) * 2);
+            }
+        }
+        return totalScores;
+    }
+
+    @Override
+    public List<Integer> summarizeQuestionTypes(Integer paperId) {
+        int[] counts = new int[]{0, 0, 0};
+        if (paperId == null) {
+            return List.of(0, 0, 0);
+        }
+        for (Map<String, Object> row : paperMapper.countQuestionsGroupedByType(paperId)) {
+            Integer questionType = toInteger(row.get("questionType"));
+            Integer questionCount = toInteger(row.get("questionCount"));
+            int index = questionType == null ? -1 : questionType - 1;
+            if (index >= 0 && index < counts.length) {
+                counts[index] = questionCount == null ? 0 : questionCount;
+            }
+        }
+        return List.of(counts[0], counts[1], counts[2]);
     }
 
     // 删除试卷中的单条试题关联
@@ -67,5 +111,15 @@ public class PaperServiceImpl implements PaperService {
     public int deleteByPaperId(Integer paperId) {
         examPaperEditPolicy.assertPaperEditable(paperId);
         return paperMapper.deleteByPaperId(paperId);
+    }
+
+    private Integer toInteger(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value == null) {
+            return null;
+        }
+        return Integer.parseInt(String.valueOf(value));
     }
 }

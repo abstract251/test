@@ -10,6 +10,7 @@ import com.test.oes.service.PaperService;
 import com.test.oes.service.StudentExamSessionService;
 import com.test.oes.service.exam.ExamTimeHelper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,16 +28,11 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
 
     private final ExamManageMapper examManageMapper;
     private final ExamSnapshotService examSnapshotService;
-    private final ExamSharedSnapshotItemMapper examSharedSnapshotItemMapper;
     private final ExamAttemptMapper examAttemptMapper;
     private final ScoreMapper scoreMapper;
     private final PaperService paperService;
     private final ExamTimeHelper examTimeHelper;
     private final ObjectMapper objectMapper;
-    private final MultiQuestionMapper multiQuestionMapper;
-    private final FillQuestionMapper fillQuestionMapper;
-    private final JudgeQuestionMapper judgeQuestionMapper;
-
     @Override
     public Map<String, Object> startOrResumeAttempt(Integer examCode, Student student) {
         ExamManage exam = requireExamForStudent(examCode, student);
@@ -63,7 +59,18 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         row.setAnswersJson("{}");
         row.setStartedAt(now);
         row.setSubmittedAt(null);
-        examAttemptMapper.insert(row);
+        try {
+            examAttemptMapper.insert(row);
+        } catch (DuplicateKeyException duplicateKeyException) {
+            ExamAttempt concurrent = examAttemptMapper.findByExamAndStudent(examCode, sid);
+            if (concurrent == null) {
+                throw duplicateKeyException;
+            }
+            if (Objects.equals(concurrent.getStatus(), STATUS_SUBMITTED)) {
+                throw new ExamBusinessException(400, "您已交卷，不能重复进入");
+            }
+            return buildStartPayload(concurrent, exam, now, masked);
+        }
 
         ExamAttempt inserted = examAttemptMapper.findByExamAndStudent(examCode, sid);
         return buildStartPayload(inserted, exam, now, masked);
@@ -108,28 +115,29 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         if (scoreMapper.findByExamAndStudent(examCode, sid) != null) {
             throw new ExamBusinessException(400, "成绩已存在，请勿重复提交");
         }
-        ExamAttempt attempt = examAttemptMapper.findByExamAndStudent(examCode, sid);
+        ExamAttempt attempt = examAttemptMapper.findByExamAndStudentForUpdate(examCode, sid);
         if (attempt == null) {
             throw new ExamBusinessException(400, "请先开始考试");
         }
         if (Objects.equals(attempt.getStatus(), STATUS_SUBMITTED)) {
             throw new ExamBusinessException(400, "已交卷");
         }
+        if (scoreMapper.findByExamAndStudent(examCode, sid) != null) {
+            throw new ExamBusinessException(400, "成绩已存在，请勿重复提交");
+        }
 
         Map<String, String> answers = readAnswersMap(attempt.getAnswersJson());
-        examSnapshotService.ensureSharedSnapshot(examCode);
-        List<ExamSharedSnapshotItem> items = examSharedSnapshotItemMapper.findByExamCode(examCode);
-        if (items.isEmpty()) {
+        Map<String, String> answerKey = examSnapshotService.buildAnswerKeyMap(examCode);
+        if (answerKey.isEmpty()) {
             throw new ExamBusinessException(400, "本场考试暂无有效题目，无法判分");
         }
         int correct = 0;
-        for (ExamSharedSnapshotItem it : items) {
-            String key = it.getQuestionType() + "_" + it.getQuestionId();
-            String user = answers.get(key);
+        for (Map.Entry<String, String> entry : answerKey.entrySet()) {
+            String user = answers.get(entry.getKey());
             if (user == null) {
                 user = "";
             }
-            if (isAnswerCorrect(it.getQuestionType(), it.getQuestionId(), user)) {
+            if (isAnswerCorrect(entry.getValue(), user)) {
                 correct++;
             }
         }
@@ -157,20 +165,25 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         res.put("maxScore", maxScore);
         res.put("passed", pass == 1);
         res.put("correctCount", correct);
-        res.put("totalQuestions", items.size());
+        res.put("totalQuestions", answerKey.size());
         return res;
     }
 
     private ExamManage requireExamForStudent(Integer examCode, Student student) {
-        ExamManage exam = examManageMapper.findById(examCode);
-        if (exam == null) {
+        ExamManage rawExam = examManageMapper.findById(examCode);
+        if (rawExam == null) {
             throw new ExamBusinessException(404, "考试不存在");
+        }
+        ExamManage exam = examManageMapper.findVisibleByExamCodeForStudent(
+                examCode,
+                student.getGrade(),
+                student.getMajor(),
+                student.getInstitute());
+        if (exam == null) {
+            throw new ExamBusinessException(403, "您不在本场考试的参考范围内");
         }
         if (examTimeHelper.isRevoked(exam)) {
             throw new ExamBusinessException(410, "本场考试已撤销");
-        }
-        if (!StudentExamQueryServiceImpl.matchesScope(exam, student)) {
-            throw new ExamBusinessException(403, "您不在本场考试的参考范围内");
         }
         return exam;
     }
@@ -280,38 +293,21 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         return out;
     }
 
-    private boolean isAnswerCorrect(int type, int questionId, String userRaw) {
+    private boolean isAnswerCorrect(String rightAnswer, String userRaw) {
         String user = userRaw == null ? "" : userRaw.trim();
-        return switch (type) {
-            case 1 -> {
-                MultiQuestion q = multiQuestionMapper.findByQuestionId(questionId);
-                if (q == null || q.getRightAnswer() == null) {
-                    yield false;
-                }
-                if (user.isEmpty()) {
-                    yield false;
-                }
-                String right = q.getRightAnswer().trim();
-                String u = user.substring(0, 1).toUpperCase(Locale.ROOT);
-                String r = right.isEmpty() ? "" : right.substring(0, 1).toUpperCase(Locale.ROOT);
-                yield r.equals(u) || right.equalsIgnoreCase(user.trim());
-            }
-            case 2 -> {
-                FillQuestion q = fillQuestionMapper.findByQuestionId(questionId);
-                if (q == null || q.getAnswer() == null) {
-                    yield false;
-                }
-                yield normalizeText(q.getAnswer()).equals(normalizeText(user));
-            }
-            case 3 -> {
-                JudgeQuestion q = judgeQuestionMapper.findByQuestionId(questionId);
-                if (q == null || q.getAnswer() == null) {
-                    yield false;
-                }
-                yield normalizeText(q.getAnswer()).equals(normalizeText(user));
-            }
-            default -> false;
-        };
+        if (rightAnswer == null || user.isEmpty()) {
+            return false;
+        }
+        String right = rightAnswer.trim();
+        if (right.isEmpty()) {
+            return false;
+        }
+        String userFirst = user.substring(0, 1).toUpperCase(Locale.ROOT);
+        String rightFirst = right.substring(0, 1).toUpperCase(Locale.ROOT);
+        if (right.length() == 1 || user.length() == 1) {
+            return rightFirst.equals(userFirst) || normalizeText(right).equals(normalizeText(user));
+        }
+        return normalizeText(right).equals(normalizeText(user));
     }
 
     private static String normalizeText(String s) {

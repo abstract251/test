@@ -19,4 +19,8 @@ public interface ExamSnapshotService {
      * 返回与 {@code /paper/{paperId}} 相同结构的题目分组（1/2/3），数据来源于冻结快照。
      */
     Map<Integer, List<?>> buildFrozenPaperMap(Integer examCode);
+
+    Map<String, String> buildAnswerKeyMap(Integer examCode);
+
+    List<Integer> summarizeFrozenQuestionTypes(Integer examCode);
 }

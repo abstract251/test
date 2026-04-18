@@ -3,6 +3,7 @@ package com.test.oes.service;
 import com.test.oes.entity.PaperManage;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PaperService {
 
@@ -12,8 +13,14 @@ public interface PaperService {
 
     int add(PaperManage paperManage);
 
+    int addBatch(List<PaperManage> paperManages);
+
     // 获取试卷总分
     Integer getMaxScore(Integer paperId);
+
+    Map<Integer, Integer> getMaxScores(List<Integer> paperIds);
+
+    List<Integer> summarizeQuestionTypes(Integer paperId);
 
     /**
      * 删除试卷中的某条试题

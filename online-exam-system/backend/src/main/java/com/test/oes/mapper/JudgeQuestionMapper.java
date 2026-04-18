@@ -28,8 +28,8 @@ public interface JudgeQuestionMapper {
             "(#{subject},#{question},#{answer},#{analysis},#{level},#{section})")
     int add(JudgeQuestion judgeQuestion);
 
-    @Select("select questionId from judge_question  where subject=#{subject}  order by rand() desc limit #{pageNo}")
-    List<Integer> findBySubject(@Param("subject") String subject, @Param("pageNo") Integer pageNo);
+    @Select("select questionId from judge_question where subject=#{subject} order by questionId asc")
+    List<Integer> findIdsBySubject(@Param("subject") String subject);
 
     @Update("update judge_question set subject = #{subject}, question = #{question}, answer = #{answer}, section = #{section}, analysis = #{analysis}, level = #{level} where questionId = #{questionId}")
     int edit(JudgeQuestion judgeQuestion);
@@ -39,6 +39,16 @@ public interface JudgeQuestionMapper {
 
     @Select("select * from judge_question where questionId = #{questionId}")
     JudgeQuestion findByQuestionId(@Param("questionId") Integer questionId);
+
+    @Select({
+            "<script>",
+            "select * from judge_question where questionId in",
+            "<foreach collection='questionIds' item='questionId' open='(' separator=',' close=')'>",
+            "#{questionId}",
+            "</foreach>",
+            "</script>"
+    })
+    List<JudgeQuestion> findByQuestionIds(@Param("questionIds") List<Integer> questionIds);
 
     @Delete("delete from judge_question where questionId = #{questionId}")
     int deleteByQuestionId(@Param("questionId") Integer questionId);

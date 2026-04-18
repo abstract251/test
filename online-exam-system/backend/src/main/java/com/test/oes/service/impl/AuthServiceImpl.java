@@ -77,7 +77,9 @@ public class AuthServiceImpl implements AuthService {
             authRefreshTokenMapper.revokeById(stored.getId());
             throw new ExamBusinessException(401, "refreshToken 已过期");
         }
-        authRefreshTokenMapper.revokeById(stored.getId());
+        if (authRefreshTokenMapper.revokeIfActiveById(stored.getId()) == 0) {
+            throw new ExamBusinessException(401, "refreshToken 已失效");
+        }
         LoginUser loginUser = loadUser(AccountRole.valueOf(stored.getRole()), stored.getUsername());
         return buildAuthResponse(loginUser);
     }

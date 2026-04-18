@@ -16,6 +16,10 @@ public interface ExamAttemptMapper {
     ExamAttempt findByExamAndStudent(@Param("examCode") Integer examCode, @Param("studentId") Integer studentId);
 
     @Select("SELECT attempt_id, exam_code, student_id, status, answers_json, started_at, submitted_at "
+            + "FROM exam_attempt WHERE exam_code = #{examCode} AND student_id = #{studentId} FOR UPDATE")
+    ExamAttempt findByExamAndStudentForUpdate(@Param("examCode") Integer examCode, @Param("studentId") Integer studentId);
+
+    @Select("SELECT attempt_id, exam_code, student_id, status, answers_json, started_at, submitted_at "
             + "FROM exam_attempt WHERE student_id = #{studentId}")
     java.util.List<ExamAttempt> findByStudentId(@Param("studentId") Integer studentId);
 

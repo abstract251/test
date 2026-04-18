@@ -29,8 +29,8 @@ public interface FillQuestionMapper {
             "(#{subject},#{question},#{answer},#{analysis},#{level},#{section})")
     int add(FillQuestion fillQuestion);
 
-    @Select("select questionId from fill_question where subject = #{subject} order by rand() desc limit #{pageNo}")
-    List<Integer> findBySubject(@Param("subject") String subject, @Param("pageNo") Integer pageNo);
+    @Select("select questionId from fill_question where subject = #{subject} order by questionId asc")
+    List<Integer> findIdsBySubject(@Param("subject") String subject);
 
     @Update("update fill_question set section = #{section}, question = #{question}, answer = #{answer}, level = #{level}, analysis = #{analysis} where questionId = #{questionId}")
     int edit(FillQuestion fillQuestion);
@@ -40,6 +40,16 @@ public interface FillQuestionMapper {
 
     @Select("select * from fill_question where questionId = #{questionId}")
     FillQuestion findByQuestionId(@Param("questionId") Integer questionId);
+
+    @Select({
+            "<script>",
+            "select * from fill_question where questionId in",
+            "<foreach collection='questionIds' item='questionId' open='(' separator=',' close=')'>",
+            "#{questionId}",
+            "</foreach>",
+            "</script>"
+    })
+    List<FillQuestion> findByQuestionIds(@Param("questionIds") List<Integer> questionIds);
 
     @Delete("delete from fill_question where questionId = #{questionId}")
     int deleteByQuestionId(@Param("questionId") Integer questionId);

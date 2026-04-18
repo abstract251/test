@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +45,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         String normalizedSubject = trimToNull(subject);
         String normalizedKeyword = trimToNull(keyword);
 
-        long total = questionBankMapper.countAll(normalizedType, normalizedSubject, normalizedKeyword);
+        long total = countQuestions(normalizedType, normalizedSubject, normalizedKeyword);
         List<QuestionBankItemVO> records = List.of();
         if (total > 0) {
             long offset = (long) (current - 1) * pageSize;
-            records = questionBankMapper.selectPage(offset, pageSize, normalizedType, normalizedSubject, normalizedKeyword);
+            records = selectPage(offset, pageSize, normalizedType, normalizedSubject, normalizedKeyword);
             for (QuestionBankItemVO item : records) {
                 item.setQuestionTypeName(typeName(item.getQuestionType()));
             }
@@ -58,6 +59,48 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         result.setTotal(total);
         result.setRecords(records);
         return result;
+    }
+
+    private long countQuestions(Integer questionType, String subject, String keyword) {
+        if (questionType == null) {
+            return questionBankMapper.countMulti(subject, keyword)
+                    + questionBankMapper.countFill(subject, keyword)
+                    + questionBankMapper.countJudge(subject, keyword);
+        }
+        return switch (questionType) {
+            case 1 -> questionBankMapper.countMulti(subject, keyword);
+            case 2 -> questionBankMapper.countFill(subject, keyword);
+            case 3 -> questionBankMapper.countJudge(subject, keyword);
+            default -> 0L;
+        };
+    }
+
+    private List<QuestionBankItemVO> selectPage(long offset,
+                                                long pageSize,
+                                                Integer questionType,
+                                                String subject,
+                                                String keyword) {
+        if (questionType != null) {
+            return switch (questionType) {
+                case 1 -> questionBankMapper.selectMultiPage(offset, pageSize, subject, keyword);
+                case 2 -> questionBankMapper.selectFillPage(offset, pageSize, subject, keyword);
+                case 3 -> questionBankMapper.selectJudgePage(offset, pageSize, subject, keyword);
+                default -> List.of();
+            };
+        }
+
+        long fetchSize = offset + pageSize;
+        List<QuestionBankItemVO> merged = new java.util.ArrayList<>();
+        merged.addAll(questionBankMapper.selectMultiPage(0, fetchSize, subject, keyword));
+        merged.addAll(questionBankMapper.selectFillPage(0, fetchSize, subject, keyword));
+        merged.addAll(questionBankMapper.selectJudgePage(0, fetchSize, subject, keyword));
+        merged.sort(Comparator
+                .comparing(QuestionBankItemVO::getQuestionId, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(QuestionBankItemVO::getQuestionType, Comparator.nullsLast(Comparator.naturalOrder())));
+        return merged.stream()
+                .skip(offset)
+                .limit(pageSize)
+                .toList();
     }
 
     @Override

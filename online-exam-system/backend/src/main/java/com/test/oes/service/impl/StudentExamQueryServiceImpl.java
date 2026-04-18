@@ -2,16 +2,14 @@ package com.test.oes.service.impl;
 
 import com.test.oes.entity.ExamAttempt;
 import com.test.oes.entity.ExamManage;
-import com.test.oes.entity.PaperManage;
 import com.test.oes.entity.Score;
 import com.test.oes.entity.Student;
 import com.test.oes.exception.ExamBusinessException;
 import com.test.oes.mapper.ExamAttemptMapper;
-import com.test.oes.mapper.ExamSharedSnapshotItemMapper;
-import com.test.oes.mapper.PaperMapper;
+import com.test.oes.mapper.ExamManageMapper;
 import com.test.oes.mapper.ScoreMapper;
-import com.test.oes.service.ExamManageService;
 import com.test.oes.service.ExamSnapshotService;
+import com.test.oes.service.PaperService;
 import com.test.oes.service.StudentExamQueryService;
 import com.test.oes.service.exam.ExamTimeHelper;
 import lombok.RequiredArgsConstructor;
@@ -34,26 +32,35 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
     private static final int STATUS_IN_PROGRESS = 0;
     private static final int STATUS_SUBMITTED = 1;
 
-    private final ExamManageService examManageService;
+    private final ExamManageMapper examManageMapper;
     private final ExamAttemptMapper examAttemptMapper;
     private final ScoreMapper scoreMapper;
-    private final PaperMapper paperMapper;
-    private final ExamSharedSnapshotItemMapper examSharedSnapshotItemMapper;
     private final ExamSnapshotService examSnapshotService;
+    private final PaperService paperService;
     private final ExamTimeHelper examTimeHelper;
 
     @Override
     public Map<String, Object> getStudentExamList(Student student) {
         int studentId = requireStudentId(student);
         LocalDateTime now = examTimeHelper.nowShanghai();
+        List<ExamManage> visibleExams = examManageMapper.findVisibleForStudent(student.getGrade(), student.getMajor(), student.getInstitute());
         Map<Integer, ExamAttempt> attempts = examAttemptMapper.findByStudentId(studentId).stream()
                 .collect(Collectors.toMap(ExamAttempt::getExamCode, row -> row, (left, right) -> left));
         Map<Integer, Score> scores = scoreMapper.findByStudentId(studentId).stream()
                 .collect(Collectors.toMap(Score::getExamCode, row -> row, (left, right) -> left));
+        Map<Integer, Integer> totalScores = paperService.getMaxScores(visibleExams.stream()
+                .map(ExamManage::getPaperId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
 
-        List<Map<String, Object>> records = examManageService.findAll().stream()
-                .filter(exam -> matchesScope(exam, student))
-                .map(exam -> buildExamPayload(exam, now, attempts.get(exam.getExamCode()), scores.get(exam.getExamCode())))
+        List<Map<String, Object>> records = visibleExams.stream()
+                .map(exam -> buildExamPayload(
+                        exam,
+                        now,
+                        attempts.get(exam.getExamCode()),
+                        scores.get(exam.getExamCode()),
+                        totalScores.getOrDefault(exam.getPaperId(), exam.getTotalScore())))
                 .sorted(studentExamComparator())
                 .collect(Collectors.toList());
 
@@ -71,7 +78,10 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
         ExamAttempt attempt = examAttemptMapper.findByExamAndStudent(examCode, studentId);
         Score score = scoreMapper.findByExamAndStudent(examCode, studentId);
 
-        Map<String, Object> examPayload = buildExamPayload(exam, now, attempt, score);
+        Integer totalScore = exam.getTotalScore() != null || exam.getPaperId() == null
+                ? exam.getTotalScore()
+                : paperService.getMaxScore(exam.getPaperId());
+        Map<String, Object> examPayload = buildExamPayload(exam, now, attempt, score, totalScore);
         List<Integer> counts = resolveQuestionCounts(exam, now);
         examPayload.put("questionSummary", buildQuestionSummary(counts));
         examPayload.put("totalQuestionCount", counts.stream().mapToInt(Integer::intValue).sum());
@@ -85,17 +95,7 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
 
     @Override
     public List<Integer> summarizeQuestionTypesFromCurrentPaper(Integer paperId) {
-        int[] counts = new int[]{0, 0, 0};
-        if (paperId == null) {
-            return List.of(0, 0, 0);
-        }
-        for (PaperManage item : paperMapper.findById(paperId)) {
-            int index = item.getQuestionType() == null ? -1 : item.getQuestionType() - 1;
-            if (index >= 0 && index < counts.length) {
-                counts[index]++;
-            }
-        }
-        return List.of(counts[0], counts[1], counts[2]);
+        return paperService.summarizeQuestionTypes(paperId);
     }
 
     private Comparator<Map<String, Object>> studentExamComparator() {
@@ -127,7 +127,11 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
         };
     }
 
-    private Map<String, Object> buildExamPayload(ExamManage exam, LocalDateTime now, ExamAttempt attempt, Score score) {
+    private Map<String, Object> buildExamPayload(ExamManage exam,
+                                                 LocalDateTime now,
+                                                 ExamAttempt attempt,
+                                                 Score score,
+                                                 Integer totalScore) {
         Map<String, Object> body = new LinkedHashMap<>();
         String attemptStatus = resolveAttemptStatus(attempt, score);
         String examState = resolveExamState(exam, now);
@@ -144,7 +148,7 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
         body.put("examDate", exam.getExamDate());
         body.put("examStartAt", exam.getExamStartAt());
         body.put("totalTime", exam.getTotalTime());
-        body.put("totalScore", exam.getTotalScore());
+        body.put("totalScore", totalScore == null ? exam.getTotalScore() : totalScore);
         body.put("grade", exam.getGrade());
         body.put("major", exam.getMajor());
         body.put("institute", exam.getInstitute());
@@ -197,11 +201,16 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
     }
 
     private ExamManage requireExamForStudent(Integer examCode, Student student) {
-        ExamManage exam = examManageService.findById(examCode);
-        if (exam == null) {
+        ExamManage rawExam = examManageMapper.findById(examCode);
+        if (rawExam == null) {
             throw new ExamBusinessException(404, "考试不存在");
         }
-        if (!matchesScope(exam, student)) {
+        ExamManage exam = examManageMapper.findVisibleByExamCodeForStudent(
+                examCode,
+                student.getGrade(),
+                student.getMajor(),
+                student.getInstitute());
+        if (exam == null) {
             throw new ExamBusinessException(403, "您不在本场考试的参考范围内");
         }
         return exam;
@@ -213,14 +222,7 @@ public class StudentExamQueryServiceImpl implements StudentExamQueryService {
         }
         if (examTimeHelper.isPaperLocked(exam, now) && !examTimeHelper.isRevoked(exam)) {
             examSnapshotService.ensureSharedSnapshot(exam.getExamCode());
-            int[] counts = new int[]{0, 0, 0};
-            examSharedSnapshotItemMapper.findByExamCode(exam.getExamCode()).forEach(item -> {
-                int index = item.getQuestionType() == null ? -1 : item.getQuestionType() - 1;
-                if (index >= 0 && index < counts.length) {
-                    counts[index]++;
-                }
-            });
-            return List.of(counts[0], counts[1], counts[2]);
+            return examSnapshotService.summarizeFrozenQuestionTypes(exam.getExamCode());
         }
 
         return summarizeQuestionTypesFromCurrentPaper(exam.getPaperId());

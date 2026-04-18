@@ -22,4 +22,7 @@ public interface AuthRefreshTokenMapper {
 
     @Update("update auth_refresh_token set revoked = 1 where id = #{id}")
     int revokeById(@Param("id") Long id);
+
+    @Update("update auth_refresh_token set revoked = 1 where id = #{id} and revoked = 0")
+    int revokeIfActiveById(@Param("id") Long id);
 }

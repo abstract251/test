@@ -59,6 +59,19 @@ public interface ScoreMapper {
             "where examCode = #{examCode} and studentId = #{studentId} limit 1")
     Score findByExamAndStudent(@Param("examCode") Integer examCode, @Param("studentId") Integer studentId);
 
+    @Select({
+            "<script>",
+            "select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score",
+            "where examCode in",
+            "<foreach collection='examCodes' item='examCode' open='(' separator=',' close=')'>",
+            "#{examCode}",
+            "</foreach>",
+            "and studentId = #{studentId}",
+            "</script>"
+    })
+    List<Score> findByExamCodesAndStudent(@Param("examCodes") List<Integer> examCodes,
+                                          @Param("studentId") Integer studentId);
+
     // 新增的方法
 
     /**

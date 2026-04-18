@@ -21,4 +21,8 @@ public interface ExamSharedSnapshotItemMapper {
 
     @Select("SELECT COUNT(*) FROM exam_shared_snapshot_item WHERE exam_code = #{examCode}")
     int countByExamCode(@Param("examCode") Integer examCode);
+
+    @Select("SELECT question_type as questionType, count(*) as questionCount FROM exam_shared_snapshot_item "
+            + "WHERE exam_code = #{examCode} GROUP BY question_type")
+    List<java.util.Map<String, Object>> countGroupedByType(@Param("examCode") Integer examCode);
 }

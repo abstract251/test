@@ -45,6 +45,8 @@ public interface ScoreService {
      */
     List<Score> findByExamCode(Integer examCode);
 
+    Score findByExamAndStudent(Integer examCode, Integer studentId);
+
     // 新增
 
     /**

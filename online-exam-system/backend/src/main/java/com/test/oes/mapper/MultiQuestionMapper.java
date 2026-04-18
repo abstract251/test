@@ -29,8 +29,8 @@ public interface MultiQuestionMapper {
             "values(#{subject},#{question},#{answerA},#{answerB},#{answerC},#{answerD},#{rightAnswer},#{analysis},#{section},#{level})")
     int add(MultiQuestion multiQuestion);
 
-    @Select("select questionId from multi_question  where subject =#{subject} order by rand() desc limit #{pageNo}")
-    List<Integer> findBySubject(@Param("subject") String subject, @Param("pageNo") Integer pageNo);
+    @Select("select questionId from multi_question where subject =#{subject} order by questionId asc")
+    List<Integer> findIdsBySubject(@Param("subject") String subject);
 
     @Update("update multi_question set subject = #{subject}, question = #{question}, answerA = #{answerA}, answerB = #{answerB}, answerC = #{answerC}, answerD = #{answerD}, rightAnswer = #{rightAnswer}, analysis = #{analysis}, section = #{section}, level = #{level} where questionId = #{questionId}")
     int edit(MultiQuestion multiQuestion);
@@ -40,6 +40,16 @@ public interface MultiQuestionMapper {
 
     @Select("select * from multi_question where questionId = #{questionId}")
     MultiQuestion findByQuestionId(@Param("questionId") Integer questionId);
+
+    @Select({
+            "<script>",
+            "select * from multi_question where questionId in",
+            "<foreach collection='questionIds' item='questionId' open='(' separator=',' close=')'>",
+            "#{questionId}",
+            "</foreach>",
+            "</script>"
+    })
+    List<MultiQuestion> findByQuestionIds(@Param("questionIds") List<Integer> questionIds);
 
     @Delete("delete from multi_question where questionId = #{questionId}")
     int deleteByQuestionId(@Param("questionId") Integer questionId);

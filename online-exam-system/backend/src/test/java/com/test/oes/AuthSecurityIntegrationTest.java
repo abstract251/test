@@ -201,6 +201,32 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    void refreshShouldRejectReusedRefreshToken() throws Exception {
+        JsonNode loginData = json(login("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD)).path("data");
+        String refreshToken = loginData.path("refreshToken").asText();
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "refreshToken": "%s"
+                                }
+                                """.formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "refreshToken": "%s"
+                                }
+                                """.formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
     void logoutShouldInvalidateRefreshToken() throws Exception {
         JsonNode loginData = json(login("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD)).path("data");
         String refreshToken = loginData.path("refreshToken").asText();
@@ -370,6 +396,7 @@ class AuthSecurityIntegrationTest {
         assertThat(currentExam.path("examState").asText()).isEqualTo("ONGOING");
         assertThat(currentExam.path("attemptStatus").asText()).isEqualTo("IN_PROGRESS");
         assertThat(currentExam.path("canEnter").asBoolean()).isTrue();
+        assertThat(currentExam.path("totalScore").asInt()).isEqualTo(6);
         assertThat(currentExam.path("windowEndAt").isMissingNode()).isFalse();
         assertThat(currentExam.path("freezeAt").isMissingNode()).isFalse();
     }
@@ -519,6 +546,27 @@ class AuthSecurityIntegrationTest {
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    void studentExamAttemptStartShouldReuseExistingInProgressAttempt() throws Exception {
+        Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+
+        MvcResult first = mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/start")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+
+        MvcResult second = mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/start")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+
+        assertThat(json(first).path("data").path("attemptId").asLong())
+                .isEqualTo(json(second).path("data").path("attemptId").asLong());
     }
 
     private MvcResult login(String role, String username, String password) throws Exception {
