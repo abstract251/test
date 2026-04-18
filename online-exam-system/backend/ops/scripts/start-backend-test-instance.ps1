@@ -1,40 +1,10 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$backendDir = Join-Path $repoRoot "backend"
-$targetDir = Join-Path $backendDir "target"
-$stdoutLog = Join-Path $targetDir "backend-run-18080.out.log"
-$stderrLog = Join-Path $targetDir "backend-run-18080.err.log"
-$maven = "C:\Users\GWK\tools\apache-maven-3.9.14\bin\mvn.cmd"
-$port = 18080
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$delegate = Join-Path $scriptDir "start-backend-test-instance-18080.ps1"
 
-if (!(Test-Path $targetDir)) {
-    New-Item -ItemType Directory -Path $targetDir | Out-Null
+if (!(Test-Path $delegate)) {
+    throw "missing script: $delegate"
 }
 
-$occupiedPids = @()
-try {
-    $occupiedPids = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop |
-        Select-Object -ExpandProperty OwningProcess -Unique
-} catch {
-    $occupiedPids = @()
-}
-
-foreach ($occupiedPid in $occupiedPids) {
-    if ($occupiedPid -and $occupiedPid -ne $PID) {
-        Stop-Process -Id $occupiedPid -Force -ErrorAction SilentlyContinue
-    }
-}
-
-$env:SERVER_PORT = "$port"
-$env:APP_HOT_START_PORT_AUTO_KILL_ENABLED = "true"
-
-Start-Process `
-    -FilePath $maven `
-    -ArgumentList "spring-boot:run" `
-    -WorkingDirectory $backendDir `
-    -RedirectStandardOutput $stdoutLog `
-    -RedirectStandardError $stderrLog `
-    -WindowStyle Hidden
-
-Write-Output "backend test instance starting on http://localhost:18080"
+& $delegate

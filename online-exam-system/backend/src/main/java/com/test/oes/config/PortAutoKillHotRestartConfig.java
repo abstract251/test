@@ -30,6 +30,12 @@ public class PortAutoKillHotRestartConfig {
                 return;
             }
 
+            String guardToken = environment.getProperty("app.hot-start.port-auto-kill.guard-token", "");
+            if (!"LOCAL_SINGLE_INSTANCE_ONLY".equals(guardToken)) {
+                log.warn("端口热启动自动清理已忽略：缺少单实例开发保护令牌");
+                return;
+            }
+
             int port = environment.getProperty("server.port", Integer.class, 8080);
             if (port <= 0) {
                 return;

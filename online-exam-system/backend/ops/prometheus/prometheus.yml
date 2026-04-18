@@ -8,7 +8,8 @@ scrape_configs:
     static_configs:
       - targets:
           - localhost:18080
+          - localhost:18081
         labels:
           service: online-exam-backend
           env: test
-          instance_role: long-running-test
+          instance_role: dual-instance-test
