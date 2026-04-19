@@ -21,7 +21,7 @@ public class StudentController {
         this.currentUserService = currentUserService;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping("/students/{page}/{size}/{studentId}/{name}/{grade}/{tel}/{institute}/{major}/{clazz}")
     public ApiResult<IPage<Student>> findAll(@PathVariable Integer page, @PathVariable Integer size,
                                              @PathVariable String studentId, @PathVariable String name,
