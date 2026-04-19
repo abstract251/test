@@ -7,6 +7,9 @@ $stdoutLog = Join-Path $targetDir "backend-run-18080.out.log"
 $stderrLog = Join-Path $targetDir "backend-run-18080.err.log"
 $maven = "C:\Users\GWK\tools\apache-maven-3.9.14\bin\mvn.cmd"
 $port = 18080
+$jvmXms = if ($env:APP_JVM_XMS) { $env:APP_JVM_XMS } else { "768m" }
+$jvmXmx = if ($env:APP_JVM_XMX) { $env:APP_JVM_XMX } else { "768m" }
+$jvmExtra = if ($env:APP_JVM_EXTRA) { $env:APP_JVM_EXTRA } else { "" }
 
 if (!(Test-Path $targetDir)) {
     New-Item -ItemType Directory -Path $targetDir | Out-Null
@@ -29,10 +32,25 @@ foreach ($occupiedPid in $occupiedPids) {
 $env:SERVER_PORT = "$port"
 $env:APP_HOT_START_PORT_AUTO_KILL_ENABLED = "true"
 $env:APP_HOT_START_PORT_AUTO_KILL_GUARD_TOKEN = "LOCAL_SINGLE_INSTANCE_ONLY"
+$jvmArgs = @(
+    "-Xms$jvmXms",
+    "-Xmx$jvmXmx",
+    "-XX:+UseG1GC",
+    "-XX:MaxGCPauseMillis=200",
+    "-XX:+HeapDumpOnOutOfMemoryError",
+    "-XX:HeapDumpPath=$targetDir",
+    "-Dspring.devtools.restart.enabled=false",
+    "-Dspring.devtools.livereload.enabled=false"
+)
+if ($jvmExtra) {
+    $jvmArgs += $jvmExtra
+}
+$jvmArgsText = ($jvmArgs -join " ")
+$argumentList = "spring-boot:run ""-Dspring-boot.run.jvmArguments=$jvmArgsText"""
 
 Start-Process `
     -FilePath $maven `
-    -ArgumentList "spring-boot:run" `
+    -ArgumentList $argumentList `
     -WorkingDirectory $backendDir `
     -RedirectStandardOutput $stdoutLog `
     -RedirectStandardError $stderrLog `

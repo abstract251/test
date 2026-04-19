@@ -36,10 +36,20 @@
 3. 确认两个实例的日志文件开始输出：
    - `backend/target/backend-run-18080.out.log`
    - `backend/target/backend-run-18081.out.log`
-4. 使用当前模板替换本机 Nginx 配置中的对应 `server` / `upstream`
-5. 执行 `nginx -t`
-6. 重载 Nginx
-7. 执行 `backend/ops/scripts/start-prometheus.ps1`
+4. 运行 `backend/ops/scripts/start-nginx-test-instance.ps1`
+5. 执行 `backend/ops/scripts/start-prometheus.ps1`
+
+## 脚本说明
+
+- `backend/ops/scripts/start-nginx-test-instance.ps1`
+  - 启动前先校验 `frontend/dist`、`nginx.exe` 和 `online-exam-test.conf`
+  - 自动清理陈旧的 `online-exam-nginx.pid`
+  - 先执行 `nginx -t` 再启动
+  - 使用独立 PID 文件：
+    - `tools/nginx/nginx-1.28.0/logs/online-exam-nginx.pid`
+- `backend/ops/scripts/stop-nginx-test-instance.ps1`
+  - 只会停止 PID 文件指向且进程名确认为 `nginx` 的实例
+  - 若 PID 文件已脏，只清理陈旧 PID，不会误杀无关进程
 
 ## 验证项
 
