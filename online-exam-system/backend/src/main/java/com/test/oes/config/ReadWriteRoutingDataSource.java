@@ -24,6 +24,11 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
 
     @Override
     protected Object determineCurrentLookupKey() {
+        String override = DbRouteContext.currentOverride();
+        if (PRIMARY.equals(override)) {
+            metrics.recordRoute(PRIMARY, "override");
+            return PRIMARY;
+        }
         if (!routingEnabled || !TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
             metrics.recordRoute(PRIMARY, routingEnabled ? "selected" : "routing_disabled");
             return PRIMARY;

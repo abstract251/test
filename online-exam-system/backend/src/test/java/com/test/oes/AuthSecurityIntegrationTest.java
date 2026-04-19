@@ -38,6 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class AuthSecurityIntegrationTest {
 
+    private static final String DB_ROUTE_PRIMARY = "primary";
+
     private static final int ADMIN_ID = 9991;
     private static final int TEACHER_ID = 20081001;
     private static final int STUDENT_ID = 20224001;
@@ -418,7 +420,8 @@ class AuthSecurityIntegrationTest {
         );
 
         MvcResult listResult = mockMvc.perform(get("/messages/1/10")
-                        .header("Authorization", "Bearer " + teacherToken))
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-DB-Route", DB_ROUTE_PRIMARY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.records").isArray())
@@ -434,7 +437,8 @@ class AuthSecurityIntegrationTest {
         assertThat(secondMessage.path("replays").size()).isEqualTo(1);
 
         mockMvc.perform(get("/message/" + TEST_MESSAGE_ID)
-                        .header("Authorization", "Bearer " + teacherToken))
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-DB-Route", DB_ROUTE_PRIMARY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.id").value(TEST_MESSAGE_ID))
@@ -451,7 +455,8 @@ class AuthSecurityIntegrationTest {
                 """, EXAM_CODE, PAPER_ID);
 
         MvcResult result = mockMvc.perform(get("/exams/1/100")
-                        .header("Authorization", "Bearer " + teacherToken))
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-DB-Route", DB_ROUTE_PRIMARY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.records").isArray())
