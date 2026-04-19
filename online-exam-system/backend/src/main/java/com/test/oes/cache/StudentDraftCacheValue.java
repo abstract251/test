@@ -12,4 +12,6 @@ public class StudentDraftCacheValue {
     private Boolean dirty = Boolean.FALSE;
     private LocalDateTime updatedAt;
     private LocalDateTime lastPersistedAt;
+    private Long revision = 0L;
+    private Long lastPersistedRevision = 0L;
 }

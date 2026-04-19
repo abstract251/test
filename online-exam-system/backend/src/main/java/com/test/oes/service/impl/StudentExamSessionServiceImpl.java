@@ -2,6 +2,11 @@ package com.test.oes.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.oes.async.AsyncEventEnvelope;
+import com.test.oes.async.AsyncEventTypes;
+import com.test.oes.async.AsyncRoutingKeys;
+import com.test.oes.async.OutboxEventService;
+import com.test.oes.async.payload.ExamSubmittedPayload;
 import com.test.oes.cache.CacheProperties;
 import com.test.oes.cache.DraftCacheService;
 import com.test.oes.cache.ExamCacheFacade;
@@ -40,6 +45,7 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
     private final DraftCacheService draftCacheService;
     private final CacheProperties cacheProperties;
     private final ExamCacheFacade examCacheFacade;
+    private final OutboxEventService outboxEventService;
 
     @Override
     public Map<String, Object> startOrResumeAttempt(Integer examCode, Student student) {
@@ -115,16 +121,15 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
             draft.setAnswers(merged);
             draft.setDirty(Boolean.TRUE);
             draft.setUpdatedAt(now);
-            LocalDateTime lastPersistedAt = draft.getLastPersistedAt();
-            boolean shouldPersist = lastPersistedAt == null
-                    || !lastPersistedAt.plus(cacheProperties.getDraft().getPersistInterval()).isAfter(now);
-            if (shouldPersist) {
-                persistAnswers(attempt.getAttemptId(), merged);
-                draft.setLastPersistedAt(now);
-                draft.setDirty(Boolean.FALSE);
-            }
+            long nextRevision = draft.getRevision() == null ? 1L : draft.getRevision() + 1L;
+            draft.setRevision(nextRevision);
             boolean redisSaved = draftCacheService.saveDraft(examCode, sid, draft, resolveDraftTtl(exam));
             if (redisSaved) {
+                draftCacheService.scheduleFlush(
+                        examCode,
+                        sid,
+                        now.plus(cacheProperties.getDraft().getPersistInterval()).atZone(java.time.ZoneId.of("Asia/Shanghai")).toInstant()
+                );
                 return;
             }
         }
@@ -158,8 +163,7 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
             throw new ExamBusinessException(400, "成绩已存在，请勿重复提交");
         }
 
-        Map<String, String> answers = resolveLatestAnswers(examCode, sid, attempt, exam);
-        persistAnswers(attempt.getAttemptId(), answers);
+        Map<String, String> answers = flushLatestAnswersToDb(examCode, sid, attempt, exam, now);
         Map<String, String> answerKey = examSnapshotService.buildAnswerKeyMap(examCode);
         if (answerKey.isEmpty()) {
             throw new ExamBusinessException(400, "本场考试暂无有效题目，无法判分");
@@ -194,6 +198,34 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         examAttemptMapper.updateStatus(attempt.getAttemptId(), STATUS_SUBMITTED, now);
         draftCacheService.deleteDraft(examCode, sid);
         invalidateStudentEntryCaches(sid, examCode);
+        examCacheFacade.evictScoreStatistics(examCode);
+        examCacheFacade.bumpScoreStatisticsVersion(examCode);
+        examCacheFacade.markScoreProjectionDirty(examCode);
+
+        ExamSubmittedPayload payload = new ExamSubmittedPayload();
+        payload.setExamCode(examCode);
+        payload.setStudentId(sid);
+        payload.setAttemptId(attempt.getAttemptId());
+        payload.setScoreId(score.getScoreId());
+        payload.setSubmittedAt(now);
+        payload.setEtScore(etScore);
+        payload.setMaxScore(maxScore);
+        payload.setPassed(pass == 1);
+        payload.setTotalQuestions(answerKey.size());
+        AsyncEventEnvelope<ExamSubmittedPayload> envelope = new AsyncEventEnvelope<>();
+        envelope.setEventType(AsyncEventTypes.EXAM_SUBMITTED);
+        envelope.setAggregateType("examAttempt");
+        envelope.setAggregateId(examCode + ":" + sid);
+        envelope.setOccurredAt(now);
+        envelope.setPayloadVersion(1);
+        envelope.setPayload(payload);
+        outboxEventService.append(
+                AsyncEventTypes.EXAM_SUBMITTED,
+                "examAttempt",
+                examCode + ":" + sid,
+                AsyncRoutingKeys.EXAM_SUBMITTED,
+                envelope
+        );
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("etScore", etScore);
@@ -370,10 +402,29 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         created.setDirty(Boolean.FALSE);
         created.setUpdatedAt(examTimeHelper.nowShanghai());
         created.setLastPersistedAt(attempt.getStartedAt());
+        created.setRevision(0L);
+        created.setLastPersistedRevision(0L);
         if (!draftCacheService.saveDraft(examCode, studentId, created, resolveDraftTtl(exam))) {
             return created;
         }
         return created;
+    }
+
+    private Map<String, String> flushLatestAnswersToDb(Integer examCode,
+                                                       Integer studentId,
+                                                       ExamAttempt attempt,
+                                                       ExamManage exam,
+                                                       LocalDateTime now) {
+        Map<String, String> answers = resolveLatestAnswers(examCode, studentId, attempt, exam);
+        persistAnswers(attempt.getAttemptId(), answers);
+        StudentDraftCacheValue draft = draftCacheService.getDraft(examCode, studentId);
+        if (draft != null) {
+            draft.setLastPersistedAt(now);
+            draft.setLastPersistedRevision(draft.getRevision());
+            draft.setDirty(Boolean.FALSE);
+            draftCacheService.saveDraft(examCode, studentId, draft, resolveDraftTtl(exam));
+        }
+        return answers;
     }
 
     private void persistAnswers(Long attemptId, Map<String, String> answers) {

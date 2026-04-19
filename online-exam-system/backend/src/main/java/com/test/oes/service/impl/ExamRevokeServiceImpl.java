@@ -1,5 +1,10 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.async.AsyncEventEnvelope;
+import com.test.oes.async.AsyncEventTypes;
+import com.test.oes.async.AsyncRoutingKeys;
+import com.test.oes.async.OutboxEventService;
+import com.test.oes.async.payload.ExamRevokedPayload;
 import com.test.oes.cache.ExamCacheFacade;
 import com.test.oes.entity.Admin;
 import com.test.oes.entity.ExamManage;
@@ -23,6 +28,7 @@ public class ExamRevokeServiceImpl implements ExamRevokeService {
     private final ExamRevokeAuditMapper examRevokeAuditMapper;
     private final ExamTimeHelper examTimeHelper;
     private final ExamCacheFacade examCacheFacade;
+    private final OutboxEventService outboxEventService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -49,6 +55,7 @@ public class ExamRevokeServiceImpl implements ExamRevokeService {
         if (rows == 0) {
             throw new ExamBusinessException(500, "撤销状态更新失败");
         }
+
         ExamRevokeAudit audit = new ExamRevokeAudit();
         audit.setExamCode(examCode);
         audit.setAdminId(operator.getAdminId());
@@ -57,8 +64,37 @@ public class ExamRevokeServiceImpl implements ExamRevokeService {
         audit.setDetail("subject=" + exam.getSource() + ", paperId=" + exam.getPaperId());
         audit.setCreatedAt(now);
         examRevokeAuditMapper.insert(audit);
+
         examCacheFacade.evictExamMeta(examCode);
         examCacheFacade.evictSnapshotCaches(examCode);
+        examCacheFacade.evictScoreStatistics(examCode);
+        examCacheFacade.bumpExamMetaVersion(examCode);
+        examCacheFacade.bumpSnapshotVersion(examCode);
+        examCacheFacade.bumpScoreStatisticsVersion(examCode);
         examCacheFacade.bumpScopeExamVersion();
+        examCacheFacade.markScoreProjectionDirty(examCode);
+
+        ExamRevokedPayload payload = new ExamRevokedPayload();
+        payload.setExamCode(examCode);
+        payload.setRevokedAt(now);
+        payload.setAdminId(operator.getAdminId());
+        payload.setReason(trimmed);
+        payload.setPaperId(exam.getPaperId());
+
+        AsyncEventEnvelope<ExamRevokedPayload> envelope = new AsyncEventEnvelope<>();
+        envelope.setEventType(AsyncEventTypes.EXAM_REVOKED);
+        envelope.setAggregateType("exam");
+        envelope.setAggregateId(String.valueOf(examCode));
+        envelope.setOccurredAt(now);
+        envelope.setPayloadVersion(1);
+        envelope.setPayload(payload);
+
+        outboxEventService.append(
+                AsyncEventTypes.EXAM_REVOKED,
+                "exam",
+                String.valueOf(examCode),
+                AsyncRoutingKeys.EXAM_REVOKED,
+                envelope
+        );
     }
 }

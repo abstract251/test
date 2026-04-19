@@ -19,6 +19,7 @@ public class CacheProperties {
     private TwoLevelTtl examMeta = new TwoLevelTtl(Duration.ofSeconds(60), Duration.ofMinutes(10));
     private TwoLevelTtl paperAggregate = new TwoLevelTtl(Duration.ofSeconds(120), Duration.ofMinutes(10));
     private LocalTtl snapshot = new LocalTtl(Duration.ofSeconds(60));
+    private TwoLevelTtl scoreStatistics = new TwoLevelTtl(Duration.ofSeconds(30), Duration.ofMinutes(5));
     private LocalTtl questionBank = new LocalTtl(Duration.ofSeconds(30));
     private Draft draft = new Draft();
 

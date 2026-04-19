@@ -19,6 +19,7 @@ public class LocalCacheRegistry {
     private final Cache<Integer, List<Integer>> paperSummary;
     private final Cache<Integer, FrozenSnapshotViewCacheValue> snapshotView;
     private final Cache<Integer, Map<String, String>> answerKey;
+    private final Cache<String, Map<String, Object>> scoreStatistics;
     private final Cache<String, Map<String, Object>> studentExamList;
     private final Cache<String, Map<String, Object>> studentExamDetail;
     private final Cache<String, Page<QuestionBankItemVO>> questionBankPage;
@@ -30,6 +31,7 @@ public class LocalCacheRegistry {
         this.paperSummary = newCache(cacheProperties.getPaperAggregate().getLocalTtl());
         this.snapshotView = newCache(cacheProperties.getSnapshot().getLocalTtl());
         this.answerKey = newCache(cacheProperties.getSnapshot().getLocalTtl());
+        this.scoreStatistics = newCache(cacheProperties.getScoreStatistics().getLocalTtl());
         this.studentExamList = newCache(cacheProperties.getExamList().getLocalTtl());
         this.studentExamDetail = newCache(cacheProperties.getExamDetail().getLocalTtl());
         this.questionBankPage = newCache(cacheProperties.getQuestionBank().getLocalTtl());
@@ -57,6 +59,10 @@ public class LocalCacheRegistry {
 
     public Cache<Integer, Map<String, String>> answerKey() {
         return answerKey;
+    }
+
+    public Cache<String, Map<String, Object>> scoreStatistics() {
+        return scoreStatistics;
     }
 
     public Cache<String, Map<String, Object>> studentExamList() {

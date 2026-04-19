@@ -75,10 +75,14 @@ class AuthSecurityIntegrationTest {
     private ExamCacheFacade examCacheFacade;
 
     private boolean examAttemptTableExists;
+    private boolean asyncEventOutboxTableExists;
+    private boolean asyncProjectionTableExists;
 
     @BeforeEach
     void setUpAccounts() {
         examAttemptTableExists = hasTable("exam_attempt");
+        asyncEventOutboxTableExists = hasTable("async_event_outbox");
+        asyncProjectionTableExists = hasTable("exam_score_statistics_projection");
         jdbcTemplate.update("UPDATE admin SET pwd = ?, role = '0' WHERE adminId = ?",
                 passwordEncoder.encode(ADMIN_PASSWORD), ADMIN_ID);
         jdbcTemplate.update("UPDATE teacher SET pwd = ?, role = '1' WHERE teacherId = ?",
@@ -96,6 +100,14 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        if (asyncEventOutboxTableExists) {
+            jdbcTemplate.update("DELETE FROM async_event_outbox WHERE aggregate_id IN (?, ?, ?)",
+                    String.valueOf(EXAM_CODE), EXAM_CODE + ":" + STUDENT_ID, EXAM_CODE + ":" + OTHER_STUDENT_ID);
+            jdbcTemplate.update("DELETE FROM async_event_consume_record WHERE event_id NOT IN ('__keep__')");
+        }
+        if (asyncProjectionTableExists) {
+            jdbcTemplate.update("DELETE FROM exam_score_statistics_projection WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        }
         jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         ensurePaperQuestions();
         clearExamCaches();
@@ -112,6 +124,14 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        if (asyncEventOutboxTableExists) {
+            jdbcTemplate.update("DELETE FROM async_event_outbox WHERE aggregate_id IN (?, ?, ?)",
+                    String.valueOf(EXAM_CODE), EXAM_CODE + ":" + STUDENT_ID, EXAM_CODE + ":" + OTHER_STUDENT_ID);
+            jdbcTemplate.update("DELETE FROM async_event_consume_record WHERE event_id NOT IN ('__keep__')");
+        }
+        if (asyncProjectionTableExists) {
+            jdbcTemplate.update("DELETE FROM exam_score_statistics_projection WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        }
         jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
                 String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
@@ -697,6 +717,58 @@ class AuthSecurityIntegrationTest {
                 .isEqualTo(json(second).path("data").path("attemptId").asLong());
     }
 
+    @Test
+    void studentSubmitShouldWriteExamSubmittedOutbox() throws Exception {
+        Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
+        Assumptions.assumeTrue(asyncEventOutboxTableExists, "async_event_outbox table is not present in current database");
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+
+        mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/start")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(put("/student/exam/" + EXAM_CODE + "/attempt/answers")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"1_10001\":\"A\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/submit")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'exam.submitted' AND aggregate_id = ?",
+                Integer.class,
+                EXAM_CODE + ":" + STUDENT_ID
+        );
+        assertThat(count).isNotNull();
+        assertThat(count).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void scoreStatisticsShouldFallbackToRealtimeWhenProjectionDirty() throws Exception {
+        Assumptions.assumeTrue(asyncProjectionTableExists, "exam_score_statistics_projection table is not present in current database");
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update("""
+                INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE())
+                """, EXAM_CODE, STUDENT_ID, "计算机网络", 1, 6, 6);
+        examCacheFacade.markScoreProjectionDirty(EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(EXAM_CODE);
+
+        mockMvc.perform(get("/score/statistics/" + EXAM_CODE)
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.totalCount").value(1))
+                .andExpect(jsonPath("$.data.maxScore").value(6));
+    }
+
     private MvcResult login(String role, String username, String password) throws Exception {
         return mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -797,6 +869,12 @@ class AuthSecurityIntegrationTest {
         examCacheFacade.evictExamMeta(HIDDEN_EXAM_CODE);
         examCacheFacade.evictSnapshotCaches(EXAM_CODE);
         examCacheFacade.evictSnapshotCaches(HIDDEN_EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(HIDDEN_EXAM_CODE);
+        examCacheFacade.clearScoreProjectionDirty(EXAM_CODE);
+        examCacheFacade.clearScoreProjectionDirty(HIDDEN_EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(HIDDEN_EXAM_CODE);
         examCacheFacade.evictPaperAggregates(PAPER_ID);
         examCacheFacade.evictStudentExamList(STUDENT_ID);
         examCacheFacade.evictStudentExamDetail(STUDENT_ID, EXAM_CODE);

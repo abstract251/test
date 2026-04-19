@@ -2,15 +2,16 @@ package com.test.oes.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.test.oes.async.ScoreStatisticsProjectionService;
+import com.test.oes.cache.ExamCacheFacade;
+import com.test.oes.config.DbRouteContext;
 import com.test.oes.entity.Score;
 import com.test.oes.mapper.ScoreMapper;
 import com.test.oes.service.ScoreService;
-import com.test.oes.vo.ScoreStatisticsSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +20,8 @@ import java.util.Map;
 public class ScoreServiceImpl implements ScoreService {
 
     private final ScoreMapper scoreMapper;
+    private final ScoreStatisticsProjectionService scoreStatisticsProjectionService;
+    private final ExamCacheFacade examCacheFacade;
 
     @Override
     public int add(Score score) {
@@ -58,25 +61,23 @@ public class ScoreServiceImpl implements ScoreService {
     @Override
     @Transactional(readOnly = true)
     public Map<String, Object> getStatistics(Integer examCode) {
-        Map<String, Object> stats = new HashMap<>();
-        ScoreStatisticsSummary summary = scoreMapper.getStatisticsSummary(examCode);
-        Double avgScore = summary == null ? null : summary.getAvgScore();
-        Integer maxScore = summary == null ? null : summary.getMaxScore();
-        Integer minScore = summary == null ? null : summary.getMinScore();
-        Integer totalCount = summary == null ? null : summary.getTotalCount();
-        Integer passCount = summary == null ? null : summary.getPassCount();
-
-        double passRate = (totalCount == null || totalCount == 0)
-                ? 0.0
-                : (passCount == null ? 0.0 : passCount.doubleValue() / totalCount.doubleValue());
-
-        List<Map<String, Object>> distribution = scoreMapper.getScoreDistribution(examCode);
-        stats.put("avgScore", avgScore != null ? avgScore : 0.0);
-        stats.put("maxScore", maxScore != null ? maxScore : 0);
-        stats.put("minScore", minScore != null ? minScore : 0);
-        stats.put("passRate", passRate);
-        stats.put("totalCount", totalCount != null ? totalCount : 0);
-        stats.put("distribution", distribution);
+        Map<String, Object> cached = examCacheFacade.getScoreStatistics(examCode);
+        if (cached != null) {
+            return cached;
+        }
+        Map<String, Object> projected = scoreStatisticsProjectionService.readProjection(examCode);
+        Map<String, Object> stats;
+        if (projected != null && !examCacheFacade.isScoreProjectionDirty(examCode)) {
+            stats = projected;
+        } else {
+            try {
+                DbRouteContext.forcePrimary();
+                stats = scoreStatisticsProjectionService.buildRealtimeStatistics(examCode);
+            } finally {
+                DbRouteContext.clear();
+            }
+        }
+        examCacheFacade.putScoreStatistics(examCode, stats);
         return stats;
     }
 }

@@ -112,17 +112,3 @@ tools/
 # Performance outputs
 # ===========================
 backend/perf/k6/*.json
-
-# ===========================
-# Third-party tool packages and extracted directories
-# Keep only the custom nginx config tracked.
-# ===========================
-tools/k6/
-tools/memurai-package/
-tools/prometheus/
-tools/nginx/
-!tools/nginx/
-!tools/nginx/nginx-1.28.0/
-!tools/nginx/nginx-1.28.0/conf/
-tools/nginx/nginx-1.28.0/conf/*
-!tools/nginx/nginx-1.28.0/conf/online-exam-test.conf

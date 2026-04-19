@@ -25,6 +25,7 @@ public class ExamCacheFacade {
     private static final String CACHE_STUDENT_EXAM_LIST = "student-exam-list";
     private static final String CACHE_STUDENT_EXAM_DETAIL = "student-exam-detail";
     private static final String CACHE_QUESTION_BANK = "question-bank";
+    private static final String CACHE_SCORE_STATISTICS = "score-statistics";
 
     private final CacheProperties cacheProperties;
     private final LocalCacheRegistry localCacheRegistry;
@@ -66,23 +67,26 @@ public class ExamCacheFacade {
     }
 
     public ExamMetaCacheValue getExamMeta(Integer examCode, Supplier<ExamMetaCacheValue> loader) {
-        ExamMetaCacheValue localValue = localCacheRegistry.examMeta().getIfPresent(examCode);
+        String version = currentVersion(CacheKeys.examMetaVersion(examCode));
+        String key = CacheKeys.examMeta(version, examCode);
+        Integer localKey = key.hashCode();
+        ExamMetaCacheValue localValue = localCacheRegistry.examMeta().getIfPresent(localKey);
         if (localValue != null) {
             cacheMetrics.recordRequest(CACHE_EXAM_META, "local", "hit");
             return localValue;
         }
         cacheMetrics.recordRequest(CACHE_EXAM_META, "local", "miss");
 
-        ExamMetaCacheValue redisValue = jsonRedisStore.get(CACHE_EXAM_META, CacheKeys.examMeta(examCode), ExamMetaCacheValue.class);
+        ExamMetaCacheValue redisValue = jsonRedisStore.get(CACHE_EXAM_META, key, ExamMetaCacheValue.class);
         if (redisValue != null) {
-            localCacheRegistry.examMeta().put(examCode, redisValue);
+            localCacheRegistry.examMeta().put(localKey, redisValue);
             return redisValue;
         }
 
         ExamMetaCacheValue loaded = cacheMetrics.recordLoad(CACHE_EXAM_META, "db", loader::get);
         if (loaded != null) {
-            localCacheRegistry.examMeta().put(examCode, loaded);
-            jsonRedisStore.set(CACHE_EXAM_META, CacheKeys.examMeta(examCode), loaded, cacheProperties.getExamMeta().getRedisTtl());
+            localCacheRegistry.examMeta().put(localKey, loaded);
+            jsonRedisStore.set(CACHE_EXAM_META, key, loaded, cacheProperties.getExamMeta().getRedisTtl());
         }
         return loaded;
     }
@@ -129,48 +133,84 @@ public class ExamCacheFacade {
     }
 
     public FrozenSnapshotViewCacheValue getSnapshotView(Integer examCode, Supplier<FrozenSnapshotViewCacheValue> loader, Duration redisTtl) {
-        FrozenSnapshotViewCacheValue localValue = localCacheRegistry.snapshotView().getIfPresent(examCode);
+        String version = currentVersion(CacheKeys.snapshotVersion(examCode));
+        String key = CacheKeys.snapshotView(version, examCode);
+        Integer localKey = key.hashCode();
+        FrozenSnapshotViewCacheValue localValue = localCacheRegistry.snapshotView().getIfPresent(localKey);
         if (localValue != null) {
             cacheMetrics.recordRequest(CACHE_SNAPSHOT_VIEW, "local", "hit");
             return localValue;
         }
         cacheMetrics.recordRequest(CACHE_SNAPSHOT_VIEW, "local", "miss");
 
-        FrozenSnapshotViewCacheValue redisValue = jsonRedisStore.get(CACHE_SNAPSHOT_VIEW, CacheKeys.snapshotView(examCode), FrozenSnapshotViewCacheValue.class);
+        FrozenSnapshotViewCacheValue redisValue = jsonRedisStore.get(CACHE_SNAPSHOT_VIEW, key, FrozenSnapshotViewCacheValue.class);
         if (redisValue != null) {
-            localCacheRegistry.snapshotView().put(examCode, redisValue);
+            localCacheRegistry.snapshotView().put(localKey, redisValue);
             return redisValue;
         }
 
         FrozenSnapshotViewCacheValue loaded = cacheMetrics.recordLoad(CACHE_SNAPSHOT_VIEW, "db", loader::get);
         if (loaded != null) {
-            localCacheRegistry.snapshotView().put(examCode, loaded);
-            jsonRedisStore.set(CACHE_SNAPSHOT_VIEW, CacheKeys.snapshotView(examCode), loaded, redisTtl);
+            localCacheRegistry.snapshotView().put(localKey, loaded);
+            jsonRedisStore.set(CACHE_SNAPSHOT_VIEW, key, loaded, redisTtl);
         }
         return loaded;
     }
 
     public Map<String, String> getAnswerKey(Integer examCode, Supplier<Map<String, String>> loader, Duration redisTtl) {
-        Map<String, String> localValue = localCacheRegistry.answerKey().getIfPresent(examCode);
+        String version = currentVersion(CacheKeys.snapshotVersion(examCode));
+        String key = CacheKeys.answerKey(version, examCode);
+        Integer localKey = key.hashCode();
+        Map<String, String> localValue = localCacheRegistry.answerKey().getIfPresent(localKey);
         if (localValue != null) {
             cacheMetrics.recordRequest(CACHE_ANSWER_KEY, "local", "hit");
             return localValue;
         }
         cacheMetrics.recordRequest(CACHE_ANSWER_KEY, "local", "miss");
 
-        Map<String, String> redisValue = jsonRedisStore.get(CACHE_ANSWER_KEY, CacheKeys.answerKey(examCode), new TypeReference<Map<String, String>>() {
+        Map<String, String> redisValue = jsonRedisStore.get(CACHE_ANSWER_KEY, key, new TypeReference<Map<String, String>>() {
         });
         if (redisValue != null) {
-            localCacheRegistry.answerKey().put(examCode, redisValue);
+            localCacheRegistry.answerKey().put(localKey, redisValue);
             return redisValue;
         }
 
         Map<String, String> loaded = cacheMetrics.recordLoad(CACHE_ANSWER_KEY, "db", loader::get);
         if (loaded != null) {
-            localCacheRegistry.answerKey().put(examCode, loaded);
-            jsonRedisStore.set(CACHE_ANSWER_KEY, CacheKeys.answerKey(examCode), loaded, redisTtl);
+            localCacheRegistry.answerKey().put(localKey, loaded);
+            jsonRedisStore.set(CACHE_ANSWER_KEY, key, loaded, redisTtl);
         }
         return loaded;
+    }
+
+    public Map<String, Object> getScoreStatistics(Integer examCode) {
+        String key = CacheKeys.scoreStatistics(currentVersion(CacheKeys.scoreStatisticsVersion(examCode)), examCode);
+        Map<String, Object> localValue = localCacheRegistry.scoreStatistics().getIfPresent(key);
+        if (localValue != null) {
+            cacheMetrics.recordRequest(CACHE_SCORE_STATISTICS, "local", "hit");
+            return localValue;
+        }
+        cacheMetrics.recordRequest(CACHE_SCORE_STATISTICS, "local", "miss");
+        Map<String, Object> redisValue = jsonRedisStore.get(CACHE_SCORE_STATISTICS, key, new TypeReference<Map<String, Object>>() {
+        });
+        if (redisValue != null) {
+            localCacheRegistry.scoreStatistics().put(key, redisValue);
+            return redisValue;
+        }
+        return null;
+    }
+
+    public void putScoreStatistics(Integer examCode, Map<String, Object> value) {
+        String key = CacheKeys.scoreStatistics(currentVersion(CacheKeys.scoreStatisticsVersion(examCode)), examCode);
+        localCacheRegistry.scoreStatistics().put(key, value);
+        jsonRedisStore.set(CACHE_SCORE_STATISTICS, key, value, cacheProperties.getScoreStatistics().getRedisTtl());
+        cacheMetrics.recordRequest(CACHE_SCORE_STATISTICS, "local", "write");
+    }
+
+    public void evictScoreStatistics(Integer examCode) {
+        localCacheRegistry.scoreStatistics().invalidateAll();
+        String version = currentVersion(CacheKeys.scoreStatisticsVersion(examCode));
+        jsonRedisStore.delete(CACHE_SCORE_STATISTICS, CacheKeys.scoreStatistics(version, examCode));
     }
 
     public Map<String, Object> getStudentExamList(Integer studentId) {
@@ -221,8 +261,9 @@ public class ExamCacheFacade {
     }
 
     public void evictExamMeta(Integer examCode) {
-        localCacheRegistry.examMeta().invalidate(examCode);
-        jsonRedisStore.delete(CACHE_EXAM_META, CacheKeys.examMeta(examCode));
+        localCacheRegistry.examMeta().invalidateAll();
+        String version = currentVersion(CacheKeys.examMetaVersion(examCode));
+        jsonRedisStore.delete(CACHE_EXAM_META, CacheKeys.examMeta(version, examCode));
     }
 
     public void evictPaperAggregates(Integer paperId) {
@@ -233,10 +274,11 @@ public class ExamCacheFacade {
     }
 
     public void evictSnapshotCaches(Integer examCode) {
-        localCacheRegistry.snapshotView().invalidate(examCode);
-        localCacheRegistry.answerKey().invalidate(examCode);
-        jsonRedisStore.delete(CACHE_SNAPSHOT_VIEW, CacheKeys.snapshotView(examCode));
-        jsonRedisStore.delete(CACHE_ANSWER_KEY, CacheKeys.answerKey(examCode));
+        localCacheRegistry.snapshotView().invalidateAll();
+        localCacheRegistry.answerKey().invalidateAll();
+        String version = currentVersion(CacheKeys.snapshotVersion(examCode));
+        jsonRedisStore.delete(CACHE_SNAPSHOT_VIEW, CacheKeys.snapshotView(version, examCode));
+        jsonRedisStore.delete(CACHE_ANSWER_KEY, CacheKeys.answerKey(version, examCode));
     }
 
     public void bumpScopeExamVersion() {
@@ -245,11 +287,45 @@ public class ExamCacheFacade {
         localCacheRegistry.scopeExams().invalidateAll();
     }
 
+    public void bumpExamMetaVersion(Integer examCode) {
+        jsonRedisStore.increment(CACHE_EXAM_META, CacheKeys.examMetaVersion(examCode));
+        localCacheRegistry.examMeta().invalidateAll();
+    }
+
+    public void bumpSnapshotVersion(Integer examCode) {
+        jsonRedisStore.increment(CACHE_SNAPSHOT_VIEW, CacheKeys.snapshotVersion(examCode));
+        localCacheRegistry.snapshotView().invalidateAll();
+        localCacheRegistry.answerKey().invalidateAll();
+    }
+
+    public void bumpScoreStatisticsVersion(Integer examCode) {
+        jsonRedisStore.increment(CACHE_SCORE_STATISTICS, CacheKeys.scoreStatisticsVersion(examCode));
+        localCacheRegistry.scoreStatistics().invalidateAll();
+    }
+
+    public boolean isScoreProjectionDirty(Integer examCode) {
+        String dirty = jsonRedisStore.getRaw(CACHE_SCORE_STATISTICS, CacheKeys.scoreProjectionDirty(examCode));
+        return dirty != null && Boolean.parseBoolean(dirty);
+    }
+
+    public void markScoreProjectionDirty(Integer examCode) {
+        jsonRedisStore.set(CACHE_SCORE_STATISTICS, CacheKeys.scoreProjectionDirty(examCode), Boolean.TRUE, Duration.ofHours(1));
+    }
+
+    public void clearScoreProjectionDirty(Integer examCode) {
+        jsonRedisStore.delete(CACHE_SCORE_STATISTICS, CacheKeys.scoreProjectionDirty(examCode));
+    }
+
     private String currentScopeVersion() {
         String version = jsonRedisStore.getRaw(CACHE_SCOPE_EXAMS, CacheKeys.scopeExamVersion());
         if (version != null && !version.isBlank()) {
             return version;
         }
         return String.valueOf(localScopeVersion.get());
+    }
+
+    private String currentVersion(String key) {
+        String version = jsonRedisStore.getRaw("version", key);
+        return version == null || version.isBlank() ? "1" : version;
     }
 }

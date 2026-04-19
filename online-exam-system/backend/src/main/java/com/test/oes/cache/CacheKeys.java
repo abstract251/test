@@ -17,6 +17,10 @@ public final class CacheKeys {
         return "oes:exam:meta:" + examCode;
     }
 
+    public static String examMeta(String version, Integer examCode) {
+        return "oes:exam:meta:" + version + ":" + examCode;
+    }
+
     public static String paperScore(Integer paperId) {
         return "oes:paper:score:" + paperId;
     }
@@ -29,8 +33,40 @@ public final class CacheKeys {
         return "oes:exam:snapshot:view:" + examCode;
     }
 
+    public static String snapshotView(String version, Integer examCode) {
+        return "oes:exam:snapshot:view:" + version + ":" + examCode;
+    }
+
     public static String answerKey(Integer examCode) {
         return "oes:exam:answer-key:" + examCode;
+    }
+
+    public static String answerKey(String version, Integer examCode) {
+        return "oes:exam:answer-key:" + version + ":" + examCode;
+    }
+
+    public static String examMetaVersion(Integer examCode) {
+        return "oes:version:exam-meta:" + examCode;
+    }
+
+    public static String snapshotVersion(Integer examCode) {
+        return "oes:version:snapshot:" + examCode;
+    }
+
+    public static String scoreStatisticsVersion(Integer examCode) {
+        return "oes:version:score-statistics:" + examCode;
+    }
+
+    public static String scoreStatistics(Integer examCode) {
+        return "oes:score:statistics:" + examCode;
+    }
+
+    public static String scoreStatistics(String version, Integer examCode) {
+        return "oes:score:statistics:" + version + ":" + examCode;
+    }
+
+    public static String scoreProjectionDirty(Integer examCode) {
+        return "oes:score:projection:dirty:" + examCode;
     }
 
     public static String studentExamList(Integer studentId) {
@@ -47,6 +83,14 @@ public final class CacheKeys {
 
     public static String studentDraft(Integer examCode, Integer studentId) {
         return "oes:student:draft:" + examCode + ":" + studentId;
+    }
+
+    public static String draftFlushDue() {
+        return "oes:draft:flush:due";
+    }
+
+    public static String draftFlushLock(Integer examCode, Integer studentId) {
+        return "oes:draft:flush:lock:" + examCode + ":" + studentId;
     }
 
     public static String refreshToken(String jti) {
