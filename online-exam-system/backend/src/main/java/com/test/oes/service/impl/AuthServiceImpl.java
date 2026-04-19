@@ -1,5 +1,10 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.async.AsyncEventEnvelope;
+import com.test.oes.async.AsyncEventTypes;
+import com.test.oes.async.AsyncRoutingKeys;
+import com.test.oes.async.OutboxEventService;
+import com.test.oes.async.payload.AuthRefreshRevokedPayload;
 import com.test.oes.cache.RefreshTokenHotState;
 import com.test.oes.cache.RefreshTokenHotStateService;
 import com.test.oes.dto.auth.AuthTokenResponse;
@@ -39,11 +44,13 @@ public class AuthServiceImpl implements AuthService {
     private final AuthRefreshTokenMapper authRefreshTokenMapper;
     private final CurrentUserService currentUserService;
     private final RefreshTokenHotStateService refreshTokenHotStateService;
+    private final OutboxEventService outboxEventService;
 
     public AuthServiceImpl(AdminMapper adminMapper, TeacherMapper teacherMapper, StudentMapper studentMapper,
                            PasswordService passwordService, JwtTokenService jwtTokenService,
                            AuthRefreshTokenMapper authRefreshTokenMapper, CurrentUserService currentUserService,
-                           RefreshTokenHotStateService refreshTokenHotStateService) {
+                           RefreshTokenHotStateService refreshTokenHotStateService,
+                           OutboxEventService outboxEventService) {
         this.adminMapper = adminMapper;
         this.teacherMapper = teacherMapper;
         this.studentMapper = studentMapper;
@@ -52,6 +59,7 @@ public class AuthServiceImpl implements AuthService {
         this.authRefreshTokenMapper = authRefreshTokenMapper;
         this.currentUserService = currentUserService;
         this.refreshTokenHotStateService = refreshTokenHotStateService;
+        this.outboxEventService = outboxEventService;
     }
 
     @Override
@@ -74,33 +82,26 @@ public class AuthServiceImpl implements AuthService {
             throw new ExamBusinessException(400, "refreshToken 不能为空");
         }
         JwtTokenService.RefreshTokenClaims claims = jwtTokenService.parseRefreshToken(refreshToken);
-        RefreshTokenHotState hotState = refreshTokenHotStateService.getOrLoad(claims.jti(),
-                () -> authRefreshTokenMapper.findByJti(claims.jti()));
+        RefreshTokenHotState hotState = refreshTokenHotStateService.getOrLoad(
+                claims.jti(),
+                () -> authRefreshTokenMapper.findByJti(claims.jti())
+        );
         if (hotState == null || Boolean.TRUE.equals(hotState.getRevoked())) {
             throw new ExamBusinessException(401, "refreshToken 已失效");
         }
         if (hotState.getExpiresAt() != null && hotState.getExpiresAt().isBefore(LocalDateTime.now(SHANGHAI))) {
             authRefreshTokenMapper.revokeById(hotState.getId());
-            AuthRefreshToken expired = new AuthRefreshToken();
-            expired.setId(hotState.getId());
-            expired.setJti(claims.jti());
-            expired.setExpiresAt(hotState.getExpiresAt());
-            expired.setRevoked(1);
+            AuthRefreshToken expired = buildRevokedToken(hotState, claims.jti());
             refreshTokenHotStateService.markRevoked(claims.jti(), expired);
+            appendRefreshRevokedEvent(expired, "EXPIRED");
             throw new ExamBusinessException(401, "refreshToken 已过期");
         }
         if (authRefreshTokenMapper.revokeIfActiveById(hotState.getId()) == 0) {
             throw new ExamBusinessException(401, "refreshToken 已失效");
         }
-        AuthRefreshToken revoked = new AuthRefreshToken();
-        revoked.setId(hotState.getId());
-        revoked.setJti(claims.jti());
-        revoked.setUserId(hotState.getUserId());
-        revoked.setRole(hotState.getRole());
-        revoked.setUsername(hotState.getUsername());
-        revoked.setExpiresAt(hotState.getExpiresAt());
-        revoked.setRevoked(1);
+        AuthRefreshToken revoked = buildRevokedToken(hotState, claims.jti());
         refreshTokenHotStateService.markRevoked(claims.jti(), revoked);
+        appendRefreshRevokedEvent(revoked, "ROTATED");
         LoginUser loginUser = loadUser(AccountRole.valueOf(hotState.getRole()), hotState.getUsername());
         return buildAuthResponse(loginUser);
     }
@@ -117,6 +118,7 @@ public class AuthServiceImpl implements AuthService {
             authRefreshTokenMapper.revokeById(stored.getId());
             stored.setRevoked(1);
             refreshTokenHotStateService.markRevoked(claims.jti(), stored);
+            appendRefreshRevokedEvent(stored, "LOGOUT");
         }
     }
 
@@ -180,5 +182,47 @@ public class AuthServiceImpl implements AuthService {
         } catch (NumberFormatException e) {
             throw new ExamBusinessException(400, "账号必须是数字编号");
         }
+    }
+
+    private AuthRefreshToken buildRevokedToken(RefreshTokenHotState hotState, String jti) {
+        AuthRefreshToken token = new AuthRefreshToken();
+        token.setId(hotState.getId());
+        token.setJti(jti);
+        token.setUserId(hotState.getUserId());
+        token.setRole(hotState.getRole());
+        token.setUsername(hotState.getUsername());
+        token.setExpiresAt(hotState.getExpiresAt());
+        token.setRevoked(1);
+        return token;
+    }
+
+    private void appendRefreshRevokedEvent(AuthRefreshToken token, String revokeReason) {
+        if (token == null || token.getJti() == null) {
+            return;
+        }
+        AuthRefreshRevokedPayload payload = new AuthRefreshRevokedPayload();
+        payload.setJti(token.getJti());
+        payload.setTokenId(token.getId());
+        payload.setUserId(token.getUserId());
+        payload.setUsername(token.getUsername());
+        payload.setRole(token.getRole());
+        payload.setRevokedAt(LocalDateTime.now(SHANGHAI));
+        payload.setExpiresAt(token.getExpiresAt());
+        payload.setRevokeReason(revokeReason);
+
+        AsyncEventEnvelope<AuthRefreshRevokedPayload> envelope = new AsyncEventEnvelope<>();
+        envelope.setEventType(AsyncEventTypes.AUTH_REFRESH_REVOKED);
+        envelope.setAggregateType("refreshToken");
+        envelope.setAggregateId(token.getJti());
+        envelope.setOccurredAt(payload.getRevokedAt());
+        envelope.setPayloadVersion(1);
+        envelope.setPayload(payload);
+        outboxEventService.append(
+                AsyncEventTypes.AUTH_REFRESH_REVOKED,
+                "refreshToken",
+                token.getJti(),
+                AsyncRoutingKeys.AUTH_REFRESH_REVOKED,
+                envelope
+        );
     }
 }

@@ -62,7 +62,7 @@ public class ScoreServiceImpl implements ScoreService {
     @Transactional(readOnly = true)
     public Map<String, Object> getStatistics(Integer examCode) {
         Map<String, Object> cached = examCacheFacade.getScoreStatistics(examCode);
-        if (cached != null) {
+        if (cached != null && asInt(cached.get("totalCount")) > 0) {
             return cached;
         }
         Map<String, Object> projected = scoreStatisticsProjectionService.readProjection(examCode);
@@ -70,14 +70,19 @@ public class ScoreServiceImpl implements ScoreService {
         if (projected != null && !examCacheFacade.isScoreProjectionDirty(examCode)) {
             stats = projected;
         } else {
-            try {
-                DbRouteContext.forcePrimary();
-                stats = scoreStatisticsProjectionService.buildRealtimeStatistics(examCode);
-            } finally {
-                DbRouteContext.clear();
+            stats = scoreStatisticsProjectionService.buildRealtimeStatisticsFromPrimary(examCode);
+        }
+        if (asInt(stats.get("totalCount")) == 0) {
+            Map<String, Object> primaryStats = scoreStatisticsProjectionService.buildRealtimeStatisticsFromPrimary(examCode);
+            if (asInt(primaryStats.get("totalCount")) > 0) {
+                stats = primaryStats;
             }
         }
         examCacheFacade.putScoreStatistics(examCode, stats);
         return stats;
+    }
+
+    private int asInt(Object value) {
+        return value instanceof Number number ? number.intValue() : 0;
     }
 }

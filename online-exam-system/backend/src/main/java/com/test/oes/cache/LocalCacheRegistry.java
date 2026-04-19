@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.test.oes.entity.ExamManage;
+import com.test.oes.entity.Message;
+import com.test.oes.entity.Replay;
 import com.test.oes.vo.QuestionBankItemVO;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +22,9 @@ public class LocalCacheRegistry {
     private final Cache<Integer, FrozenSnapshotViewCacheValue> snapshotView;
     private final Cache<Integer, Map<String, String>> answerKey;
     private final Cache<String, Map<String, Object>> scoreStatistics;
+    private final Cache<String, Page<Message>> messagePage;
+    private final Cache<Integer, Message> messageDetail;
+    private final Cache<Integer, List<Replay>> messageReplies;
     private final Cache<String, Map<String, Object>> studentExamList;
     private final Cache<String, Map<String, Object>> studentExamDetail;
     private final Cache<String, Page<QuestionBankItemVO>> questionBankPage;
@@ -32,6 +37,9 @@ public class LocalCacheRegistry {
         this.snapshotView = newCache(cacheProperties.getSnapshot().getLocalTtl());
         this.answerKey = newCache(cacheProperties.getSnapshot().getLocalTtl());
         this.scoreStatistics = newCache(cacheProperties.getScoreStatistics().getLocalTtl());
+        this.messagePage = newCache(cacheProperties.getMessage().getLocalTtl());
+        this.messageDetail = newCache(cacheProperties.getMessage().getLocalTtl());
+        this.messageReplies = newCache(cacheProperties.getMessage().getLocalTtl());
         this.studentExamList = newCache(cacheProperties.getExamList().getLocalTtl());
         this.studentExamDetail = newCache(cacheProperties.getExamDetail().getLocalTtl());
         this.questionBankPage = newCache(cacheProperties.getQuestionBank().getLocalTtl());
@@ -63,6 +71,18 @@ public class LocalCacheRegistry {
 
     public Cache<String, Map<String, Object>> scoreStatistics() {
         return scoreStatistics;
+    }
+
+    public Cache<String, Page<Message>> messagePage() {
+        return messagePage;
+    }
+
+    public Cache<Integer, Message> messageDetail() {
+        return messageDetail;
+    }
+
+    public Cache<Integer, List<Replay>> messageReplies() {
+        return messageReplies;
     }
 
     public Cache<String, Map<String, Object>> studentExamList() {

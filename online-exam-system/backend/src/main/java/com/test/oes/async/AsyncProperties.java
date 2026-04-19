@@ -13,6 +13,7 @@ public class AsyncProperties {
 
     private Outbox outbox = new Outbox();
     private Draft draft = new Draft();
+    private Consumer consumer = new Consumer();
 
     @Getter
     @Setter
@@ -27,5 +28,11 @@ public class AsyncProperties {
     public static class Draft {
         private Duration flushDelay = Duration.ofSeconds(5);
         private int dispatchBatchSize = 100;
+    }
+
+    @Getter
+    @Setter
+    public static class Consumer {
+        private int maxRetries = 3;
     }
 }

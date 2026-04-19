@@ -18,6 +18,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +50,7 @@ class AuthSecurityIntegrationTest {
     private static final int PAPER_ID = 1001;
     private static final int TEST_MESSAGE_ID = 991001;
     private static final int TEST_MESSAGE_ID_2 = 991002;
+    private static final int TEST_MESSAGE_ID_3 = 991003;
     private static final int TEST_REPLAY_ID = 992001;
     private static final int TEST_REPLAY_ID_2 = 992002;
 
@@ -93,7 +95,7 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
                 String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
         jdbcTemplate.update("DELETE FROM replay WHERE replayId IN (?, ?)", TEST_REPLAY_ID, TEST_REPLAY_ID_2);
-        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2);
+        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2, TEST_MESSAGE_ID_3);
         if (examAttemptTableExists) {
             jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
         }
@@ -120,7 +122,7 @@ class AuthSecurityIntegrationTest {
             jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
         }
         jdbcTemplate.update("DELETE FROM replay WHERE replayId IN (?, ?)", TEST_REPLAY_ID, TEST_REPLAY_ID_2);
-        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2);
+        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2, TEST_MESSAGE_ID_3);
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
@@ -290,6 +292,30 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    void refreshShouldWriteAuthRefreshRevokedOutbox() throws Exception {
+        Assumptions.assumeTrue(asyncEventOutboxTableExists, "async_event_outbox table is not present in current database");
+        JsonNode loginData = json(login("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD)).path("data");
+        String refreshToken = loginData.path("refreshToken").asText();
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "refreshToken": "%s"
+                                }
+                                """.formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'auth.refresh.revoked'",
+                Integer.class
+        );
+        assertThat(count).isNotNull();
+        assertThat(count).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
     void logoutShouldInvalidateRefreshToken() throws Exception {
         JsonNode loginData = json(login("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD)).path("data");
         String refreshToken = loginData.path("refreshToken").asText();
@@ -314,6 +340,15 @@ class AuthSecurityIntegrationTest {
                                 """.formatted(refreshToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(401));
+
+        if (asyncEventOutboxTableExists) {
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'auth.refresh.revoked'",
+                    Integer.class
+            );
+            assertThat(count).isNotNull();
+            assertThat(count).isGreaterThanOrEqualTo(1);
+        }
     }
 
     @Test
@@ -464,6 +499,77 @@ class AuthSecurityIntegrationTest {
                 .andExpect(jsonPath("$.data.id").value(TEST_MESSAGE_ID))
                 .andExpect(jsonPath("$.data.replays").isArray())
                 .andExpect(jsonPath("$.data.replays[0].replay").value("reply-one"));
+    }
+
+    @Test
+    void createMessageShouldUseCurrentUserAndWriteMessageCreatedOutbox() throws Exception {
+        Assumptions.assumeTrue(asyncEventOutboxTableExists, "async_event_outbox table is not present in current database");
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+
+        mockMvc.perform(post("/message")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "id": %d,
+                                  "title": "phase6-created",
+                                  "content": "message-created-content",
+                                  "creatorId": %d,
+                                  "creatorRole": "ADMIN",
+                                  "creatorName": "fake"
+                                }
+                                """.formatted(TEST_MESSAGE_ID_3, ADMIN_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT creator_id, creator_role, creator_name, created_at, updated_at FROM message WHERE title = 'phase6-created' ORDER BY id DESC LIMIT 1"
+        );
+        assertThat(row.get("creator_id")).isEqualTo(STUDENT_ID);
+        assertThat(String.valueOf(row.get("creator_role"))).isEqualTo("STUDENT");
+        assertThat(String.valueOf(row.get("creator_name"))).isNotBlank();
+        assertThat(row.get("created_at")).isNotNull();
+        assertThat(row.get("updated_at")).isNotNull();
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'message.created'",
+                Integer.class
+        );
+        assertThat(count).isNotNull();
+        assertThat(count).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void createReplyShouldUseCurrentTeacherMetadata() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update(
+                "INSERT INTO message(id, title, content, time, creator_id, creator_role, creator_name, created_at, updated_at) VALUES (?, ?, ?, CURRENT_DATE(), ?, ?, ?, NOW(), NOW())",
+                TEST_MESSAGE_ID_3, "reply-target", "reply-target-content", STUDENT_ID, "STUDENT", "student"
+        );
+
+        mockMvc.perform(post("/replay")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageId": %d,
+                                  "replay": "phase6-reply",
+                                  "creatorId": %d,
+                                  "creatorRole": "STUDENT",
+                                  "creatorName": "fake"
+                                }
+                                """.formatted(TEST_MESSAGE_ID_3, STUDENT_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT creator_id, creator_role, creator_name, created_at FROM replay WHERE messageId = ? ORDER BY replayId DESC LIMIT 1",
+                TEST_MESSAGE_ID_3
+        );
+        assertThat(Integer.parseInt(String.valueOf(row.get("creator_id")))).isEqualTo(TEACHER_ID);
+        assertThat(String.valueOf(row.get("creator_role"))).isEqualTo("TEACHER");
+        assertThat(String.valueOf(row.get("creator_name"))).isNotBlank();
+        assertThat(row.get("created_at")).isNotNull();
     }
 
     @Test

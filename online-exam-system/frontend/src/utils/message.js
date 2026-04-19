@@ -13,7 +13,11 @@ export function normalizeReply(reply = {}) {
     messageId: toPositiveNumber(reply.messageId),
     replayId: toPositiveNumber(reply.replayId),
     replay: String(reply.replay || '').trim(),
-    replayTime: reply.replayTime || ''
+    replayTime: reply.replayTime || '',
+    creatorId: toPositiveNumber(reply.creatorId),
+    creatorRole: String(reply.creatorRole || '').trim(),
+    creatorName: String(reply.creatorName || '').trim(),
+    createdAt: reply.createdAt || ''
   }
 }
 
@@ -26,7 +30,7 @@ export function normalizeReplyList(list = []) {
     .map((item) => normalizeReply(item))
     .sort((left, right) => {
       return (
-        new Date(right.replayTime || 0).getTime() - new Date(left.replayTime || 0).getTime() ||
+        new Date(right.createdAt || right.replayTime || 0).getTime() - new Date(left.createdAt || left.replayTime || 0).getTime() ||
         (right.replayId || 0) - (left.replayId || 0)
       )
     })
@@ -43,6 +47,11 @@ export function normalizeMessage(message = {}) {
     title: String(message.title || '').trim(),
     content: String(message.content || '').trim(),
     time: message.time || '',
+    creatorId: toPositiveNumber(message.creatorId),
+    creatorRole: String(message.creatorRole || '').trim(),
+    creatorName: String(message.creatorName || '').trim(),
+    createdAt: message.createdAt || '',
+    updatedAt: message.updatedAt || '',
     replays: replies
   }
 }
@@ -65,13 +74,14 @@ export function hasReplies(message) {
 
 export function getLatestReplyTime(message) {
   if (Array.isArray(message?.replays) && message.replays.length) {
-    return message.replays[0]?.replayTime || ''
+    return message.replays[0]?.createdAt || message.replays[0]?.replayTime || ''
   }
-  return normalizeReplyList(message?.replays)[0]?.replayTime || ''
+  const normalized = normalizeReplyList(message?.replays)
+  return normalized[0]?.createdAt || normalized[0]?.replayTime || ''
 }
 
 export function getLatestActivityTime(message) {
-  return getLatestReplyTime(message) || message?.time || ''
+  return getLatestReplyTime(message) || message?.createdAt || message?.time || ''
 }
 
 export function buildMessageSearchText(message) {
@@ -79,7 +89,9 @@ export function buildMessageSearchText(message) {
     resolveMessageId(message),
     message?.title,
     message?.content,
-    message?.time
+    message?.time,
+    message?.creatorName,
+    message?.creatorRole
   ]
     .filter(Boolean)
     .join(' ')

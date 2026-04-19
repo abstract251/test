@@ -97,6 +97,22 @@ public final class CacheKeys {
         return "oes:auth:refresh:" + jti;
     }
 
+    public static String messageFeedVersion() {
+        return "oes:version:message-feed";
+    }
+
+    public static String messagePage(String version, Integer page, Integer size) {
+        return "oes:message:page:" + version + ":" + page + ":" + size;
+    }
+
+    public static String messageDetail(Integer messageId) {
+        return "oes:message:detail:" + messageId;
+    }
+
+    public static String messageReplies(Integer messageId) {
+        return "oes:message:replies:" + messageId;
+    }
+
     private static String normalized(Object value) {
         if (value == null) {
             return "_";

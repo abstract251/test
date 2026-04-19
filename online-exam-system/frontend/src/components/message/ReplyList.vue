@@ -12,7 +12,7 @@
       <EmptyState
         v-if="!loading && !normalizedReplies.length"
         :description="emptyText"
-        emoji="💬"
+        emoji="📝"
       />
 
       <div v-else class="reply-list__items">
@@ -22,8 +22,8 @@
           class="reply-item"
         >
           <div class="reply-item__meta">
-            <strong>{{ `回复 ${index + 1}` }}</strong>
-            <span>{{ formatDateTime(reply.replayTime, 'YYYY-MM-DD') }}</span>
+            <strong>{{ `${reply.creatorName || '未知'} (${reply.creatorRole || 'SYSTEM'})` }}</strong>
+            <span>{{ formatDateTime(reply.createdAt || reply.replayTime, 'YYYY-MM-DD HH:mm:ss') }}</span>
           </div>
           <p class="reply-item__text">{{ reply.replay || '--' }}</p>
         </article>
@@ -56,7 +56,7 @@ const props = defineProps({
 const normalizedReplies = computed(() => normalizeReplyList(props.replies))
 
 function resolveReplyKey(reply, index) {
-  return reply.replayId || `${reply.messageId || 'message'}_${reply.replayTime || index}`
+  return reply.replayId || `${reply.messageId || 'message'}_${reply.createdAt || reply.replayTime || index}`
 }
 </script>
 

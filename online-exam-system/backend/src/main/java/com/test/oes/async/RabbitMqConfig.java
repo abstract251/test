@@ -38,6 +38,10 @@ public class RabbitMqConfig {
         Queue revokedRetryQueue = retryQueue(AsyncQueues.EXAM_REVOKED_INVALIDATE, RabbitTopologyProperties.DOMAIN_EVENTS_EXCHANGE, AsyncRoutingKeys.EXAM_REVOKED);
         Queue draftFlushQueue = mainQueue(AsyncQueues.DRAFT_FLUSH);
         Queue draftFlushRetryQueue = retryQueue(AsyncQueues.DRAFT_FLUSH, RabbitTopologyProperties.EXAM_COMMANDS_EXCHANGE, AsyncRoutingKeys.DRAFT_FLUSH);
+        Queue refreshRevokedQueue = mainQueue(AsyncQueues.AUTH_REFRESH_REVOKED_INVALIDATE);
+        Queue refreshRevokedRetryQueue = retryQueue(AsyncQueues.AUTH_REFRESH_REVOKED_INVALIDATE, RabbitTopologyProperties.DOMAIN_EVENTS_EXCHANGE, AsyncRoutingKeys.AUTH_REFRESH_REVOKED);
+        Queue messageCreatedQueue = mainQueue(AsyncQueues.MESSAGE_CREATED_INVALIDATE);
+        Queue messageCreatedRetryQueue = retryQueue(AsyncQueues.MESSAGE_CREATED_INVALIDATE, RabbitTopologyProperties.DOMAIN_EVENTS_EXCHANGE, AsyncRoutingKeys.MESSAGE_CREATED);
         return new Declarables(
                 domainEvents,
                 examCommands,
@@ -49,6 +53,14 @@ public class RabbitMqConfig {
                 BindingBuilder.bind(revokedQueue).to(domainEvents).with(AsyncRoutingKeys.EXAM_REVOKED),
                 revokedRetryQueue,
                 dlq(AsyncQueues.EXAM_REVOKED_INVALIDATE),
+                refreshRevokedQueue,
+                BindingBuilder.bind(refreshRevokedQueue).to(domainEvents).with(AsyncRoutingKeys.AUTH_REFRESH_REVOKED),
+                refreshRevokedRetryQueue,
+                dlq(AsyncQueues.AUTH_REFRESH_REVOKED_INVALIDATE),
+                messageCreatedQueue,
+                BindingBuilder.bind(messageCreatedQueue).to(domainEvents).with(AsyncRoutingKeys.MESSAGE_CREATED),
+                messageCreatedRetryQueue,
+                dlq(AsyncQueues.MESSAGE_CREATED_INVALIDATE),
                 draftFlushQueue,
                 BindingBuilder.bind(draftFlushQueue).to(examCommands).with(AsyncRoutingKeys.DRAFT_FLUSH),
                 draftFlushRetryQueue,
