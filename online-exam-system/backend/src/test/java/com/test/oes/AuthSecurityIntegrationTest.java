@@ -54,9 +54,9 @@ class AuthSecurityIntegrationTest {
     private static final int TEST_REPLAY_ID = 992001;
     private static final int TEST_REPLAY_ID_2 = 992002;
 
-    private static final String ADMIN_PASSWORD = "Admin@123";
-    private static final String TEACHER_PASSWORD = "Teacher@123";
-    private static final String STUDENT_PASSWORD = "Student@123";
+    private static final String ADMIN_PASSWORD = "123456";
+    private static final String TEACHER_PASSWORD = "123456";
+    private static final String STUDENT_PASSWORD = "123456";
 
     @Autowired
     private MockMvc mockMvc;
@@ -174,7 +174,7 @@ class AuthSecurityIntegrationTest {
                         .content("""
                                 {
                                   "username": "9991",
-                                  "password": "Admin@123",
+                                  "password": "123456",
                                   "role": "STUDENT"
                                 }
                                 """))

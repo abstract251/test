@@ -27,9 +27,9 @@ k6 run backend/perf/k6/phase0-baseline.js
 ```powershell
 $env:BASE_URL="http://localhost:8080"
 $env:STUDENT_USERNAME="20224001"
-$env:STUDENT_PASSWORD="Student@123"
+$env:STUDENT_PASSWORD="123456"
 $env:TEACHER_USERNAME="20081001"
-$env:TEACHER_PASSWORD="Teacher@123"
+$env:TEACHER_PASSWORD="123456"
 $env:EXAM_CODE="20230001"
 k6 run backend/perf/k6/phase0-baseline.js
 ```
