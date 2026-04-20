@@ -8,6 +8,7 @@ $pidFile = Join-Path $nginxDir "logs\online-exam-nginx.pid"
 $legacyPidFile = Join-Path $nginxDir "logs\nginx.pid"
 $errorLog = Join-Path $nginxDir "logs\online-exam-error.log"
 $frontendDist = Join-Path $repoRoot "frontend\dist"
+$powershellExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
 
 if (!(Test-Path $nginxExe)) {
     throw "nginx.exe not found: $nginxExe"
@@ -15,6 +16,10 @@ if (!(Test-Path $nginxExe)) {
 
 if (!(Test-Path $configFile)) {
     throw "nginx config not found: $configFile"
+}
+
+if (!(Test-Path $powershellExe)) {
+    throw "powershell.exe not found: $powershellExe"
 }
 
 if (!(Test-Path $frontendDist)) {
@@ -40,11 +45,19 @@ if (Test-Path $legacyPidFile) {
 
 & $nginxExe -p "$nginxDir\" -c $configFile -t
 
-$cmdLine = "start `"`" /min `"$nginxExe`" -p `"$nginxDir\`" -c `"$configFile`""
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $cmdLine -WorkingDirectory $nginxDir
+$escapedNginx = $nginxExe.Replace("'", "''")
+$escapedPrefix = "$nginxDir\".Replace("'", "''")
+$escapedConfig = $configFile.Replace("'", "''")
+$launchCommand = "& '$escapedNginx' -p '$escapedPrefix' -c '$escapedConfig'"
+
+Start-Process `
+    -FilePath $powershellExe `
+    -ArgumentList "-NoProfile", "-Command", $launchCommand `
+    -WorkingDirectory $nginxDir `
+    -WindowStyle Hidden
 
 $started = $false
-for ($i = 0; $i -lt 10; $i++) {
+for ($i = 0; $i -lt 20; $i++) {
     Start-Sleep -Seconds 1
     try {
         $response = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:8080/backend-health/18080" -TimeoutSec 2
@@ -57,7 +70,7 @@ for ($i = 0; $i -lt 10; $i++) {
 }
 
 if (-not $started) {
-    Write-Warning "nginx started but 8080 is not reachable yet. Check $errorLog"
+    Write-Warning "nginx process has been launched, but 8080 is not reachable yet. Check $errorLog or try the documented foreground startup command."
 } else {
     Write-Output "nginx test instance is reachable on http://localhost:8080"
 }

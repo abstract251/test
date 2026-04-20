@@ -3,7 +3,7 @@
   <div>
     <el-alert
       v-if="revoked"
-      title="本场考试已撤销，不可再修改。"
+      title="这场考试已取消，暂时不能再修改。"
       type="error"
       show-icon
       :closable="false"
@@ -11,7 +11,7 @@
     />
     <el-alert
       v-else-if="freezeLocked"
-      title="试卷已进入冻结窗口：仅可修改「考试说明」「考生提示」；考试时长只可延长不可缩短；科目、范围、开考时间、试卷等不可改。"
+      title="这场考试已进入锁定阶段：目前只能调整考试说明、考生提示和延长考试时长。"
       type="warning"
       show-icon
       :closable="false"
@@ -134,7 +134,7 @@ const props = defineProps({
     type: Object,
     required: true
   },
-  /** 试卷已冻结（仅白名单可改） */
+  /** 试卷已冻结（仅少量内容可改） */
   freezeLocked: {
     type: Boolean,
     default: false
@@ -143,7 +143,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  /** 冻结前记录的时长下限（冻结后不可低于此值） */
+  /** 锁定前记录的时长下限（锁定后不可低于此值） */
   baselineTotalTime: {
     type: Number,
     default: 1

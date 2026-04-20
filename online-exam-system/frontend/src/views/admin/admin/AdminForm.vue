@@ -2,8 +2,11 @@
   <PageContainer>
     <PageHeader
       :title="isEdit ? '编辑管理员' : '新增管理员'"
-      :description="isEdit ? '调整管理员信息并保存。' : '填写管理员基础信息后保存，编号会由系统自动生成。'"
+      :description="isEdit ? '请核对管理员信息后保存。' : '请填写管理员基础信息后保存。'"
     />
+
+    <PageNotice v-if="pageError" type="error" title="页面暂时打不开" :description="pageError" />
+    <FormErrorSummary v-if="formSummary.title || formSummary.items.length" :title="formSummary.title" :items="formSummary.items" />
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <AdminFormFields :model="form" :is-edit="isEdit" />
@@ -21,18 +24,25 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import FormErrorSummary from '@/components/common/FormErrorSummary.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageNotice from '@/components/common/PageNotice.vue'
 import AdminFormFields from '@/components/forms/AdminFormFields.vue'
 import { createAdmin, getAdminById, updateAdmin } from '@/api/adminApi'
 import { getSession } from '@/utils/auth'
 import { buildConsolePath, DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
+import { buildFormSummary, resolveUserFacingError, scrollToFirstError, showActionSuccess } from '@/utils/feedback'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
+const pageError = ref('')
+const formSummary = reactive({
+  title: '',
+  items: []
+})
 const consoleRole = getSession()?.authRole
 const adminListPath = buildConsolePath(consoleRole, 'admins')
 
@@ -87,15 +97,21 @@ async function fetchAdmin() {
       })
       return
     }
-    ElMessage.error(response.message || '加载管理员信息失败')
+    pageError.value = resolveUserFacingError(response, '请稍后再试')
   } catch (error) {
-    ElMessage.error('加载管理员信息失败，请稍后重试')
+    pageError.value = resolveUserFacingError(error, '请稍后再试')
   }
 }
 
 async function handleSubmit() {
+  pageError.value = ''
+  formSummary.title = ''
+  formSummary.items = []
+
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
+    Object.assign(formSummary, buildFormSummary(formRef, '请先补全管理员信息'))
+    await scrollToFirstError(formRef)
     return
   }
 
@@ -110,15 +126,14 @@ async function handleSubmit() {
       : await createAdmin(payload)
 
     if (response.code === 200) {
-      ElMessage.success(isEdit.value ? '管理员信息已更新' : '管理员已创建')
+      showActionSuccess(isEdit.value ? '管理员信息已保存' : '管理员账号已创建')
       router.push(adminListPath)
       return
     }
 
-    ElMessage.error(response.message || '保存失败，请检查后重试')
+    formSummary.title = resolveUserFacingError(response, '管理员信息还没有保存成功')
   } catch (error) {
-    const message = error?.response?.data?.message
-    ElMessage.error(message || '保存失败，请稍后重试')
+    formSummary.title = resolveUserFacingError(error, '管理员信息还没有保存成功')
   }
 }
 

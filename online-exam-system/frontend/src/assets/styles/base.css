@@ -43,3 +43,14 @@ select {
 .fade-up-enter-active {
   animation: fade-up 220ms ease;
 }
+
+:deep(.el-form-item.is-error .el-input__wrapper),
+:deep(.el-form-item.is-error .el-textarea__inner),
+:deep(.el-form-item.is-error .el-select__wrapper) {
+  box-shadow: 0 0 0 1px rgba(217, 106, 95, 0.55) inset;
+}
+
+:deep(.el-form-item__error) {
+  font-weight: 600;
+  color: var(--error-text);
+}

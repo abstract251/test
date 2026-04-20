@@ -37,7 +37,7 @@
       <StatusCard label="平均分" :value="summary.averageScore" hint="按本场考试成绩计算" />
       <StatusCard label="最高分" :value="summary.maxScore" hint="展示本场考试最高成绩" />
       <StatusCard label="最低分" :value="summary.minScore" hint="展示本场考试最低成绩" />
-      <StatusCard label="及格率" :value="summary.passRate" hint="以成绩统计接口或当前列表计算" />
+      <StatusCard label="及格率" :value="summary.passRate" hint="系统会根据当前成绩自动汇总" />
     </div>
 
     <ScoreDistributionChart

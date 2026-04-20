@@ -11,6 +11,18 @@
   --brand-primary-deep: #2f8064;
   --brand-accent: #ffc857;
   --brand-danger: #d96a5f;
+  --error-bg: #fff1ef;
+  --error-border: rgba(217, 106, 95, 0.3);
+  --error-text: #a23f35;
+  --warning-bg: #fff7e6;
+  --warning-border: rgba(255, 200, 87, 0.38);
+  --warning-text: #8b6110;
+  --success-bg: #eef9f3;
+  --success-border: rgba(79, 175, 143, 0.28);
+  --success-text: #2f8064;
+  --info-bg: #f3f7f5;
+  --info-border: rgba(47, 79, 70, 0.14);
+  --info-text: #305247;
   --shadow-soft: 0 16px 48px rgba(79, 175, 143, 0.14);
   --shadow-card: 0 12px 28px rgba(47, 79, 70, 0.08);
   --radius-lg: 24px;

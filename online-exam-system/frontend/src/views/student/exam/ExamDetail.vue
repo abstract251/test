@@ -3,7 +3,7 @@
     <PageContainer>
       <PageHeader
         title="考试详情"
-        description="考前可查看考试说明、时间窗口和题型分布，开考后将直接进入作答。"
+        description="开考前可以先查看时间安排和题型分布，开考后可直接进入答题。"
       >
         <template #actions>
           <el-button @click="router.push('/student/home')">返回考试中心</el-button>
@@ -13,12 +13,11 @@
         </template>
       </PageHeader>
 
-      <el-alert
+      <PageNotice
         v-if="loadError"
-        :title="loadError"
         type="error"
-        show-icon
-        :closable="false"
+        title="考试详情暂时打不开"
+        :description="loadError"
       />
 
       <template v-else-if="exam">
@@ -46,7 +45,7 @@
         <section class="question-summary">
           <header class="question-summary__header">
             <h3>题型分布</h3>
-            <span>{{ exam.summarySource === 'FROZEN_SNAPSHOT' ? '按冻结后固定题面统计' : '按当前试卷统计' }}</span>
+            <span>{{ exam.summarySource === 'FROZEN_SNAPSHOT' ? '以本场考试正式题目为准' : '以当前试卷内容为准' }}</span>
           </header>
           <div class="question-summary__grid">
             <article
@@ -61,35 +60,29 @@
           </div>
         </section>
 
-        <el-alert
+        <PageNotice
           v-if="exam.revoked"
-          title="本场考试已被撤销，无法参加。"
           type="error"
-          show-icon
-          :closable="false"
+          title="这场考试已取消"
+          description="当前不能参加这场考试，如有疑问请联系老师。"
         />
-        <el-alert
+        <PageNotice
           v-else-if="exam.examState === 'UPCOMING'"
-          title="考试尚未开始。"
-          :description="windowHint"
           type="warning"
-          show-icon
-          :closable="false"
-        />
-        <el-alert
-          v-else-if="exam.examState === 'ENDED' || exam.attemptStatus === 'SUBMITTED'"
-          :title="exam.attemptStatus === 'SUBMITTED' ? '本场考试已交卷。' : '考试时间已结束，无法再进入作答。'"
+          title="考试还没开始"
           :description="windowHint"
-          type="info"
-          show-icon
-          :closable="false"
         />
-        <el-alert
-          v-else
-          title="考试已开始，系统将直接进入答题页并恢复你的作答进度。"
+        <PageNotice
+          v-else-if="exam.examState === 'ENDED' || exam.attemptStatus === 'SUBMITTED'"
           type="info"
-          show-icon
-          :closable="false"
+          :title="exam.attemptStatus === 'SUBMITTED' ? '这场考试已经提交完成' : '考试时间已结束'"
+          :description="windowHint"
+        />
+        <PageNotice
+          v-else
+          type="success"
+          title="考试已经开始"
+          description="进入答题页后，系统会继续保留你之前的作答进度。"
         />
       </template>
     </PageContainer>
@@ -102,9 +95,11 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageNotice from '@/components/common/PageNotice.vue'
 import ExamMetaPanel from '@/components/exam/ExamMetaPanel.vue'
 import { getStudentExamDetail } from '@/api/examApi'
 import { formatDateTime } from '@/utils/date'
+import { resolveUserFacingError } from '@/utils/feedback'
 import { createRequestCoordinator } from '@/utils/requestCoordinator'
 
 const examDetailCoordinator = createRequestCoordinator('student-exams:detail', {
@@ -187,7 +182,7 @@ const windowHint = computed(() => {
 
   const startAt = exam.value.examStartAt ? formatDateTime(exam.value.examStartAt) : '--'
   const endAt = exam.value.windowEndAt ? formatDateTime(exam.value.windowEndAt) : '--'
-  return `考试窗口：${startAt} 至 ${endAt}`
+  return `考试时间：${startAt} 至 ${endAt}`
 })
 
 function goAnswer() {
@@ -229,7 +224,7 @@ async function fetchExamDetail() {
       () => getStudentExamDetail(route.params.examCode)
     )
     if (response.code !== 200 || !response.data?.exam) {
-      loadError.value = response.message || '考试详情加载失败'
+      loadError.value = resolveUserFacingError(response, '请稍后再试')
       return
     }
 
@@ -242,7 +237,7 @@ async function fetchExamDetail() {
       router.replace(`/student/exams/${exam.value.examCode}/answer`)
     }
   } catch (error) {
-    loadError.value = error?.response?.data?.message || '考试详情加载失败，请稍后重试'
+    loadError.value = resolveUserFacingError(error, '请检查网络后再试')
   }
 }
 

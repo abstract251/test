@@ -12,14 +12,14 @@
       </PageHeader>
 
       <ExamMetaPanel v-if="examForPanel" :exam="examForPanel" />
-      <el-alert v-if="bootError" :title="bootError" type="error" show-icon :closable="false" />
-      <el-alert
+      <PageNotice v-if="bootError" type="error" title="暂时还不能进入答题页" :description="bootError" />
+      <PageNotice
         v-else-if="restoreNotice"
-        :title="restoreNotice"
         type="success"
-        show-icon
-        :closable="false"
+        title="已为你恢复上次作答进度"
+        :description="restoreNotice"
       />
+      <PageNotice v-if="actionError" type="error" title="这次操作没有成功" :description="actionError" />
     </PageContainer>
 
     <PageContainer v-if="!bootError && ready">
@@ -85,6 +85,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageNotice from '@/components/common/PageNotice.vue'
 import StatusCard from '@/components/common/StatusCard.vue'
 import ExamMetaPanel from '@/components/exam/ExamMetaPanel.vue'
 import {
@@ -93,12 +94,14 @@ import {
   submitStudentExamSession
 } from '@/api/examApi'
 import { QUESTION_TYPE_LABELS } from '@/utils/constants'
+import { resolveUserFacingError } from '@/utils/feedback'
 
 const route = useRoute()
 const router = useRouter()
 const exam = ref(null)
 const ready = ref(false)
 const bootError = ref('')
+const actionError = ref('')
 const answers = reactive({})
 const sessionPayload = ref(null)
 const serverSkewMs = ref(0)
@@ -281,12 +284,14 @@ async function persistAnswers(force = false) {
       requestSucceeded = response?.code === 200
       if (!requestSucceeded) {
         saveState.value = 'failed'
+        actionError.value = resolveUserFacingError(response, '答案暂时没有保存成功，系统会继续重试')
         dirty.value = true
         scheduleRetry()
         return false
       }
 
       lastSavedSignature = requestSignature
+      actionError.value = ''
       updateSavedAt()
 
       if (buildAnswerSignature() === requestSignature) {
@@ -300,6 +305,7 @@ async function persistAnswers(force = false) {
       return true
     } catch {
       saveState.value = 'failed'
+      actionError.value = '答案暂时没有保存成功，系统会继续重试'
       dirty.value = true
       scheduleRetry()
       return false
@@ -414,6 +420,7 @@ async function handleSubmit() {
   }
 
   submitting.value = true
+  actionError.value = ''
   await flushSave()
   try {
     const res = await submitStudentExamSession(route.params.examCode)

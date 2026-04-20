@@ -11,7 +11,8 @@ if (!(Test-Path $nginxExe)) {
 
 $stopped = $false
 if (Test-Path $pidFile) {
-    $pidValue = (Get-Content $pidFile -ErrorAction SilentlyContinue | Select-Object -First 1).Trim()
+    $pidRaw = Get-Content $pidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+    $pidValue = if ($pidRaw) { $pidRaw.Trim() } else { "" }
     if ($pidValue) {
         $process = Get-Process -Id $pidValue -ErrorAction SilentlyContinue
         if ($process -and $process.ProcessName -eq "nginx") {
@@ -20,6 +21,16 @@ if (Test-Path $pidFile) {
         }
     }
     Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+}
+
+if (-not $stopped) {
+    $nginxProcesses = @(Get-Process nginx -ErrorAction SilentlyContinue)
+    if ($nginxProcesses.Count -gt 0) {
+        foreach ($process in $nginxProcesses) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+        $stopped = $true
+    }
 }
 
 if ($stopped) {
