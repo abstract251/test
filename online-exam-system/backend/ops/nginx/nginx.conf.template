@@ -1,12 +1,12 @@
 worker_processes  auto;
-pid D:/test/online-exam-system/tools/nginx/nginx-1.28.0/logs/online-exam-nginx.pid;
+pid "__OES_NGINX_DIR__/logs/online-exam-nginx.pid";
 
 events {
     worker_connections  4096;
 }
 
 http {
-    include       mime.types;
+    include       "__OES_NGINX_DIR__/conf/mime.types";
     default_type  application/octet-stream;
 
     log_format oes_main '$remote_addr - $remote_user [$time_local] "$request" '
@@ -15,8 +15,8 @@ http {
                         'uht=$upstream_header_time urt=$upstream_response_time '
                         'ua="$upstream_addr" us="$upstream_status"';
 
-    access_log  D:/test/online-exam-system/tools/nginx/nginx-1.28.0/logs/online-exam-access.log  oes_main;
-    error_log   D:/test/online-exam-system/tools/nginx/nginx-1.28.0/logs/online-exam-error.log warn;
+    access_log  "__OES_NGINX_DIR__/logs/online-exam-access.log"  oes_main;
+    error_log   "__OES_NGINX_DIR__/logs/online-exam-error.log" warn;
 
     sendfile            on;
     tcp_nopush          on;
@@ -40,7 +40,7 @@ http {
 
     upstream online_exam_backend {
         least_conn;
-        include D:/test/online-exam-system/backend/ops/nginx/runtime/upstream-mode.conf;
+        include "__OES_NGINX_RUNTIME_DIR__/upstream-mode.conf";
         keepalive 64;
     }
 
@@ -55,13 +55,13 @@ http {
         listen 8080;
         server_name _;
 
-        root D:/test/online-exam-system/frontend/dist;
+        root "__OES_FRONTEND_DIST__";
         index index.html;
 
         add_header X-Content-Type-Options "nosniff" always;
 
         location = /api/auth/login {
-            include D:/test/online-exam-system/backend/ops/nginx/runtime/login-limit.conf;
+            include "__OES_NGINX_RUNTIME_DIR__/login-limit.conf";
 
             proxy_pass http://online_exam_backend/auth/login;
             proxy_http_version 1.1;
@@ -76,7 +76,7 @@ http {
         }
 
         location = /api/auth/refresh {
-            include D:/test/online-exam-system/backend/ops/nginx/runtime/refresh-limit.conf;
+            include "__OES_NGINX_RUNTIME_DIR__/refresh-limit.conf";
 
             proxy_pass http://online_exam_backend/auth/refresh;
             proxy_http_version 1.1;
@@ -91,7 +91,7 @@ http {
         }
 
         location ~ ^/api/student/exam/[^/]+/attempt/start$ {
-            include D:/test/online-exam-system/backend/ops/nginx/runtime/start-limit.conf;
+            include "__OES_NGINX_RUNTIME_DIR__/start-limit.conf";
 
             rewrite ^/api/(.*)$ /$1 break;
             proxy_pass http://online_exam_backend;
@@ -107,7 +107,7 @@ http {
         }
 
         location ~ ^/api/student/exam/[^/]+/attempt/submit$ {
-            include D:/test/online-exam-system/backend/ops/nginx/runtime/submit-limit.conf;
+            include "__OES_NGINX_RUNTIME_DIR__/submit-limit.conf";
 
             rewrite ^/api/(.*)$ /$1 break;
             proxy_pass http://online_exam_backend;
@@ -161,7 +161,7 @@ http {
         error_page 429 = @too_many_requests;
         location @too_many_requests {
             default_type application/json;
-            return 429 '{"code":429,"message":"请求过于频繁，请稍后重试","data":null}';
+            return 429 '{"code":429,"message":"too many requests","data":null}';
         }
     }
 }

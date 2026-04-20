@@ -1,9 +1,12 @@
 $ErrorActionPreference = "Stop"
 
 $serviceName = "MySQLReplica3307"
-$repoRoot = "D:\test\online-exam-system"
-$configFile = Join-Path $repoRoot "backend\ops\mysql-replica\runtime\my3307.ini"
-$mysqld = "D:\MySQL\server\bin\mysqld.exe"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$configFile = Join-Path $paths.MysqlReplicaRuntimeDir "my3307.ini"
+$mysqld = Join-Path $paths.MysqlHome "bin\mysqld.exe"
 
 if (!(Test-Path $configFile)) {
     throw "missing replica config: $configFile"

@@ -1,9 +1,13 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$mysqlBase = "D:\MySQL\server"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$repoRoot = $paths.RepoRoot
+$mysqlBase = $paths.MysqlHome
 $mysqlBin = Join-Path $mysqlBase "bin"
-$runtimeDir = Join-Path $repoRoot "backend\ops\mysql-replica\runtime"
+$runtimeDir = $paths.MysqlReplicaRuntimeDir
 $dataDir = Join-Path $runtimeDir "data"
 $logDir = Join-Path $runtimeDir "logs"
 $dumpFile = Join-Path $runtimeDir "online_exam_replica_dump.sql"

@@ -1,9 +1,13 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$nginxDir = Join-Path $repoRoot "tools\nginx\nginx-1.28.0"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$nginxDir = $paths.NginxHome
 $nginxExe = Join-Path $nginxDir "nginx.exe"
 $pidFile = Join-Path $nginxDir "logs\online-exam-nginx.pid"
+$taskKillExe = Join-Path $env:WINDIR "System32\taskkill.exe"
 
 if (!(Test-Path $nginxExe)) {
     throw "nginx.exe not found: $nginxExe"
@@ -17,7 +21,8 @@ if (Test-Path $pidFile) {
         $process = Get-Process -Id $pidValue -ErrorAction SilentlyContinue
         if ($process -and $process.ProcessName -eq "nginx") {
             Stop-Process -Id $pidValue -Force -ErrorAction SilentlyContinue
-            $stopped = $true
+            Start-Sleep -Milliseconds 500
+            $stopped = -not (Get-Process -Id $pidValue -ErrorAction SilentlyContinue)
         }
     }
     Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
@@ -29,8 +34,24 @@ if (-not $stopped) {
         foreach ($process in $nginxProcesses) {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         }
-        $stopped = $true
+        Start-Sleep -Milliseconds 500
+        $stopped = @(Get-Process nginx -ErrorAction SilentlyContinue).Count -eq 0
     }
+}
+
+if (-not $stopped -and (Test-Path $taskKillExe)) {
+    & $taskKillExe /F /T /IM nginx.exe | Out-Null
+    Start-Sleep -Milliseconds 500
+    $stopped = @(Get-Process nginx -ErrorAction SilentlyContinue).Count -eq 0
+}
+
+if (Test-Path $pidFile) {
+    Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+}
+
+if (-not $stopped -and @(Get-Process nginx -ErrorAction SilentlyContinue).Count -gt 0) {
+    Write-Warning "nginx processes are still running after stop attempts"
+    return
 }
 
 if ($stopped) {

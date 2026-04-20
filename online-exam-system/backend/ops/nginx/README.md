@@ -42,7 +42,9 @@
 ## 脚本说明
 
 - `backend/ops/scripts/start-nginx-test-instance.ps1`
-  - 启动前先校验 `frontend/dist`、`nginx.exe` 和 `online-exam-test.conf`
+  - 启动前先校验 `frontend/dist`、`nginx.exe` 和 `nginx.conf.template`
+  - 启动时会根据仓库根目录与本机工具路径动态生成：
+    - `backend/ops/nginx/runtime/generated/online-exam-test.generated.conf`
   - 自动清理陈旧的 `online-exam-nginx.pid`
   - 先执行 `nginx -t` 再启动
   - 使用独立 PID 文件：
@@ -132,6 +134,16 @@ phase 8 新增了入口层 runtime 模式切换脚本：
 - `backend/ops/nginx/runtime/refresh-limit.conf`
 - `backend/ops/nginx/runtime/start-limit.conf`
 - `backend/ops/nginx/runtime/submit-limit.conf`
+
+如果组员的 `Nginx` 安装路径和仓库默认值不同，不要修改正式脚本，改为创建：
+
+- `backend/ops/local/tool-paths.local.ps1`
+
+并在其中覆盖：
+
+```powershell
+$env:OES_NGINX_HOME = "E:\tools\nginx-1.30.0"
+```
 
 ## 回滚方式
 

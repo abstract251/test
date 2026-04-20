@@ -6,11 +6,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$nginxDir = Join-Path $repoRoot "tools\nginx\nginx-1.28.0"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$nginxDir = $paths.NginxHome
 $nginxExe = Join-Path $nginxDir "nginx.exe"
-$configFile = Join-Path $repoRoot "backend\ops\nginx\online-exam-test.conf"
-$runtimeDir = Join-Path $repoRoot "backend\ops\nginx\runtime"
+$configFile = New-OesNginxGeneratedConfig -PathConfig $paths
+$runtimeDir = $paths.NginxRuntimeDir
 
 if (!(Test-Path $nginxExe)) {
     throw "nginx.exe not found: $nginxExe"

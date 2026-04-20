@@ -1,11 +1,14 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$backendDir = Join-Path $repoRoot "backend"
-$targetDir = Join-Path $backendDir "target"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$backendDir = $paths.BackendDir
+$targetDir = $paths.TargetDir
 $stdoutLog = Join-Path $targetDir "backend-run-18081.out.log"
 $stderrLog = Join-Path $targetDir "backend-run-18081.err.log"
-$maven = "C:\Users\GWK\tools\apache-maven-3.9.14\bin\mvn.cmd"
+$maven = $paths.MavenCommand
 $port = 18081
 $jvmXms = if ($env:APP_JVM_XMS) { $env:APP_JVM_XMS } else { "768m" }
 $jvmXmx = if ($env:APP_JVM_XMX) { $env:APP_JVM_XMX } else { "768m" }
@@ -13,6 +16,10 @@ $jvmExtra = if ($env:APP_JVM_EXTRA) { $env:APP_JVM_EXTRA } else { "" }
 
 if (!(Test-Path $targetDir)) {
     New-Item -ItemType Directory -Path $targetDir | Out-Null
+}
+
+if (!(Get-Command $maven -ErrorAction SilentlyContinue) -and !(Test-Path -LiteralPath $maven)) {
+    throw "maven executable not found: $maven. Configure OES_MAVEN_CMD in backend/ops/local/tool-paths.local.ps1 if needed."
 }
 
 $occupiedPids = @()

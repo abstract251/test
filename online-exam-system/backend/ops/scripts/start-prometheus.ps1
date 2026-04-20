@@ -1,11 +1,18 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$prometheusDir = Join-Path $repoRoot "tools\prometheus\prometheus-3.5.0.windows-amd64"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$prometheusDir = $paths.PrometheusHome
 $prometheusExe = Join-Path $prometheusDir "prometheus.exe"
-$configFile = Join-Path $repoRoot "backend\ops\prometheus\prometheus.yml"
-$stdoutLog = Join-Path $repoRoot "tools\prometheus\prometheus.out.log"
-$stderrLog = Join-Path $repoRoot "tools\prometheus\prometheus.err.log"
+$configFile = $paths.PrometheusConfig
+$stdoutLog = Join-Path $paths.TargetDir "prometheus.out.log"
+$stderrLog = Join-Path $paths.TargetDir "prometheus.err.log"
+
+if (!(Test-Path -LiteralPath $paths.TargetDir)) {
+    New-Item -ItemType Directory -Path $paths.TargetDir -Force | Out-Null
+}
 
 if (!(Test-Path $prometheusExe)) {
     throw "prometheus.exe not found: $prometheusExe"

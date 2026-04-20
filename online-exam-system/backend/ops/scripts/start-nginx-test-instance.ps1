@@ -1,25 +1,24 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$nginxDir = Join-Path $repoRoot "tools\nginx\nginx-1.28.0"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$nginxDir = $paths.NginxHome
 $nginxExe = Join-Path $nginxDir "nginx.exe"
-$configFile = Join-Path $repoRoot "backend\ops\nginx\online-exam-test.conf"
+$configFile = New-OesNginxGeneratedConfig -PathConfig $paths
 $pidFile = Join-Path $nginxDir "logs\online-exam-nginx.pid"
 $legacyPidFile = Join-Path $nginxDir "logs\nginx.pid"
 $errorLog = Join-Path $nginxDir "logs\online-exam-error.log"
-$frontendDist = Join-Path $repoRoot "frontend\dist"
-$powershellExe = Join-Path $env:WINDIR "System32\WindowsPowerShell\v1.0\powershell.exe"
+$frontendDist = $paths.FrontendDist
+$cmdExe = Join-Path $env:WINDIR "System32\cmd.exe"
 
 if (!(Test-Path $nginxExe)) {
     throw "nginx.exe not found: $nginxExe"
 }
 
-if (!(Test-Path $configFile)) {
-    throw "nginx config not found: $configFile"
-}
-
-if (!(Test-Path $powershellExe)) {
-    throw "powershell.exe not found: $powershellExe"
+if (!(Test-Path $cmdExe)) {
+    throw "cmd.exe not found: $cmdExe"
 }
 
 if (!(Test-Path $frontendDist)) {
@@ -45,14 +44,11 @@ if (Test-Path $legacyPidFile) {
 
 & $nginxExe -p "$nginxDir\" -c $configFile -t
 
-$escapedNginx = $nginxExe.Replace("'", "''")
-$escapedPrefix = "$nginxDir\".Replace("'", "''")
-$escapedConfig = $configFile.Replace("'", "''")
-$launchCommand = "& '$escapedNginx' -p '$escapedPrefix' -c '$escapedConfig'"
+$cmdArgs = "/c start `"`" /min `"$nginxExe`" -p `"$nginxDir\`" -c `"$configFile`""
 
 Start-Process `
-    -FilePath $powershellExe `
-    -ArgumentList "-NoProfile", "-Command", $launchCommand `
+    -FilePath $cmdExe `
+    -ArgumentList $cmdArgs `
     -WorkingDirectory $nginxDir `
     -WindowStyle Hidden
 

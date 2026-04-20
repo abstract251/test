@@ -1,8 +1,11 @@
 $ErrorActionPreference = "Stop"
 
-$repoRoot = "D:\test\online-exam-system"
-$runtimeDir = Join-Path $repoRoot "backend\ops\mysql-replica\runtime"
-$mysqlAdmin = "D:\MySQL\server\bin\mysqladmin.exe"
+$pathHelper = Join-Path $PSScriptRoot "Resolve-OesPaths.ps1"
+. $pathHelper
+$paths = Get-OesPathConfig -ScriptDir $PSScriptRoot
+
+$runtimeDir = $paths.MysqlReplicaRuntimeDir
+$mysqlAdmin = Join-Path $paths.MysqlHome "bin\mysqladmin.exe"
 $pidFile = Join-Path $runtimeDir "mysql3307.pid"
 
 try {

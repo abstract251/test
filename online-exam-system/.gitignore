@@ -82,6 +82,8 @@ backend/src/main/resources/application-prod.properties
 # ===========================
 backend/ops/mysql-replica/runtime/
 backend/ops/mysql-replica/*.sql
+backend/ops/local/tool-paths.local.ps1
+backend/ops/nginx/runtime/generated/
 tools/prometheus/**/data/
 tools/nginx/nginx-1.28.0/logs/
 tools/nginx/nginx-1.28.0/temp/
