@@ -1,5 +1,7 @@
 package com.test.oes.config;
 
+import com.test.oes.runtime.RuntimeFeatureKey;
+import com.test.oes.runtime.RuntimeToggleManager;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -58,7 +60,8 @@ public class DataSourceRoutingConfig {
                                  @Qualifier("replicaDataSource") ObjectProvider<DataSource> replicaDataSourceProvider,
                                  ObjectProvider<ReplicaHealthMonitor> replicaHealthMonitorProvider,
                                  DatabaseRoutingProperties properties,
-                                 DatabaseRouteMetrics metrics) {
+                                 DatabaseRouteMetrics metrics,
+                                 RuntimeToggleManager runtimeToggleManager) {
         DataSource replicaDataSource = replicaDataSourceProvider.getIfAvailable();
         if (!properties.isReadRoutingEnabled() || replicaDataSource == null) {
             return new LazyConnectionDataSourceProxy(primaryDataSource);
@@ -70,6 +73,7 @@ public class DataSourceRoutingConfig {
                     ReplicaHealthMonitor monitor = replicaHealthMonitorProvider.getIfAvailable();
                     return monitor != null && monitor.canUseReplica();
                 },
+                () -> runtimeToggleManager.isEnabled(RuntimeFeatureKey.READ_REPLICA_ENABLED),
                 metrics
         );
         Map<Object, Object> targetDataSources = new HashMap<>();

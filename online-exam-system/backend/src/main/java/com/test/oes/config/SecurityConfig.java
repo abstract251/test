@@ -1,5 +1,6 @@
 package com.test.oes.config;
 
+import com.test.oes.runtime.RuntimeFeatureGateFilter;
 import com.test.oes.security.ApiAccessDeniedHandler;
 import com.test.oes.security.ApiAuthenticationEntryPoint;
 import com.test.oes.security.JwtAuthenticationFilter;
@@ -34,15 +35,18 @@ public class SecurityConfig {
     private final ApiAuthenticationEntryPoint authenticationEntryPoint;
     private final ApiAccessDeniedHandler accessDeniedHandler;
     private final JwtProperties jwtProperties;
+    private final RuntimeFeatureGateFilter runtimeFeatureGateFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           ApiAuthenticationEntryPoint authenticationEntryPoint,
                           ApiAccessDeniedHandler accessDeniedHandler,
-                          JwtProperties jwtProperties) {
+                          JwtProperties jwtProperties,
+                          RuntimeFeatureGateFilter runtimeFeatureGateFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
         this.jwtProperties = jwtProperties;
+        this.runtimeFeatureGateFilter = runtimeFeatureGateFilter;
     }
 
     @Bean
@@ -74,7 +78,8 @@ public class SecurityConfig {
                         .requestMatchers("/score/**", "/studentPWD").authenticated()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(runtimeFeatureGateFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 

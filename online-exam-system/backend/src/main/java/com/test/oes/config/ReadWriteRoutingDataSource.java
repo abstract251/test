@@ -12,13 +12,16 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
 
     private final boolean routingEnabled;
     private final Supplier<Boolean> replicaAvailability;
+    private final Supplier<Boolean> runtimeReplicaEnabled;
     private final DatabaseRouteMetrics metrics;
 
     public ReadWriteRoutingDataSource(boolean routingEnabled,
                                       Supplier<Boolean> replicaAvailability,
+                                      Supplier<Boolean> runtimeReplicaEnabled,
                                       DatabaseRouteMetrics metrics) {
         this.routingEnabled = routingEnabled;
         this.replicaAvailability = replicaAvailability;
+        this.runtimeReplicaEnabled = runtimeReplicaEnabled;
         this.metrics = metrics;
     }
 
@@ -29,7 +32,7 @@ public class ReadWriteRoutingDataSource extends AbstractRoutingDataSource {
             metrics.recordRoute(PRIMARY, "override");
             return PRIMARY;
         }
-        if (!routingEnabled || !TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
+        if (!routingEnabled || !runtimeReplicaEnabled.get() || !TransactionSynchronizationManager.isCurrentTransactionReadOnly()) {
             metrics.recordRoute(PRIMARY, routingEnabled ? "selected" : "routing_disabled");
             return PRIMARY;
         }

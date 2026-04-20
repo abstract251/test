@@ -4,6 +4,8 @@ import com.test.oes.async.payload.DraftFlushPayload;
 import com.test.oes.cache.DraftCacheService;
 import com.test.oes.cache.StudentDraftCacheValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.oes.runtime.RuntimeFeatureKey;
+import com.test.oes.runtime.RuntimeToggleManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -21,9 +23,14 @@ public class DraftFlushDispatchScheduler {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
     private final AsyncProperties asyncProperties;
+    private final RuntimeToggleManager runtimeToggleManager;
 
     @Scheduled(initialDelay = 3000L, fixedDelay = 1000L)
     public void dispatchDueDrafts() {
+        if (!runtimeToggleManager.isEnabled(RuntimeFeatureKey.ASYNC_DRAFT_FLUSH_CONSUMER_ENABLED)
+                || !draftCacheService.isEnabled()) {
+            return;
+        }
         Set<String> due = draftCacheService.popDueFlushCandidates(java.time.Instant.now(), asyncProperties.getDraft().getDispatchBatchSize());
         for (String item : due) {
             String[] parts = item.split(":");

@@ -1,5 +1,7 @@
 package com.test.oes.cache;
 
+import com.test.oes.runtime.RuntimeFeatureKey;
+import com.test.oes.runtime.RuntimeToggleManager;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +17,14 @@ public class DraftCacheService {
 
     private final JsonRedisStore jsonRedisStore;
     private final Optional<StringRedisTemplate> redisTemplate;
+    private final RuntimeToggleManager runtimeToggleManager;
 
-    public DraftCacheService(JsonRedisStore jsonRedisStore, Optional<StringRedisTemplate> redisTemplate) {
+    public DraftCacheService(JsonRedisStore jsonRedisStore,
+                             Optional<StringRedisTemplate> redisTemplate,
+                             RuntimeToggleManager runtimeToggleManager) {
         this.jsonRedisStore = jsonRedisStore;
         this.redisTemplate = redisTemplate;
+        this.runtimeToggleManager = runtimeToggleManager;
     }
 
     public StudentDraftCacheValue getDraft(Integer examCode, Integer studentId) {
@@ -34,7 +40,7 @@ public class DraftCacheService {
     }
 
     public boolean isEnabled() {
-        return jsonRedisStore.isEnabled();
+        return jsonRedisStore.isEnabled() && runtimeToggleManager.isEnabled(RuntimeFeatureKey.REDIS_DRAFT_ENABLED);
     }
 
     public boolean scheduleFlush(Integer examCode, Integer studentId, Instant dueAt) {

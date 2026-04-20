@@ -2,6 +2,8 @@ package com.test.oes.async;
 
 import com.test.oes.entity.AsyncEventOutbox;
 import com.test.oes.mapper.AsyncEventOutboxMapper;
+import com.test.oes.runtime.RuntimeFeatureKey;
+import com.test.oes.runtime.RuntimeToggleManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -19,11 +21,15 @@ public class OutboxPublisherScheduler {
     private final AsyncEventPublisher asyncEventPublisher;
     private final AsyncMetrics asyncMetrics;
     private final TransactionTemplate transactionTemplate;
+    private final RuntimeToggleManager runtimeToggleManager;
 
     @Scheduled(initialDelay = 3000L, fixedDelay = 2000L)
     public void publishPending() {
         try {
             asyncMetrics.updateOutboxPending(asyncEventOutboxMapper.countPending());
+            if (!runtimeToggleManager.isEnabled(RuntimeFeatureKey.ASYNC_OUTBOX_PUBLISHER_ENABLED)) {
+                return;
+            }
             List<AsyncEventOutbox> batch = lockBatch();
             for (AsyncEventOutbox row : batch) {
                 asyncMetrics.outboxPublishLatency().record(() -> publishSingle(row));

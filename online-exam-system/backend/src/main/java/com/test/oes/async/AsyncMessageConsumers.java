@@ -46,7 +46,7 @@ public class AsyncMessageConsumers {
     private final AsyncMetrics asyncMetrics;
     private final RabbitTemplate rabbitTemplate;
 
-    @RabbitListener(queues = AsyncQueues.EXAM_SUBMITTED_STATISTICS)
+    @RabbitListener(id = "runtime-exam-submitted", queues = AsyncQueues.EXAM_SUBMITTED_STATISTICS)
     public void onExamSubmitted(Message message, Channel channel) throws Exception {
         process(message, channel, AsyncQueues.EXAM_SUBMITTED_STATISTICS, CONSUMER_SUBMITTED, new TypeReference<AsyncEventEnvelope<ExamSubmittedPayload>>() {
         }, envelope -> asyncMetrics.projectionRefreshLatency().record(() -> {
@@ -55,7 +55,7 @@ public class AsyncMessageConsumers {
         }));
     }
 
-    @RabbitListener(queues = AsyncQueues.EXAM_REVOKED_INVALIDATE)
+    @RabbitListener(id = "runtime-exam-revoked", queues = AsyncQueues.EXAM_REVOKED_INVALIDATE)
     public void onExamRevoked(Message message, Channel channel) throws Exception {
         process(message, channel, AsyncQueues.EXAM_REVOKED_INVALIDATE, CONSUMER_REVOKED, new TypeReference<AsyncEventEnvelope<ExamRevokedPayload>>() {
         }, envelope -> {
@@ -68,7 +68,7 @@ public class AsyncMessageConsumers {
         });
     }
 
-    @RabbitListener(queues = AsyncQueues.DRAFT_FLUSH)
+    @RabbitListener(id = "runtime-draft-flush", queues = AsyncQueues.DRAFT_FLUSH)
     public void onDraftFlush(Message message, Channel channel) throws Exception {
         process(message, channel, AsyncQueues.DRAFT_FLUSH, CONSUMER_DRAFT_FLUSH, new TypeReference<AsyncEventEnvelope<DraftFlushPayload>>() {
         }, envelope -> asyncMetrics.draftFlushLatency().record(() -> {
@@ -89,7 +89,7 @@ public class AsyncMessageConsumers {
         }));
     }
 
-    @RabbitListener(queues = AsyncQueues.AUTH_REFRESH_REVOKED_INVALIDATE)
+    @RabbitListener(id = "runtime-auth-refresh-revoked", queues = AsyncQueues.AUTH_REFRESH_REVOKED_INVALIDATE)
     public void onAuthRefreshRevoked(Message message, Channel channel) throws Exception {
         process(message, channel, AsyncQueues.AUTH_REFRESH_REVOKED_INVALIDATE, CONSUMER_REFRESH_REVOKED, new TypeReference<AsyncEventEnvelope<AuthRefreshRevokedPayload>>() {
         }, envelope -> {
@@ -110,7 +110,7 @@ public class AsyncMessageConsumers {
         });
     }
 
-    @RabbitListener(queues = AsyncQueues.MESSAGE_CREATED_INVALIDATE)
+    @RabbitListener(id = "runtime-message-created", queues = AsyncQueues.MESSAGE_CREATED_INVALIDATE)
     public void onMessageCreated(Message message, Channel channel) throws Exception {
         process(message, channel, AsyncQueues.MESSAGE_CREATED_INVALIDATE, CONSUMER_MESSAGE_CREATED, new TypeReference<AsyncEventEnvelope<MessageCreatedPayload>>() {
         }, envelope -> {

@@ -103,6 +103,36 @@ $env:BASE_URL='http://localhost:8080'
 k6 run backend/perf/k6/student-exam-concurrent-flow.js
 ```
 
+## Runtime Mode
+
+phase 8 新增了入口层 runtime 模式切换脚本：
+
+- `backend/ops/scripts/set-nginx-runtime-mode.ps1`
+
+支持的模式：
+
+- `normal`
+- `single-18080`
+- `single-18081`
+- `strict-protect`
+- `relaxed`
+
+示例：
+
+```powershell
+& "D:\test\online-exam-system\backend\ops\scripts\set-nginx-runtime-mode.ps1" -Mode normal
+& "D:\test\online-exam-system\backend\ops\scripts\set-nginx-runtime-mode.ps1" -Mode single-18080
+& "D:\test\online-exam-system\backend\ops\scripts\set-nginx-runtime-mode.ps1" -Mode strict-protect
+```
+
+对应 runtime include 目录：
+
+- `backend/ops/nginx/runtime/upstream-mode.conf`
+- `backend/ops/nginx/runtime/login-limit.conf`
+- `backend/ops/nginx/runtime/refresh-limit.conf`
+- `backend/ops/nginx/runtime/start-limit.conf`
+- `backend/ops/nginx/runtime/submit-limit.conf`
+
 ## 回滚方式
 
 如果 `phase 2` 联调中发现问题，按以下顺序回滚：

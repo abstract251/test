@@ -2,6 +2,8 @@ package com.test.oes.cache;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.oes.runtime.RuntimeFeatureKey;
+import com.test.oes.runtime.RuntimeToggleManager;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.Nullable;
@@ -17,19 +19,25 @@ public class JsonRedisStore {
     private final ObjectMapper objectMapper;
     private final Optional<StringRedisTemplate> redisTemplate;
     private final CacheMetrics cacheMetrics;
+    private final RuntimeToggleManager runtimeToggleManager;
 
     public JsonRedisStore(CacheProperties cacheProperties,
                           ObjectMapper objectMapper,
                           Optional<StringRedisTemplate> redisTemplate,
-                          CacheMetrics cacheMetrics) {
+                          CacheMetrics cacheMetrics,
+                          RuntimeToggleManager runtimeToggleManager) {
         this.cacheProperties = cacheProperties;
         this.objectMapper = objectMapper;
         this.redisTemplate = redisTemplate;
         this.cacheMetrics = cacheMetrics;
+        this.runtimeToggleManager = runtimeToggleManager;
     }
 
     public boolean isEnabled() {
-        return cacheProperties.isEnabled() && cacheProperties.getRedis().isEnabled() && redisTemplate.isPresent();
+        return cacheProperties.isEnabled()
+                && cacheProperties.getRedis().isEnabled()
+                && runtimeToggleManager.isEnabled(RuntimeFeatureKey.REDIS_SHARED_CACHE_ENABLED)
+                && redisTemplate.isPresent();
     }
 
     public boolean isRequired() {

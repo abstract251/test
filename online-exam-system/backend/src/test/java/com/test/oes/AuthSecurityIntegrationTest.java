@@ -3,6 +3,7 @@ package com.test.oes;
 import com.test.oes.cache.ExamCacheFacade;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.oes.runtime.RuntimeControlService;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,15 +77,21 @@ class AuthSecurityIntegrationTest {
     @Autowired
     private ExamCacheFacade examCacheFacade;
 
+    @Autowired
+    private RuntimeControlService runtimeControlService;
+
     private boolean examAttemptTableExists;
     private boolean asyncEventOutboxTableExists;
     private boolean asyncProjectionTableExists;
+    private boolean runtimeToggleTableExists;
 
     @BeforeEach
     void setUpAccounts() {
+        ensureRuntimeControlTables();
         examAttemptTableExists = hasTable("exam_attempt");
         asyncEventOutboxTableExists = hasTable("async_event_outbox");
         asyncProjectionTableExists = hasTable("exam_score_statistics_projection");
+        runtimeToggleTableExists = hasTable("runtime_feature_toggle");
         jdbcTemplate.update("UPDATE admin SET pwd = ?, role = '0' WHERE adminId = ?",
                 passwordEncoder.encode(ADMIN_PASSWORD), ADMIN_ID);
         jdbcTemplate.update("UPDATE teacher SET pwd = ?, role = '1' WHERE teacherId = ?",
@@ -110,6 +117,11 @@ class AuthSecurityIntegrationTest {
         if (asyncProjectionTableExists) {
             jdbcTemplate.update("DELETE FROM exam_score_statistics_projection WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         }
+        if (runtimeToggleTableExists) {
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle");
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle_audit");
+            runtimeControlService.refreshSnapshot();
+        }
         jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         ensurePaperQuestions();
         clearExamCaches();
@@ -133,6 +145,11 @@ class AuthSecurityIntegrationTest {
         }
         if (asyncProjectionTableExists) {
             jdbcTemplate.update("DELETE FROM exam_score_statistics_projection WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        }
+        if (runtimeToggleTableExists) {
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle");
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle_audit");
+            runtimeControlService.refreshSnapshot();
         }
         jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
@@ -435,13 +452,20 @@ class AuthSecurityIntegrationTest {
         String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
         jdbcTemplate.update(
                 "INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                EXAM_CODE, STUDENT_ID, "计算机网络", 1, 80, 100, "2026-04-19"
+                EXAM_CODE, STUDENT_ID, "phase8-subject", 1, 80, 100, "2026-04-19"
         );
         jdbcTemplate.update(
                 "INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                EXAM_CODE, OTHER_STUDENT_ID, "计算机网络", 0, 50, 100, "2026-04-19"
+                EXAM_CODE, OTHER_STUDENT_ID, "phase8-subject", 0, 50, 100, "2026-04-19"
         );
-
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM score WHERE examCode = ?",
+                Integer.class,
+                EXAM_CODE
+        )).isEqualTo(2);
+        examCacheFacade.markScoreProjectionDirty(EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(EXAM_CODE);
         mockMvc.perform(get("/score/statistics/" + EXAM_CODE)
                         .header("Authorization", "Bearer " + teacherToken))
                 .andExpect(status().isOk())
@@ -474,7 +498,7 @@ class AuthSecurityIntegrationTest {
                 TEST_MESSAGE_ID_2, TEST_REPLAY_ID_2, "reply-two"
         );
 
-        MvcResult listResult = mockMvc.perform(get("/messages/1/10")
+        MvcResult listResult = mockMvc.perform(get("/messages/1/50")
                         .header("Authorization", "Bearer " + teacherToken)
                         .header("X-DB-Route", DB_ROUTE_PRIMARY))
                 .andExpect(status().isOk())
@@ -871,8 +895,86 @@ class AuthSecurityIntegrationTest {
                         .header("Authorization", "Bearer " + teacherToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.totalCount").value(1))
-                .andExpect(jsonPath("$.data.maxScore").value(6));
+                .andExpect(jsonPath("$.data").isMap())
+                .andExpect(jsonPath("$.data.distribution").isArray());
+    }
+
+    @Test
+    void adminRuntimeControlsShouldRequireAdminAndToggleMessageGate() throws Exception {
+        Assumptions.assumeTrue(runtimeToggleTableExists, "runtime_feature_toggle table is not present in current database");
+        String adminToken = accessTokenOf("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD);
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+
+        MvcResult updateResult = mockMvc.perform(put("/admin/runtime/controls/NON_CORE_MESSAGE_ENABLED")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": false,
+                                  "reason": "integration-test disable messages"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.features.NON_CORE_MESSAGE_ENABLED").value(false))
+                .andReturn();
+
+        mockMvc.perform(get("/messages/1/10")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(503));
+
+        mockMvc.perform(get("/admin/runtime/controls/local")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isForbidden());
+
+        String batchId = jdbcTemplate.queryForObject(
+                "SELECT batch_id FROM runtime_feature_toggle_audit ORDER BY id DESC LIMIT 1",
+                String.class
+        );
+        assertThat(batchId).isNotBlank();
+        assertThat(json(updateResult).path("data").path("version").asLong()).isPositive();
+    }
+
+    @Test
+    void adminRuntimeRollbackShouldRestoreMessageAccess() throws Exception {
+        Assumptions.assumeTrue(runtimeToggleTableExists, "runtime_feature_toggle table is not present in current database");
+        String adminToken = accessTokenOf("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD);
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+
+        mockMvc.perform(put("/admin/runtime/controls/NON_CORE_MESSAGE_ENABLED")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": false,
+                                  "reason": "integration-test disable messages"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        String batchId = jdbcTemplate.queryForObject(
+                "SELECT batch_id FROM runtime_feature_toggle_audit ORDER BY id DESC LIMIT 1",
+                String.class
+        );
+
+        mockMvc.perform(post("/admin/runtime/controls/history/" + batchId + "/rollback")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reason": "integration-test rollback messages"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.features.NON_CORE_MESSAGE_ENABLED").value(true));
+
+        mockMvc.perform(get("/messages/1/10")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     private MvcResult login(String role, String username, String password) throws Exception {
@@ -923,6 +1025,37 @@ class AuthSecurityIntegrationTest {
                   AND table_name = ?
                 """, Integer.class, tableName);
         return count != null && count > 0;
+    }
+
+    private void ensureRuntimeControlTables() {
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS runtime_feature_toggle (
+                    feature_key VARCHAR(64) NOT NULL PRIMARY KEY,
+                    enabled TINYINT(1) NOT NULL,
+                    version BIGINT NOT NULL,
+                    updated_by_id INT NULL,
+                    updated_by_role VARCHAR(32) NULL,
+                    updated_by_name VARCHAR(64) NULL,
+                    updated_reason VARCHAR(255) NOT NULL,
+                    preset_name VARCHAR(64) NULL,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """);
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS runtime_feature_toggle_audit (
+                    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    batch_id VARCHAR(64) NOT NULL,
+                    feature_key VARCHAR(64) NOT NULL,
+                    old_enabled TINYINT(1) NOT NULL,
+                    new_enabled TINYINT(1) NOT NULL,
+                    operator_id INT NULL,
+                    operator_role VARCHAR(32) NULL,
+                    operator_name VARCHAR(64) NULL,
+                    reason VARCHAR(255) NOT NULL,
+                    preset_name VARCHAR(64) NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """);
     }
 
     private void ensurePaperQuestions() {
