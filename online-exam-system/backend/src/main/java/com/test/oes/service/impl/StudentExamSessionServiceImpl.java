@@ -170,29 +170,10 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         if (examTimeHelper.isRevoked(exam)) {
             throw new ExamBusinessException(410, "本场考试已撤销");
         }
-        if (!matchesScope(exam, student)) {
+        if (!StudentExamQueryServiceImpl.matchesScope(exam, student)) {
             throw new ExamBusinessException(403, "您不在本场考试的参考范围内");
         }
         return exam;
-    }
-
-    private static boolean matchesScope(ExamManage exam, Student s) {
-        if (exam.getGrade() != null && !exam.getGrade().isBlank()) {
-            if (s.getGrade() == null || !exam.getGrade().trim().equals(s.getGrade().trim())) {
-                return false;
-            }
-        }
-        if (exam.getMajor() != null && !exam.getMajor().isBlank()) {
-            if (s.getMajor() == null || !exam.getMajor().trim().equals(s.getMajor().trim())) {
-                return false;
-            }
-        }
-        if (exam.getInstitute() != null && !exam.getInstitute().isBlank()) {
-            if (s.getInstitute() == null || !exam.getInstitute().trim().equals(s.getInstitute().trim())) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private int parseStudentId(Student student) {
@@ -210,12 +191,43 @@ public class StudentExamSessionServiceImpl implements StudentExamSessionService 
         body.put("serverTime", now);
         body.put("windowEndAt", examTimeHelper.examWindowEnd(exam));
         body.put("paper", maskedPaper);
+        body.put("exam", buildExamMeta(exam, attempt, now));
         try {
             body.put("answers", readAnswersMap(attempt.getAnswersJson()));
         } catch (Exception e) {
             body.put("answers", Collections.emptyMap());
         }
         return body;
+    }
+
+    private Map<String, Object> buildExamMeta(ExamManage exam, ExamAttempt attempt, LocalDateTime now) {
+        Map<String, Object> meta = new LinkedHashMap<>();
+        LocalDateTime startAt = examTimeHelper.effectiveExamStart(exam);
+        meta.put("examCode", exam.getExamCode());
+        meta.put("source", exam.getSource());
+        meta.put("description", exam.getDescription());
+        meta.put("type", exam.getType());
+        meta.put("tips", exam.getTips());
+        meta.put("examDate", startAt == null ? exam.getExamDate() : examTimeHelper.formatExamDateDisplay(startAt));
+        meta.put("examStartAt", startAt);
+        meta.put("totalTime", exam.getTotalTime());
+        meta.put("totalScore", exam.getTotalScore() != null || exam.getPaperId() == null
+                ? exam.getTotalScore()
+                : paperService.getMaxScore(exam.getPaperId()));
+        meta.put("grade", exam.getGrade());
+        meta.put("major", exam.getMajor());
+        meta.put("institute", exam.getInstitute());
+        meta.put("freezeAt", examTimeHelper.freezeInstant(exam));
+        meta.put("windowEndAt", examTimeHelper.examWindowEnd(exam));
+        meta.put("paperLocked", examTimeHelper.isPaperLocked(exam, now));
+        meta.put("revoked", examTimeHelper.isRevoked(exam));
+        meta.put("revokeReason", exam.getRevokeReason());
+        meta.put("inExamWindow", examTimeHelper.isWithinExamWindow(exam, now));
+        meta.put("attemptStatus", Objects.equals(attempt.getStatus(), STATUS_SUBMITTED) ? "SUBMITTED" : "IN_PROGRESS");
+        meta.put("startedAt", attempt.getStartedAt());
+        meta.put("submittedAt", attempt.getSubmittedAt());
+        meta.put("canEnter", true);
+        return meta;
     }
 
     private Map<String, String> readAnswersMap(String json) {

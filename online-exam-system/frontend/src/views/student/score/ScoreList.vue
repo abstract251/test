@@ -305,6 +305,7 @@ function resolveRowClass({ row }) {
 
 async function fetchScorePage() {
   if (!studentId.value) {
+    historyScores.value = []
     return
   }
 
@@ -329,6 +330,7 @@ async function fetchScorePage() {
 
 async function refreshScores() {
   if (!studentId.value) {
+    historyScores.value = []
     return
   }
 

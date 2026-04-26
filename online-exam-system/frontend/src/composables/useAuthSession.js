@@ -1,20 +1,11 @@
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { getSession } from '@/utils/auth'
+import { getSession, getSessionRef } from '@/utils/auth'
 
 export function useAuthSession() {
-  const session = ref(getSession())
+  const session = getSessionRef()
 
   const syncSession = () => {
     session.value = getSession()
   }
-
-  onMounted(() => {
-    window.addEventListener('storage', syncSession)
-  })
-
-  onBeforeUnmount(() => {
-    window.removeEventListener('storage', syncSession)
-  })
 
   return {
     session,

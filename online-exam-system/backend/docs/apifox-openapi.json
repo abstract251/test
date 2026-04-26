@@ -66,70 +66,178 @@
                  }
              ],
     "paths":  {
-                  "/login":  {
-                                 "post":  {
-                                              "tags":  [
-                                                           "Auth"
-                                                       ],
-                                              "summary":  "Login",
-                                              "description":  "Login as admin, teacher, or student. Response data is one of Admin, Teacher, or Student. Cookies rb_token and rb_role are set on success.",
-                                              "requestBody":  {
-                                                                  "required":  true,
-                                                                  "content":  {
-                                                                                  "application/json":  {
-                                                                                                           "schema":  {
-                                                                                                                          "$ref":  "#/components/schemas/LoginRequest"
+                  "/auth/login":  {
+                                      "post":  {
+                                                   "tags":  [
+                                                                "Auth"
+                                                            ],
+                                                   "summary":  "Login",
+                                                   "description":  "Login with explicit role. Returns accessToken, refreshToken, and current user info.",
+                                                   "requestBody":  {
+                                                                       "required":  true,
+                                                                       "content":  {
+                                                                                       "application/json":  {
+                                                                                                                "schema":  {
+                                                                                                                               "$ref":  "#/components/schemas/LoginRequest"
+                                                                                                                           }
+                                                                                                            }
+                                                                                   }
+                                                                   },
+                                                   "responses":  {
+                                                                     "200":  {
+                                                                                 "description":  "ApiResult with auth token payload.",
+                                                                                 "content":  {
+                                                                                                 "application/json":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "type":  "object",
+                                                                                                                                         "properties":  {
+                                                                                                                                                            "code":  {
+                                                                                                                                                                         "type":  "integer",
+                                                                                                                                                                         "format":  "int32"
+                                                                                                                                                                     },
+                                                                                                                                                            "message":  {
+                                                                                                                                                                            "type":  "string"
+                                                                                                                                                                        },
+                                                                                                                                                            "data":  {
+                                                                                                                                                                         "$ref":  "#/components/schemas/AuthTokenResponse"
+                                                                                                                                                                     }
+                                                                                                                                                        },
+                                                                                                                                         "required":  [
+                                                                                                                                                          "code",
+                                                                                                                                                          "message",
+                                                                                                                                                          "data"
+                                                                                                                                                      ]
+                                                                                                                                     }
                                                                                                                       }
-                                                                                                       }
+                                                                                             }
+                                                                             }
+                                                                 }
+                                               }
+                                  },
+                  "/auth/refresh":  {
+                                        "post":  {
+                                                     "tags":  [
+                                                                  "Auth"
+                                                              ],
+                                                     "summary":  "Refresh token",
+                                                     "description":  "Rotate refreshToken and return a new accessToken / refreshToken pair.",
+                                                     "requestBody":  {
+                                                                         "required":  true,
+                                                                         "content":  {
+                                                                                         "application/json":  {
+                                                                                                                  "schema":  {
+                                                                                                                                 "$ref":  "#/components/schemas/RefreshTokenRequest"
+                                                                                                                             }
+                                                                                                              }
+                                                                                     }
+                                                                     },
+                                                     "responses":  {
+                                                                       "200":  {
+                                                                                   "description":  "ApiResult with refreshed auth token payload.",
+                                                                                   "content":  {
+                                                                                                   "application/json":  {
+                                                                                                                            "schema":  {
+                                                                                                                                           "type":  "object",
+                                                                                                                                           "properties":  {
+                                                                                                                                                              "code":  {
+                                                                                                                                                                           "type":  "integer",
+                                                                                                                                                                           "format":  "int32"
+                                                                                                                                                                       },
+                                                                                                                                                              "message":  {
+                                                                                                                                                                              "type":  "string"
+                                                                                                                                                                          },
+                                                                                                                                                              "data":  {
+                                                                                                                                                                           "$ref":  "#/components/schemas/AuthTokenResponse"
+                                                                                                                                                                       }
+                                                                                                                                                          },
+                                                                                                                                           "required":  [
+                                                                                                                                                            "code",
+                                                                                                                                                            "message",
+                                                                                                                                                            "data"
+                                                                                                                                                        ]
+                                                                                                                                       }
+                                                                                                                        }
+                                                                                               }
+                                                                                   }
+                                                               }
+                                                 }
+                                    },
+                  "/auth/logout":  {
+                                       "post":  {
+                                                    "tags":  [
+                                                                 "Auth"
+                                                             ],
+                                                    "summary":  "Logout",
+                                                    "description":  "Revoke the provided refreshToken. The frontend should still clear local auth state unconditionally.",
+                                                    "security":  [
+                                                                     {
+                                                                         "bearerAuth":  [
+
+                                                                                        ]
+                                                                     }
+                                                                 ],
+                                                    "requestBody":  {
+                                                                        "required":  false,
+                                                                        "content":  {
+                                                                                        "application/json":  {
+                                                                                                                 "schema":  {
+                                                                                                                                "$ref":  "#/components/schemas/LogoutRequest"
+                                                                                                                            }
+                                                                                                             }
+                                                                                    }
+                                                                    },
+                                                    "responses":  {
+                                                                      "200":  {
+                                                                                  "description":  "Logout acknowledged."
                                                                               }
-                                                              },
-                                              "responses":  {
-                                                                "200":  {
-                                                                            "description":  "ApiResult with login entity.",
-                                                                            "content":  {
-                                                                                            "application/json":  {
-                                                                                                                     "schema":  {
-                                                                                                                                    "type":  "object",
-                                                                                                                                    "properties":  {
-                                                                                                                                                       "code":  {
-                                                                                                                                                                    "type":  "integer",
-                                                                                                                                                                    "format":  "int32",
-                                                                                                                                                                    "description":  "Business status code. HTTP status is usually still 200."
-                                                                                                                                                                },
-                                                                                                                                                       "message":  {
-                                                                                                                                                                       "type":  "string",
-                                                                                                                                                                       "description":  "Business message."
-                                                                                                                                                                   },
-                                                                                                                                                       "data":  {
-                                                                                                                                                                    "$ref":  "#/components/schemas/LoginSuccessData"
-                                                                                                                                                                }
-                                                                                                                                                   },
-                                                                                                                                    "required":  [
-                                                                                                                                                     "code",
-                                                                                                                                                     "message",
-                                                                                                                                                     "data"
-                                                                                                                                                 ]
-                                                                                                                                }
-                                                                                                                 }
-                                                                                        }
-                                                                        }
-                                                            }
-                                          }
-                             },
-                  "/logout":  {
-                                  "post":  {
+                                                                  }
+                                                }
+                                   },
+                  "/auth/me":  {
+                                   "get":  {
                                                "tags":  [
                                                             "Auth"
                                                         ],
-                                               "summary":  "Logout",
-                                               "description":  "Clears rb_token and rb_role cookies.",
+                                               "summary":  "Current user",
+                                               "description":  "Return the current authenticated user resolved from the Bearer accessToken.",
+                                               "security":  [
+                                                                {
+                                                                    "bearerAuth":  [
+
+                                                                                   ]
+                                                                }
+                                                            ],
                                                "responses":  {
                                                                  "200":  {
-                                                                             "description":  "Cookies cleared."
+                                                                             "description":  "ApiResult with current user info.",
+                                                                             "content":  {
+                                                                                             "application/json":  {
+                                                                                                                      "schema":  {
+                                                                                                                                     "type":  "object",
+                                                                                                                                     "properties":  {
+                                                                                                                                                        "code":  {
+                                                                                                                                                                     "type":  "integer",
+                                                                                                                                                                     "format":  "int32"
+                                                                                                                                                                 },
+                                                                                                                                                        "message":  {
+                                                                                                                                                                        "type":  "string"
+                                                                                                                                                                    },
+                                                                                                                                                        "data":  {
+                                                                                                                                                                     "$ref":  "#/components/schemas/CurrentUserVO"
+                                                                                                                                                                 }
+                                                                                                                                                    },
+                                                                                                                                     "required":  [
+                                                                                                                                                      "code",
+                                                                                                                                                      "message",
+                                                                                                                                                      "data"
+                                                                                                                                                  ]
+                                                                                                                                 }
+                                                                                                                  }
+                                                                                        }
                                                                          }
                                                              }
                                            }
-                              },
+                               },
                   "/admins":  {
                                   "get":  {
                                               "tags":  [
@@ -2586,15 +2694,12 @@
                                                                                   "Exam"
                                                                               ],
                                                                      "summary":  "Revoke exam",
-                                                                     "description":  "Requires logged-in admin cookies. Only role 0 is accepted by business rules.",
+                                                                     "description":  "Requires Bearer accessToken of an admin account. Only ADMIN can revoke exams.",
                                                                      "security":  [
                                                                                       {
-                                                                                          "rbTokenCookie":  [
+                                                                                          "bearerAuth":  [
 
                                                                                                             ],
-                                                                                          "rbRoleCookie":  [
-
-                                                                                                           ]
                                                                                       }
                                                                                   ],
                                                                      "parameters":  [
@@ -2659,15 +2764,12 @@
                                                                                            "OnlineExam"
                                                                                        ],
                                                                               "summary":  "Start or resume exam attempt",
-                                                                              "description":  "Requires logged-in student cookies.",
+                                                                              "description":  "Requires Bearer accessToken of a student account.",
                                                                               "security":  [
                                                                                                {
-                                                                                                   "rbTokenCookie":  [
+                                                                                                   "bearerAuth":  [
 
                                                                                                                      ],
-                                                                                                   "rbRoleCookie":  [
-
-                                                                                                                    ]
                                                                                                }
                                                                                            ],
                                                                               "parameters":  [
@@ -2721,15 +2823,12 @@
                                                                                             "OnlineExam"
                                                                                         ],
                                                                                "summary":  "Save answers during attempt",
-                                                                               "description":  "Requires logged-in student cookies.",
+                                                                               "description":  "Requires Bearer accessToken of a student account.",
                                                                                "security":  [
                                                                                                 {
-                                                                                                    "rbTokenCookie":  [
+                                                                                                    "bearerAuth":  [
 
                                                                                                                       ],
-                                                                                                    "rbRoleCookie":  [
-
-                                                                                                                     ]
                                                                                                 }
                                                                                             ],
                                                                                "parameters":  [
@@ -2794,15 +2893,12 @@
                                                                                             "OnlineExam"
                                                                                         ],
                                                                                "summary":  "Submit exam attempt",
-                                                                               "description":  "Requires logged-in student cookies. Answers are judged against the frozen snapshot.",
+                                                                               "description":  "Requires Bearer accessToken of a student account. Answers are judged against the frozen snapshot.",
                                                                                "security":  [
                                                                                                 {
-                                                                                                    "rbTokenCookie":  [
+                                                                                                    "bearerAuth":  [
 
                                                                                                                       ],
-                                                                                                    "rbRoleCookie":  [
-
-                                                                                                                     ]
                                                                                                 }
                                                                                             ],
                                                                                "parameters":  [
@@ -3541,53 +3637,119 @@
               },
     "components":  {
                        "securitySchemes":  {
-                                               "rbTokenCookie":  {
-                                                                     "type":  "apiKey",
-                                                                     "in":  "cookie",
-                                                                     "name":  "rb_token",
-                                                                     "description":  "Primary account cookie set after login."
-                                                                 },
-                                               "rbRoleCookie":  {
-                                                                    "type":  "apiKey",
-                                                                    "in":  "cookie",
-                                                                    "name":  "rb_role",
-                                                                    "description":  "Role cookie: 0 admin, 1 teacher, 2 student."
-                                                                }
+                                               "bearerAuth":  {
+                                                                   "type":  "http",
+                                                                   "scheme":  "bearer",
+                                                                   "bearerFormat":  "JWT",
+                                                                   "description":  "Bearer accessToken returned by /auth/login or /auth/refresh."
+                                                               }
                                            },
                        "schemas":  {
                                        "LoginRequest":  {
                                                             "type":  "object",
                                                             "properties":  {
                                                                                "username":  {
-                                                                                                "type":  "integer",
-                                                                                                "format":  "int32",
-                                                                                                "description":  "Account ID."
+                                                                                                "type":  "string",
+                                                                                                "description":  "Account ID as string."
                                                                                             },
                                                                                "password":  {
                                                                                                 "type":  "string",
                                                                                                 "description":  "Password."
+                                                                                            },
+                                                                               "role":  {
+                                                                                            "type":  "string",
+                                                                                            "enum":  [
+                                                                                                         "ADMIN",
+                                                                                                         "TEACHER",
+                                                                                                         "STUDENT"
+                                                                                                     ],
+                                                                                            "description":  "Explicit login role."
                                                                                             }
                                                                            },
                                                             "required":  [
                                                                              "username",
-                                                                             "password"
+                                                                             "password",
+                                                                             "role"
                                                                          ],
                                                             "description":  "Login request payload."
                                                         },
-                                       "LoginSuccessData":  {
-                                                                "description":  "Successful login returns one of Admin, Teacher, or Student.",
-                                                                "oneOf":  [
-                                                                              {
-                                                                                  "$ref":  "#/components/schemas/Admin"
-                                                                              },
-                                                                              {
-                                                                                  "$ref":  "#/components/schemas/Teacher"
-                                                                              },
-                                                                              {
-                                                                                  "$ref":  "#/components/schemas/Student"
-                                                                              }
+                                       "RefreshTokenRequest":  {
+                                                                   "type":  "object",
+                                                                   "properties":  {
+                                                                                      "refreshToken":  {
+                                                                                                           "type":  "string"
+                                                                                                       }
+                                                                                  },
+                                                                   "required":  [
+                                                                                    "refreshToken"
+                                                                                ]
+                                                               },
+                                       "LogoutRequest":  {
+                                                              "type":  "object",
+                                                              "properties":  {
+                                                                                 "refreshToken":  {
+                                                                                                      "type":  "string"
+                                                                                                  }
+                                                                             }
+                                                          },
+                                       "CurrentUserVO":  {
+                                                             "type":  "object",
+                                                             "properties":  {
+                                                                                "userId":  {
+                                                                                               "type":  "integer",
+                                                                                               "format":  "int32"
+                                                                                           },
+                                                                                "username":  {
+                                                                                                 "type":  "string"
+                                                                                             },
+                                                                                "displayName":  {
+                                                                                                    "type":  "string"
+                                                                                                },
+                                                                                "role":  {
+                                                                                             "type":  "string",
+                                                                                             "enum":  [
+                                                                                                          "ADMIN",
+                                                                                                          "TEACHER",
+                                                                                                          "STUDENT"
+                                                                                                      ]
+                                                                                         }
+                                                                            },
+                                                             "required":  [
+                                                                              "userId",
+                                                                              "username",
+                                                                              "displayName",
+                                                                              "role"
                                                                           ]
-                                                            },
+                                                         },
+                                       "AuthTokenResponse":  {
+                                                                 "type":  "object",
+                                                                 "properties":  {
+                                                                                    "accessToken":  {
+                                                                                                        "type":  "string"
+                                                                                                    },
+                                                                                    "refreshToken":  {
+                                                                                                         "type":  "string"
+                                                                                                     },
+                                                                                    "tokenType":  {
+                                                                                                      "type":  "string",
+                                                                                                      "example":  "Bearer"
+                                                                                                  },
+                                                                                    "expiresIn":  {
+                                                                                                      "type":  "integer",
+                                                                                                      "format":  "int64"
+                                                                                                  },
+                                                                                    "user":  {
+                                                                                                 "$ref":  "#/components/schemas/CurrentUserVO"
+                                                                                             }
+                                                                                },
+                                                                 "required":  [
+                                                                                  "accessToken",
+                                                                                  "refreshToken",
+                                                                                  "tokenType",
+                                                                                  "expiresIn",
+                                                                                  "user"
+                                                                              ]
+                                                             },
                                        "ResetPasswordData":  {
                                                                  "description":  "true on success, otherwise an error message string.",
                                                                  "oneOf":  [

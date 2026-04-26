@@ -33,7 +33,7 @@ import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 const adminListPath = buildConsolePath(consoleRole, 'admins')
 
 const isEdit = computed(() => Boolean(route.params.adminId))

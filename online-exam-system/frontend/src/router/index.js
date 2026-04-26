@@ -4,6 +4,7 @@ import { commonRoutes } from '@/router/modules/common'
 import { adminConsoleRoutes } from '@/router/modules/admin'
 import { teacherConsoleRoutes } from '@/router/modules/teacher'
 import { studentRoutes } from '@/router/modules/student'
+import { AUTH_ROLES } from '@/utils/constants'
 
 const routes = [
   ...commonRoutes,
@@ -12,7 +13,7 @@ const routes = [
     component: () => import('@/layout/ConsoleLayout.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['0', '1']
+      roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.TEACHER]
     },
     redirect: '/console/home',
     children: [...adminConsoleRoutes, ...teacherConsoleRoutes]

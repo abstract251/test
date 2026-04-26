@@ -4,6 +4,7 @@ import com.test.oes.entity.Admin;
 import com.test.oes.entity.Teacher;
 import com.test.oes.mapper.AdminMapper;
 import com.test.oes.mapper.TeacherMapper;
+import com.test.oes.security.PasswordService;
 import com.test.oes.service.AdminService;
 import com.test.oes.service.identity.CardIdUniquenessValidator;
 import org.springframework.stereotype.Service;
@@ -16,12 +17,15 @@ public class AdminServiceImpl implements AdminService {
     private final AdminMapper adminMapper;
     private final TeacherMapper teacherMapper;
     private final CardIdUniquenessValidator cardIdUniquenessValidator;
+    private final PasswordService passwordService;
 
     public AdminServiceImpl(AdminMapper adminMapper, TeacherMapper teacherMapper,
-                            CardIdUniquenessValidator cardIdUniquenessValidator) {
+                            CardIdUniquenessValidator cardIdUniquenessValidator,
+                            PasswordService passwordService) {
         this.adminMapper = adminMapper;
         this.teacherMapper = teacherMapper;
         this.cardIdUniquenessValidator = cardIdUniquenessValidator;
+        this.passwordService = passwordService;
     }
 
     @Override
@@ -42,27 +46,29 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public int update(Admin admin) {
         cardIdUniquenessValidator.validateAdminUpdate(admin);
+        admin.setPwd(passwordService.encodeIfNeeded(admin.getPwd()));
         return adminMapper.update(admin);
     }
 
     @Override
     public int add(Admin admin) {
         cardIdUniquenessValidator.validateNewAdmin(admin);
+        admin.setPwd(passwordService.encodeIfNeeded(admin.getPwd()));
         return adminMapper.add(admin);
     }
 
     @Override
     public Object resetPsw(Integer adminId, String newPsw, String oldPsw) {
         Admin admin = findById(adminId);
-        if(admin != null && admin.getPwd().equals(oldPsw)) {
-            admin.setPwd(String.valueOf(newPsw));
+        if(admin != null && passwordService.matches(oldPsw, admin.getPwd())) {
+            admin.setPwd(passwordService.encode(newPsw));
             update(admin);
             return true;
 
         }else if(admin == null){
             Teacher teacher = teacherMapper.findById(adminId);
-            if(teacher != null && teacher.getPwd().equals(oldPsw)) {
-                teacher.setPwd(String.valueOf(newPsw));
+            if(teacher != null && passwordService.matches(oldPsw, teacher.getPwd())) {
+                teacher.setPwd(passwordService.encode(newPsw));
                 teacherMapper.update(teacher);
                 return true;
 

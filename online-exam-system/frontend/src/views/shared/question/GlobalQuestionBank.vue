@@ -166,7 +166,7 @@ const route = useRoute()
 const router = useRouter()
 const pagination = usePagination(10)
 
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 const questionBankPath = buildConsolePath(consoleRole, 'question-bank')
 const createQuestionPath = buildConsolePath(consoleRole, 'questions/new')
 const questionEditPath = buildConsolePath(consoleRole, 'questions/edit')

@@ -4,12 +4,13 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.ApiResult;
 import com.test.oes.entity.Score;
+import com.test.oes.security.CurrentUserService;
 import com.test.oes.service.ScoreService;
 import com.test.oes.util.ApiResultHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
-import java.util.HashMap;
 
 import java.util.List;
 
@@ -18,10 +19,12 @@ import java.util.List;
 public class ScoreController {
 
     private final ScoreService scoreService;
+    private final CurrentUserService currentUserService;
 
     /**
      * 查询所有成绩（不分页）
      */
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping("/scores")
     public ApiResult<List<Score>> findAll() {
         List<Score> res = scoreService.findAll();
@@ -34,6 +37,7 @@ public class ScoreController {
      * @param size 每页大小
      * @param studentId 学生ID
      */
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER') or @currentUserService.isCurrentUserId(#studentId)")
     @GetMapping("/score/{page}/{size}/{studentId}")
     public ApiResult<IPage<Score>> findById(@PathVariable Integer page,
                                             @PathVariable Integer size,
@@ -47,6 +51,7 @@ public class ScoreController {
      * 不分页查询某学生的所有成绩
      * @param studentId 学生ID
      */
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER') or @currentUserService.isCurrentUserId(#studentId)")
     @GetMapping("/score/{studentId}")
     public ApiResult<List<Score>> findById(@PathVariable Integer studentId) {
         List<Score> res = scoreService.findById(studentId);
@@ -60,6 +65,7 @@ public class ScoreController {
     /**
      * 添加成绩记录
      */
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @PostMapping("/score")
     public ApiResult<Integer> add(@RequestBody Score score) {
         int res = scoreService.add(score);
@@ -74,6 +80,7 @@ public class ScoreController {
      * 根据考试编号查询成绩列表
      * @param examCode 考试编号
      */
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping("/scores/{examCode}")
     public ApiResult<List<Score>> findByExamCode(@PathVariable Integer examCode) {
         List<Score> scores = scoreService.findByExamCode(examCode);
@@ -87,6 +94,7 @@ public class ScoreController {
      * @param examCode 考试编号
      * @return 统计信息
      */
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping("/score/statistics/{examCode}")
     public ApiResult<Map<String, Object>> getStatistics(@PathVariable Integer examCode) {
         Map<String, Object> statistics = scoreService.getStatistics(examCode);

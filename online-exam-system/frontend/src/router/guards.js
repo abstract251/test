@@ -4,10 +4,10 @@ import { hasRoleAccess } from '@/utils/permission'
 export function setupRouterGuards(router) {
   router.beforeEach((to) => {
     const session = getSession()
-    const isAuthenticated = Boolean(session)
+    const isAuthenticated = Boolean(session?.accessToken && session?.authRole)
 
     if (to.meta.guestOnly && isAuthenticated) {
-      return resolveHomePath(session.role)
+      return resolveHomePath(session.authRole)
     }
 
     if (to.meta.requiresAuth && !isAuthenticated) {
@@ -19,8 +19,8 @@ export function setupRouterGuards(router) {
       }
     }
 
-    if (to.meta.roles && isAuthenticated && !hasRoleAccess(to.meta.roles, session.role)) {
-      return resolveHomePath(session.role)
+    if (to.meta.roles && isAuthenticated && !hasRoleAccess(to.meta.roles, session.authRole)) {
+      return resolveHomePath(session.authRole)
     }
 
     return true

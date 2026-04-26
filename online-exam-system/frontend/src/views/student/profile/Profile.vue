@@ -123,6 +123,11 @@ const rules = {
 }
 
 async function fetchProfile() {
+  if (!session.value?.userId) {
+    ElMessage.error('当前登录信息缺失，请重新登录')
+    return
+  }
+
   try {
     const response = await getStudentProfile(session.value.userId)
     if (response.code === 200 && response.data) {
@@ -143,6 +148,11 @@ async function handleSubmit() {
     return
   }
 
+  if (!session.value?.userId) {
+    ElMessage.error('当前登录信息缺失，请重新登录')
+    return
+  }
+
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
     return
@@ -150,7 +160,7 @@ async function handleSubmit() {
 
   saving.value = true
   try {
-    const payload = { ...form, role: '2', sex: normalizeSex(form.sex) }
+    const payload = { ...form, studentId: session.value.userId, role: '2', sex: normalizeSex(form.sex) }
     const response = await updateStudentProfile(payload)
     if (response.code === 200) {
       updateSessionRawUser(payload)

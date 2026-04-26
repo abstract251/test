@@ -43,5 +43,5 @@ export function removeSessionStorage(key) {
 }
 
 export function readAppSession() {
-  return readStorage(STORAGE_KEYS.SESSION, null)
+  return readSessionStorage(STORAGE_KEYS.SESSION, null)
 }
