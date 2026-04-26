@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.AsyncEventConsumeRecordMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO async_event_consume_record(
+            consumer_name, event_id, event_type, processed_at, status, error_message
+        ) VALUES (
+            #{consumerName}, #{eventId}, #{eventType}, #{processedAt}, #{status}, #{errorMessage}
+        )
+    </insert>
+
+    <select id="findByConsumerAndEvent" resultType="com.test.oes.entity.AsyncEventConsumeRecord">
+        SELECT id,
+               consumer_name as consumerName,
+               event_id as eventId,
+               event_type as eventType,
+               processed_at as processedAt,
+               status,
+               error_message as errorMessage
+        FROM async_event_consume_record
+        WHERE consumer_name = #{consumerName}
+          AND event_id = #{eventId}
+        LIMIT 1
+    </select>
+
+    <update id="updateStatus">
+        UPDATE async_event_consume_record
+        SET processed_at = #{processedAt},
+            status = #{status},
+            error_message = #{errorMessage}
+        WHERE consumer_name = #{consumerName}
+          AND event_id = #{eventId}
+    </update>
+</mapper>

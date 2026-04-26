@@ -17,16 +17,12 @@ public interface ScoreMapper {
      * @param score 成绩实体
      * @return 影响行数
      */
-    @Options(useGeneratedKeys = true, keyProperty = "scoreId")
-    @Insert("insert into score(examCode, studentId, subject, ptScore, etScore, score, answerDate) " +
-            "values(#{examCode}, #{studentId}, #{subject}, #{ptScore}, #{etScore}, #{score}, #{answerDate})")
     int add(Score score);
 
     /**
      * 查询所有成绩（不分页）
      * @return 成绩列表
      */
-    @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score order by scoreId desc")
     List<Score> findAll();
 
     /**
@@ -35,16 +31,12 @@ public interface ScoreMapper {
      * @param studentId 学生ID
      * @return 分页结果
      */
-    @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score " +
-            "where studentId = #{studentId} order by scoreId desc")
     IPage<Score> findById(Page<?> page, @Param("studentId") Integer studentId);
 
     /**
      * 查询某学生的所有成绩（不分页）- 该方法未在参考代码中直接出现，但 Service 接口有需求
      * 注意：参考代码中 Service 层的 findById(Integer studentId) 对应此方法
      */
-    @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score " +
-            "where studentId = #{studentId} order by scoreId desc")
     List<Score> findByStudentId(@Param("studentId") Integer studentId);
 
     /**
@@ -52,24 +44,10 @@ public interface ScoreMapper {
      * @param examCode 考试编号
      * @return 成绩列表
      */
-    @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate " +
-            "from score where examCode = #{examCode} order by scoreId desc")
     List<Score> findByExamCode(Integer examCode);
 
-    @Select("select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score " +
-            "where examCode = #{examCode} and studentId = #{studentId} limit 1")
     Score findByExamAndStudent(@Param("examCode") Integer examCode, @Param("studentId") Integer studentId);
 
-    @Select({
-            "<script>",
-            "select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate from score",
-            "where examCode in",
-            "<foreach collection='examCodes' item='examCode' open='(' separator=',' close=')'>",
-            "#{examCode}",
-            "</foreach>",
-            "and studentId = #{studentId}",
-            "</script>"
-    })
     List<Score> findByExamCodesAndStudent(@Param("examCodes") List<Integer> examCodes,
                                           @Param("studentId") Integer studentId);
 
@@ -78,30 +56,11 @@ public interface ScoreMapper {
     /**
      * 获取某考试的平均分（etScore）
      */
-    @Select("SELECT AVG(etScore) AS avgScore, " +
-            "MAX(etScore) AS maxScore, " +
-            "MIN(etScore) AS minScore, " +
-            "COUNT(*) AS totalCount, " +
-            "SUM(CASE WHEN etScore >= score * 0.6 THEN 1 ELSE 0 END) AS passCount " +
-            "FROM score WHERE examCode = #{examCode}")
     ScoreStatisticsSummary getStatisticsSummary(@Param("examCode") Integer examCode);
 
     /**
      * 获取某考试的分数段分布
      * 返回格式：每个元素包含 scoreSegment（分数段字符串）和 count（人数）
      */
-    @Select("SELECT " +
-            "CASE " +
-            "  WHEN etScore < 60 THEN '0-59' " +
-            "  WHEN etScore >= 60 AND etScore < 70 THEN '60-69' " +
-            "  WHEN etScore >= 70 AND etScore < 80 THEN '70-79' " +
-            "  WHEN etScore >= 80 AND etScore < 90 THEN '80-89' " +
-            "  ELSE '90-100' " +
-            "END AS scoreSegment, " +
-            "COUNT(*) AS count " +
-            "FROM score " +
-            "WHERE examCode = #{examCode} " +
-            "GROUP BY scoreSegment " +
-            "ORDER BY MIN(etScore)")
     List<Map<String, Object>> getScoreDistribution(@Param("examCode") Integer examCode);
 }

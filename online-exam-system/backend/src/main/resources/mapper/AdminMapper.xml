@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.AdminMapper">
+
+    <select id="findAll" resultType="com.test.oes.entity.Admin">
+        select adminName, sex, tel, email, cardId, role from `admin`
+    </select>
+
+    <select id="findById" resultType="com.test.oes.entity.Admin">
+        select adminId, adminName, sex, tel, email, cardId, role, pwd
+        from `admin`
+        where adminId = #{adminId}
+    </select>
+
+    <select id="findByCardId" resultType="com.test.oes.entity.Admin">
+        select adminId, adminName, cardId
+        from `admin`
+        where cardId = #{cardId}
+        limit 1
+    </select>
+
+    <delete id="deleteById">
+        delete from `admin` where adminId = #{adminId}
+    </delete>
+
+    <update id="update">
+        update `admin`
+        set adminName = #{adminName},
+            sex = #{sex},
+            tel = #{tel},
+            email = #{email},
+            pwd = #{pwd},
+            cardId = #{cardId},
+            role = #{role}
+        where adminId = #{adminId}
+    </update>
+
+    <insert id="add" useGeneratedKeys="true" keyProperty="adminId">
+        insert into `admin`(adminName, sex, tel, email, pwd, cardId, role)
+        values(#{adminName}, #{sex}, #{tel}, #{email}, #{pwd}, #{cardId}, #{role})
+    </insert>
+
+    <select id="countByCardId" resultType="int">
+        SELECT COUNT(*) FROM `admin` WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId &lt;&gt; ''
+    </select>
+
+    <select id="countByCardIdExcludingAdmin" resultType="int">
+        SELECT COUNT(*)
+        FROM `admin`
+        WHERE cardId = #{cid}
+          AND cardId IS NOT NULL
+          AND cardId &lt;&gt; ''
+          AND adminId &lt;&gt; #{adminId}
+    </select>
+</mapper>

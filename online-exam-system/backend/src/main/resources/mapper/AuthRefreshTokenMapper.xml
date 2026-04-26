@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.AuthRefreshTokenMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into auth_refresh_token(jti, user_id, role, username, expires_at, revoked, created_at)
+        values(#{jti}, #{userId}, #{role}, #{username}, #{expiresAt}, #{revoked}, #{createdAt})
+    </insert>
+
+    <select id="findByJti" resultType="com.test.oes.entity.AuthRefreshToken">
+        select id,
+               jti,
+               user_id as userId,
+               role,
+               username,
+               expires_at as expiresAt,
+               revoked,
+               created_at as createdAt
+        from auth_refresh_token
+        where jti = #{jti}
+        limit 1
+    </select>
+
+    <update id="revokeById">
+        update auth_refresh_token set revoked = 1 where id = #{id}
+    </update>
+
+    <update id="revokeIfActiveById">
+        update auth_refresh_token set revoked = 1 where id = #{id} and revoked = 0
+    </update>
+</mapper>

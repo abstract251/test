@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.QuestionBankMapper">
+
+    <sql id="QuestionFilter">
+        <where>
+            <if test="subject != null and subject != ''">
+                subject = #{subject}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND question LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="countMulti" resultType="long">
+        SELECT COUNT(*) FROM multi_question
+        <include refid="QuestionFilter"/>
+    </select>
+
+    <select id="countFill" resultType="long">
+        SELECT COUNT(*) FROM fill_question
+        <include refid="QuestionFilter"/>
+    </select>
+
+    <select id="countJudge" resultType="long">
+        SELECT COUNT(*) FROM judge_question
+        <include refid="QuestionFilter"/>
+    </select>
+
+    <select id="selectMultiPage" resultType="com.test.oes.vo.QuestionBankItemVO">
+        SELECT 1 AS questionType,
+               questionId,
+               subject,
+               question,
+               section,
+               level,
+               score,
+               analysis,
+               rightAnswer AS answer,
+               answerA,
+               answerB,
+               answerC,
+               answerD
+        FROM multi_question
+        <include refid="QuestionFilter"/>
+        ORDER BY questionId DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectFillPage" resultType="com.test.oes.vo.QuestionBankItemVO">
+        SELECT 2 AS questionType,
+               questionId,
+               subject,
+               question,
+               section,
+               level,
+               score,
+               analysis,
+               answer,
+               NULL AS answerA,
+               NULL AS answerB,
+               NULL AS answerC,
+               NULL AS answerD
+        FROM fill_question
+        <include refid="QuestionFilter"/>
+        ORDER BY questionId DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectJudgePage" resultType="com.test.oes.vo.QuestionBankItemVO">
+        SELECT 3 AS questionType,
+               questionId,
+               subject,
+               question,
+               section,
+               level,
+               score,
+               analysis,
+               answer,
+               NULL AS answerA,
+               NULL AS answerB,
+               NULL AS answerC,
+               NULL AS answerD
+        FROM judge_question
+        <include refid="QuestionFilter"/>
+        ORDER BY questionId DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+</mapper>

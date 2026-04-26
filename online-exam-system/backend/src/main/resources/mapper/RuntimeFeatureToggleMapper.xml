@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.RuntimeFeatureToggleMapper">
+
+    <select id="findAll" resultType="com.test.oes.runtime.RuntimeFeatureToggle">
+        SELECT feature_key as featureKey,
+               enabled,
+               version,
+               updated_by_id as updatedById,
+               updated_by_role as updatedByRole,
+               updated_by_name as updatedByName,
+               updated_reason as updatedReason,
+               preset_name as presetName,
+               updated_at as updatedAt
+        FROM runtime_feature_toggle
+        ORDER BY feature_key
+    </select>
+
+    <select id="findMaxVersion" resultType="long">
+        SELECT COALESCE(MAX(version), 0) FROM runtime_feature_toggle
+    </select>
+
+    <select id="findByFeatureKey" resultType="com.test.oes.runtime.RuntimeFeatureToggle">
+        SELECT feature_key as featureKey,
+               enabled,
+               version,
+               updated_by_id as updatedById,
+               updated_by_role as updatedByRole,
+               updated_by_name as updatedByName,
+               updated_reason as updatedReason,
+               preset_name as presetName,
+               updated_at as updatedAt
+        FROM runtime_feature_toggle
+        WHERE feature_key = #{featureKey}
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO runtime_feature_toggle(feature_key, enabled, version, updated_by_id, updated_by_role, updated_by_name, updated_reason, preset_name, updated_at)
+        VALUES(#{featureKey}, #{enabled}, #{version}, #{updatedById}, #{updatedByRole}, #{updatedByName}, #{updatedReason}, #{presetName}, #{updatedAt})
+        ON DUPLICATE KEY UPDATE
+            enabled = VALUES(enabled),
+            version = VALUES(version),
+            updated_by_id = VALUES(updated_by_id),
+            updated_by_role = VALUES(updated_by_role),
+            updated_by_name = VALUES(updated_by_name),
+            updated_reason = VALUES(updated_reason),
+            preset_name = VALUES(preset_name),
+            updated_at = VALUES(updated_at)
+    </insert>
+</mapper>

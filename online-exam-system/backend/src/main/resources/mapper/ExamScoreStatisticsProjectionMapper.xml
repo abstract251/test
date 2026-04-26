@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.ExamScoreStatisticsProjectionMapper">
+
+    <select id="findByExamCode" resultType="com.test.oes.entity.ExamScoreStatisticsProjection">
+        SELECT exam_code as examCode,
+               avg_score as avgScore,
+               max_score as maxScore,
+               min_score as minScore,
+               pass_rate as passRate,
+               total_count as totalCount,
+               pass_count as passCount,
+               distribution_json as distributionJson,
+               last_event_id as lastEventId,
+               updated_at as updatedAt
+        FROM exam_score_statistics_projection
+        WHERE exam_code = #{examCode}
+        LIMIT 1
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO exam_score_statistics_projection(
+            exam_code, avg_score, max_score, min_score, pass_rate, total_count, pass_count,
+            distribution_json, last_event_id, updated_at
+        ) VALUES (
+            #{examCode}, #{avgScore}, #{maxScore}, #{minScore}, #{passRate}, #{totalCount}, #{passCount},
+            #{distributionJson}, #{lastEventId}, #{updatedAt}
+        )
+        ON DUPLICATE KEY UPDATE
+            avg_score = VALUES(avg_score),
+            max_score = VALUES(max_score),
+            min_score = VALUES(min_score),
+            pass_rate = VALUES(pass_rate),
+            total_count = VALUES(total_count),
+            pass_count = VALUES(pass_count),
+            distribution_json = VALUES(distribution_json),
+            last_event_id = VALUES(last_event_id),
+            updated_at = VALUES(updated_at)
+    </insert>
+
+    <delete id="deleteByExamCode">
+        DELETE FROM exam_score_statistics_projection
+        WHERE exam_code = #{examCode}
+    </delete>
+</mapper>

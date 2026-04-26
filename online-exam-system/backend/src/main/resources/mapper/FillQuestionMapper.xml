@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.FillQuestionMapper">
+
+    <select id="findByIdAndType" resultType="com.test.oes.entity.FillQuestion">
+        select *
+        from fill_question
+        where questionId in (
+            select questionId from paper_manage where questionType = 2 and paperId = #{paperId}
+        )
+    </select>
+
+    <select id="findAll" resultType="com.test.oes.entity.FillQuestion">
+        select * from fill_question
+    </select>
+
+    <select id="findOnlyQuestionId" resultType="com.test.oes.entity.FillQuestion">
+        select questionId from fill_question order by questionId desc limit 1
+    </select>
+
+    <insert id="add" useGeneratedKeys="true" keyProperty="questionId">
+        insert into fill_question(subject, question, answer, analysis, level, section)
+        values (#{subject}, #{question}, #{answer}, #{analysis}, #{level}, #{section})
+    </insert>
+
+    <select id="findIdsBySubject" resultType="int">
+        select questionId from fill_question where subject = #{subject} order by questionId asc
+    </select>
+
+    <update id="edit">
+        update fill_question
+        set section = #{section},
+            question = #{question},
+            answer = #{answer},
+            level = #{level},
+            analysis = #{analysis}
+        where questionId = #{questionId}
+    </update>
+
+    <select id="findQuestionBySubject" resultType="com.test.oes.entity.FillQuestion">
+        select * from fill_question where subject = #{subject}
+    </select>
+
+    <select id="findByQuestionId" resultType="com.test.oes.entity.FillQuestion">
+        select * from fill_question where questionId = #{questionId}
+    </select>
+
+    <select id="findByQuestionIds" resultType="com.test.oes.entity.FillQuestion">
+        select * from fill_question where questionId in
+        <foreach collection="questionIds" item="questionId" open="(" separator="," close=")">
+            #{questionId}
+        </foreach>
+    </select>
+
+    <delete id="deleteByQuestionId">
+        delete from fill_question where questionId = #{questionId}
+    </delete>
+</mapper>

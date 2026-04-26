@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.ScoreMapper">
+
+    <select id="findAll" resultType="com.test.oes.entity.Score">
+        select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate
+        from score
+        order by scoreId desc
+    </select>
+
+    <select id="findById" resultType="com.test.oes.entity.Score">
+        select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate
+        from score
+        where studentId = #{studentId}
+        order by scoreId desc
+    </select>
+
+    <select id="findByStudentId" resultType="com.test.oes.entity.Score">
+        select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate
+        from score
+        where studentId = #{studentId}
+        order by scoreId desc
+    </select>
+
+    <select id="findByExamCode" resultType="com.test.oes.entity.Score">
+        select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate
+        from score
+        where examCode = #{examCode}
+        order by scoreId desc
+    </select>
+
+    <select id="findByExamAndStudent" resultType="com.test.oes.entity.Score">
+        select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate
+        from score
+        where examCode = #{examCode}
+          and studentId = #{studentId}
+        limit 1
+    </select>
+
+    <select id="findByExamCodesAndStudent" resultType="com.test.oes.entity.Score">
+        select scoreId, examCode, studentId, subject, ptScore, etScore, score, answerDate
+        from score
+        where examCode in
+        <foreach collection="examCodes" item="examCode" open="(" separator="," close=")">
+            #{examCode}
+        </foreach>
+          and studentId = #{studentId}
+    </select>
+
+    <select id="getStatisticsSummary" resultType="com.test.oes.vo.ScoreStatisticsSummary">
+        SELECT AVG(etScore) AS avgScore,
+               MAX(etScore) AS maxScore,
+               MIN(etScore) AS minScore,
+               COUNT(*) AS totalCount,
+               SUM(CASE WHEN etScore &gt;= score * 0.6 THEN 1 ELSE 0 END) AS passCount
+        FROM score
+        WHERE examCode = #{examCode}
+    </select>
+
+    <select id="getScoreDistribution" resultType="map">
+        SELECT CASE
+                   WHEN etScore &lt; 60 THEN '0-59'
+                   WHEN etScore &gt;= 60 AND etScore &lt; 70 THEN '60-69'
+                   WHEN etScore &gt;= 70 AND etScore &lt; 80 THEN '70-79'
+                   WHEN etScore &gt;= 80 AND etScore &lt; 90 THEN '80-89'
+                   ELSE '90-100'
+               END AS scoreSegment,
+               COUNT(*) AS count
+        FROM score
+        WHERE examCode = #{examCode}
+        GROUP BY scoreSegment
+        ORDER BY MIN(etScore)
+    </select>
+
+    <insert id="add" useGeneratedKeys="true" keyProperty="scoreId">
+        insert into score(examCode, studentId, subject, ptScore, etScore, score, answerDate)
+        values(#{examCode}, #{studentId}, #{subject}, #{ptScore}, #{etScore}, #{score}, #{answerDate})
+    </insert>
+</mapper>

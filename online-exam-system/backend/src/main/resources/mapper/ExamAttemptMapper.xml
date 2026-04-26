@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.ExamAttemptMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="attemptId">
+        INSERT INTO exam_attempt(exam_code, student_id, status, answers_json, started_at, submitted_at)
+        VALUES (#{examCode}, #{studentId}, #{status}, #{answersJson}, #{startedAt}, #{submittedAt})
+    </insert>
+
+    <select id="findByExamAndStudent" resultType="com.test.oes.entity.ExamAttempt">
+        SELECT attempt_id as attemptId,
+               exam_code as examCode,
+               student_id as studentId,
+               status,
+               answers_json as answersJson,
+               started_at as startedAt,
+               submitted_at as submittedAt
+        FROM exam_attempt
+        WHERE exam_code = #{examCode}
+          AND student_id = #{studentId}
+    </select>
+
+    <select id="findByExamAndStudentForUpdate" resultType="com.test.oes.entity.ExamAttempt">
+        SELECT attempt_id as attemptId,
+               exam_code as examCode,
+               student_id as studentId,
+               status,
+               answers_json as answersJson,
+               started_at as startedAt,
+               submitted_at as submittedAt
+        FROM exam_attempt
+        WHERE exam_code = #{examCode}
+          AND student_id = #{studentId}
+        FOR UPDATE
+    </select>
+
+    <select id="findByStudentId" resultType="com.test.oes.entity.ExamAttempt">
+        SELECT attempt_id as attemptId,
+               exam_code as examCode,
+               student_id as studentId,
+               status,
+               answers_json as answersJson,
+               started_at as startedAt,
+               submitted_at as submittedAt
+        FROM exam_attempt
+        WHERE student_id = #{studentId}
+    </select>
+
+    <update id="updateAnswers">
+        UPDATE exam_attempt SET answers_json = #{answersJson} WHERE attempt_id = #{attemptId}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE exam_attempt
+        SET status = #{status},
+            submitted_at = #{submittedAt}
+        WHERE attempt_id = #{attemptId}
+    </update>
+</mapper>

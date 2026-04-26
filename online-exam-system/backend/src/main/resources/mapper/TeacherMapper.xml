@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.TeacherMapper">
+
+    <select id="findAll" resultType="com.test.oes.entity.Teacher">
+        select *
+        from teacher
+        where cast(teacherId as char) like concat('%', #{teacherId}, '%')
+          and ifnull(teacherName, '') like concat('%', #{teacherName}, '%')
+          and ifnull(institute, '') like concat('%', #{institute}, '%')
+          and ifnull(type, '') like concat('%', #{type}, '%')
+          and ifnull(tel, '') like concat('%', #{tel}, '%')
+          and ifnull(email, '') like concat('%', #{email}, '%')
+    </select>
+
+    <select id="findById" resultType="com.test.oes.entity.Teacher">
+        select * from teacher where teacherId = #{teacherId}
+    </select>
+
+    <delete id="deleteById">
+        delete from teacher where teacherId = #{teacherId}
+    </delete>
+
+    <update id="update">
+        update teacher
+        set teacherName = #{teacherName},
+            sex = #{sex},
+            tel = #{tel},
+            email = #{email},
+            pwd = #{pwd},
+            cardId = #{cardId},
+            role = #{role},
+            institute = #{institute},
+            type = #{type}
+        where teacherId = #{teacherId}
+    </update>
+
+    <insert id="add" useGeneratedKeys="true" keyProperty="teacherId">
+        insert into teacher(teacherName, sex, tel, email, pwd, cardId, role, type, institute)
+        values(#{teacherName}, #{sex}, #{tel}, #{email}, #{pwd}, #{cardId}, #{role}, #{type}, #{institute})
+    </insert>
+
+    <select id="countByCardId" resultType="int">
+        SELECT COUNT(*) FROM teacher WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId &lt;&gt; ''
+    </select>
+
+    <select id="countByCardIdExcludingTeacher" resultType="int">
+        SELECT COUNT(*)
+        FROM teacher
+        WHERE cardId = #{cid}
+          AND cardId IS NOT NULL
+          AND cardId &lt;&gt; ''
+          AND teacherId &lt;&gt; #{teacherId}
+    </select>
+</mapper>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.ExamManageMapper">
+
+    <resultMap id="ExamManageMap" type="com.test.oes.entity.ExamManage">
+        <id column="examCode" property="examCode"/>
+        <result column="description" property="description"/>
+        <result column="source" property="source"/>
+        <result column="paperId" property="paperId"/>
+        <result column="examDate" property="examDate"/>
+        <result column="exam_start_at" property="examStartAt"/>
+        <result column="totalTime" property="totalTime"/>
+        <result column="grade" property="grade"/>
+        <result column="term" property="term"/>
+        <result column="major" property="major"/>
+        <result column="institute" property="institute"/>
+        <result column="totalScore" property="totalScore"/>
+        <result column="type" property="type"/>
+        <result column="tips" property="tips"/>
+        <result column="paper_frozen_at" property="paperFrozenAt"/>
+        <result column="revoked_at" property="revokedAt"/>
+        <result column="revoke_reason" property="revokeReason"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="ExamManageMap">
+        select examCode, description, source, paperId, examDate, exam_start_at, totalTime, grade, term, major, institute,
+               totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+        from exam_manage
+        order by exam_start_at desc, examCode desc
+    </select>
+
+    <select id="findById" resultMap="ExamManageMap">
+        select examCode, description, source, paperId, examDate, exam_start_at, totalTime, grade, term, major, institute,
+               totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+        from exam_manage
+        where examCode = #{examCode}
+    </select>
+
+    <select id="findVisibleForStudent" resultMap="ExamManageMap">
+        select examCode, description, source, paperId, examDate, exam_start_at, totalTime, grade, term, major, institute,
+               totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+        from exam_manage
+        where (grade is null or trim(grade) = '' or grade = #{grade})
+          and (major is null or trim(major) = '' or major = #{major})
+          and (institute is null or trim(institute) = '' or institute = #{institute})
+        order by exam_start_at asc, examCode asc
+    </select>
+
+    <select id="findVisibleByExamCodeForStudent" resultMap="ExamManageMap">
+        select examCode, description, source, paperId, examDate, exam_start_at, totalTime, grade, term, major, institute,
+               totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+        from exam_manage
+        where examCode = #{examCode}
+          and (grade is null or trim(grade) = '' or grade = #{grade})
+          and (major is null or trim(major) = '' or major = #{major})
+          and (institute is null or trim(institute) = '' or institute = #{institute})
+        limit 1
+    </select>
+
+    <select id="findByPaperId" resultMap="ExamManageMap">
+        select examCode, description, source, paperId, examDate, exam_start_at, totalTime, grade, term, major, institute,
+               totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+        from exam_manage
+        where paperId = #{paperId}
+    </select>
+
+    <delete id="delete">
+        delete from exam_manage where examCode = #{examCode}
+    </delete>
+
+    <update id="update">
+        update exam_manage
+        set description = #{description},
+            source = #{source},
+            paperId = #{paperId},
+            examDate = #{examDate},
+            exam_start_at = #{examStartAt},
+            totalTime = #{totalTime},
+            grade = #{grade},
+            term = #{term},
+            major = #{major},
+            institute = #{institute},
+            totalScore = #{totalScore},
+            type = #{type},
+            tips = #{tips},
+            paper_frozen_at = #{paperFrozenAt},
+            revoked_at = #{revokedAt},
+            revoke_reason = #{revokeReason}
+        where examCode = #{examCode}
+    </update>
+
+    <update id="updateWhitelist">
+        update exam_manage
+        set description = #{description},
+            tips = #{tips},
+            totalTime = #{totalTime}
+        where examCode = #{examCode}
+    </update>
+
+    <update id="updatePaperFrozenAt">
+        update exam_manage set paper_frozen_at = #{paperFrozenAt} where examCode = #{examCode}
+    </update>
+
+    <update id="markRevoked">
+        update exam_manage
+        set revoked_at = #{revokedAt},
+            revoke_reason = #{reason}
+        where examCode = #{examCode}
+    </update>
+
+    <insert id="add" useGeneratedKeys="true" keyProperty="examCode">
+        insert into exam_manage(description, source, paperId, examDate, exam_start_at, totalTime, grade, term, major, institute,
+                                totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason)
+        values(#{description}, #{source}, #{paperId}, #{examDate}, #{examStartAt}, #{totalTime}, #{grade}, #{term}, #{major},
+               #{institute}, #{totalScore}, #{type}, #{tips}, #{paperFrozenAt}, #{revokedAt}, #{revokeReason})
+    </insert>
+
+    <select id="findOnlyPaperId" resultType="com.test.oes.entity.ExamManage">
+        select paperId from exam_manage order by paperId desc limit 1
+    </select>
+</mapper>
