@@ -5,6 +5,7 @@ import { restoreAuthSession } from '@/bootstrap/auth'
 import { installElementPlus } from '@/plugins/element-plus'
 import '@/assets/styles/theme.css'
 import '@/assets/styles/base.css'
+import { initDevMockSession } from '@/utils/auth'
 
 async function bootstrap() {
   await restoreAuthSession()
@@ -15,3 +16,4 @@ async function bootstrap() {
 }
 
 bootstrap()
+initDevMockSession()
