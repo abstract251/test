@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.StudentMapper">
+
+    <select id="findAll" resultType="com.test.oes.entity.Student">
+        select *
+        from student
+        where cast(studentId as char) like concat('%', #{studentId}, '%')
+          and ifnull(studentName, '') like concat('%', #{name}, '%')
+          and ifnull(grade, '') like concat('%', #{grade}, '%')
+          and ifnull(tel, '') like concat('%', #{tel}, '%')
+          and ifnull(major, '') like concat('%', #{major}, '%')
+          and ifnull(institute, '') like concat('%', #{institute}, '%')
+          and ifnull(clazz, '') like concat('%', #{clazz}, '%')
+    </select>
+
+    <select id="findById" resultType="com.test.oes.entity.Student">
+        select * from student where studentId = #{studentId}
+    </select>
+
+    <delete id="deleteById">
+        delete from student where studentId = #{studentId}
+    </delete>
+
+    <update id="update">
+        update student
+        set studentName = #{studentName},
+            grade = #{grade},
+            major = #{major},
+            clazz = #{clazz},
+            institute = #{institute},
+            tel = #{tel},
+            email = #{email},
+            pwd = #{pwd},
+            cardId = #{cardId},
+            sex = #{sex},
+            role = #{role}
+        where studentId = #{studentId}
+    </update>
+
+    <update id="updatePwd">
+        update student set pwd = #{pwd} where studentId = #{studentId}
+    </update>
+
+    <insert id="add" useGeneratedKeys="true" keyProperty="studentId">
+        insert into student(studentName, grade, major, clazz, institute, tel, email, pwd, cardId, sex, role)
+        values(#{studentName}, #{grade}, #{major}, #{clazz}, #{institute}, #{tel}, #{email}, #{pwd}, #{cardId}, #{sex}, #{role})
+    </insert>
+
+    <select id="findByCardId" resultType="com.test.oes.entity.Student">
+        SELECT * FROM student WHERE cardId = #{cardId} LIMIT 1
+    </select>
+
+    <select id="countByCardId" resultType="int">
+        SELECT COUNT(*) FROM student WHERE cardId = #{cid} AND cardId IS NOT NULL AND cardId &lt;&gt; ''
+    </select>
+
+    <select id="countByCardIdExcludingStudent" resultType="int">
+        SELECT COUNT(*)
+        FROM student
+        WHERE cardId = #{cid}
+          AND cardId IS NOT NULL
+          AND cardId &lt;&gt; ''
+          AND studentId &lt;&gt; #{studentId}
+    </select>
+</mapper>

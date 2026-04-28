@@ -153,6 +153,7 @@ import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import StatusCard from '@/components/common/StatusCard.vue'
+import { useDebouncedWatch } from '@/composables/useDebouncedWatch'
 import { deleteQuestionBankItem, getQuestionBankPage } from '@/api/questionBankApi'
 import { usePagination } from '@/composables/usePagination'
 import { getSession, saveQuestionDraft } from '@/utils/auth'
@@ -179,8 +180,29 @@ const filters = reactive({
 
 const loading = ref(false)
 const deletingKey = ref('')
+const filterSignature = computed(() => JSON.stringify({
+  subject: filters.subject.trim(),
+  keyword: filters.keyword.trim(),
+  questionType: filters.questionType || '',
+  size: pagination.size
+}))
 
 const typeOptions = QUESTION_TYPE_OPTIONS
+let fetchSequence = 0
+let skipNextAutoSearch = 0
+
+const { cancel: cancelAutoSearch, flush: flushAutoSearch } = useDebouncedWatch(
+  filterSignature,
+  () => {
+    if (skipNextAutoSearch > 0) {
+      skipNextAutoSearch -= 1
+      return
+    }
+    pagination.current = 1
+    void fetchQuestions()
+  },
+  400
+)
 
 const totalPages = computed(() => Math.max(1, Math.ceil((pagination.total || 0) / pagination.size || 1)))
 const activeFilterCount = computed(() => {
@@ -329,12 +351,16 @@ async function fetchQuestions() {
   })
 
   loading.value = true
+  const requestId = ++fetchSequence
   try {
     const response = await getQuestionBankPage({
       page: pagination.current,
       size: pagination.size,
       filters
     })
+    if (requestId !== fetchSequence) {
+      return
+    }
 
     if (response.code === 200 && response.data) {
       Object.assign(pagination, response.data)
@@ -351,15 +377,17 @@ async function fetchQuestions() {
 
 function handleSearch() {
   pagination.current = 1
-  void fetchQuestions()
+  void flushAutoSearch()
 }
 
 function resetFilters() {
+  skipNextAutoSearch += 1
   Object.assign(filters, {
     subject: '',
     keyword: '',
     questionType: null
   })
+  cancelAutoSearch()
   pagination.current = 1
   void fetchQuestions()
 }
@@ -374,8 +402,10 @@ function handleCurrentChange(page) {
 }
 
 function handleSizeChange(size) {
+  skipNextAutoSearch += 1
   pagination.size = size
   pagination.current = 1
+  cancelAutoSearch()
   void fetchQuestions()
 }
 

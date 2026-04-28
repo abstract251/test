@@ -8,22 +8,20 @@ import java.util.List;
 @Mapper
 public interface ReplayMapper {
 
-    @Select("select messageId,replayId,replay,replayTime from replay")
+    String REPLAY_COLUMNS = "messageId, replayId, replay, replayTime, creator_id as creatorId, "
+            + "creator_role as creatorRole, creator_name as creatorName, created_at as createdAt";
+
     List<Replay> findAll();
 
-    @Select("select messageId,replayId,replay,replayTime from replay where messageId = #{messageId}")
     List<Replay> findAllById(Integer messageId);
 
-    @Select("select messageId,replayId,replay,replayTime from replay where messageId = #{messageId}")
+    List<Replay> findByMessageIds(@Param("messageIds") List<Integer> messageIds);
+
     Replay findById(Integer messageId);
 
-    @Delete("delete from replay where replayId = #{replayId}")
     int delete(Integer replayId);
 
-    @Update("update replay set replay = #{replay}, replayTime = #{replayTime} where replayId = #{replayId}")
     int update(Replay replay);
 
-    @Options(useGeneratedKeys = true,keyProperty = "replayId")
-    @Insert("insert into replay(messageId,replay,replayTime) values(#{messageId}, #{replay},#{replayTime})")
     int add(Replay replay);
 }

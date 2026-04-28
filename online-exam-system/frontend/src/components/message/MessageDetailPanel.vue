@@ -3,7 +3,7 @@
     <EmptyState
       v-if="!message && !loading"
       description="请选择一条留言查看详情。"
-      emoji="🗂️"
+      emoji="🕻"
     />
 
     <div v-else v-loading="loading" class="message-detail__body">
@@ -16,7 +16,7 @@
             {{ message?.title || '未命名留言' }}
           </h2>
           <p class="message-detail__meta">
-            {{ formatDateTime(message?.time, 'YYYY-MM-DD') }} 提交
+            {{ creatorMetaText }}
           </p>
         </div>
 
@@ -39,8 +39,12 @@
 
       <div class="message-detail__stats">
         <article class="message-detail__stat">
-          <span>提交日期</span>
-          <strong>{{ formatDateTime(message?.time, 'YYYY-MM-DD') }}</strong>
+          <span>提交时间</span>
+          <strong>{{ formatDateTime(message?.createdAt || message?.time, 'YYYY-MM-DD HH:mm:ss') }}</strong>
+        </article>
+        <article class="message-detail__stat">
+          <span>创建者</span>
+          <strong>{{ message?.creatorName || '未知' }}</strong>
         </article>
         <article class="message-detail__stat">
           <span>最新回复</span>
@@ -80,7 +84,13 @@ const messageId = computed(() => resolveMessageId(props.message))
 const replyCount = computed(() => getMessageReplyCount(props.message))
 const latestReplyText = computed(() => {
   const latestReplyTime = getLatestReplyTime(props.message)
-  return latestReplyTime ? formatDateTime(latestReplyTime, 'YYYY-MM-DD') : '暂无回复'
+  return latestReplyTime ? formatDateTime(latestReplyTime, 'YYYY-MM-DD HH:mm:ss') : '暂无回复'
+})
+const creatorMetaText = computed(() => {
+  const createdAt = props.message?.createdAt || props.message?.time
+  const creatorName = props.message?.creatorName || '未知创建者'
+  const creatorRole = props.message?.creatorRole || 'SYSTEM'
+  return `${formatDateTime(createdAt, 'YYYY-MM-DD HH:mm:ss')} · ${creatorName} (${creatorRole})`
 })
 </script>
 

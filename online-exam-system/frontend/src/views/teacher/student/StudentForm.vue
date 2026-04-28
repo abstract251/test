@@ -2,8 +2,11 @@
   <PageContainer>
     <PageHeader
       :title="isEdit ? '编辑学生' : '新增学生'"
-      description="学生账号默认密码为 123456，可按需调整。"
+      description="请填写学生的基本信息。创建后，学生可使用默认密码登录并自行修改。"
     />
+
+    <PageNotice v-if="pageError" type="error" title="页面暂时打不开" :description="pageError" />
+    <FormErrorSummary v-if="formSummary.title || formSummary.items.length" :title="formSummary.title" :items="formSummary.items" />
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <StudentFormFields :model="form" :is-edit="isEdit" />
@@ -21,18 +24,25 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import FormErrorSummary from '@/components/common/FormErrorSummary.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageNotice from '@/components/common/PageNotice.vue'
 import StudentFormFields from '@/components/forms/StudentFormFields.vue'
 import { createStudent, getStudentById, updateStudent } from '@/api/studentApi'
 import { getSession } from '@/utils/auth'
 import { buildConsolePath, DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
+import { buildFormSummary, resolveUserFacingError, scrollToFirstError, showActionSuccess } from '@/utils/feedback'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
+const pageError = ref('')
+const formSummary = reactive({
+  title: '',
+  items: []
+})
 const consoleRole = getSession()?.authRole
 const studentListPath = buildConsolePath(consoleRole, 'students')
 
@@ -98,15 +108,21 @@ async function fetchStudent() {
       })
       return
     }
-    ElMessage.error(response.message || '加载学生信息失败')
+    pageError.value = resolveUserFacingError(response, '请稍后再试')
   } catch (error) {
-    ElMessage.error('加载学生信息失败，请稍后重试')
+    pageError.value = resolveUserFacingError(error, '请稍后再试')
   }
 }
 
 async function handleSubmit() {
+  pageError.value = ''
+  formSummary.title = ''
+  formSummary.items = []
+
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
+    Object.assign(formSummary, buildFormSummary(formRef, '请先补全学生信息'))
+    await scrollToFirstError(formRef)
     return
   }
 
@@ -117,14 +133,14 @@ async function handleSubmit() {
       : await createStudent(payload)
 
     if (response.code === 200) {
-      ElMessage.success(isEdit.value ? '学生信息已更新' : '学生已创建')
+      showActionSuccess(isEdit.value ? '学生信息已保存' : '学生账号已创建')
       router.push(studentListPath)
       return
     }
 
-    ElMessage.error(response.message || '保存失败，请检查后重试')
+    formSummary.title = resolveUserFacingError(response, '学生信息还没有保存成功')
   } catch (error) {
-    ElMessage.error('保存失败，请稍后重试')
+    formSummary.title = resolveUserFacingError(error, '学生信息还没有保存成功')
   }
 }
 

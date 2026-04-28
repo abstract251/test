@@ -2,8 +2,11 @@
   <PageContainer>
     <PageHeader
       :title="isEdit ? '编辑教师' : '新增教师'"
-      description="教师账号默认密码为 123456，也可以在创建或编辑时手动修改。"
+      description="请填写教师的基本信息。创建后，教师可使用默认密码登录并自行修改。"
     />
+
+    <PageNotice v-if="pageError" type="error" title="页面暂时打不开" :description="pageError" />
+    <FormErrorSummary v-if="formSummary.title || formSummary.items.length" :title="formSummary.title" :items="formSummary.items" />
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <TeacherFormFields :model="form" :is-edit="isEdit" />
@@ -21,17 +24,24 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import FormErrorSummary from '@/components/common/FormErrorSummary.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import PageNotice from '@/components/common/PageNotice.vue'
 import TeacherFormFields from '@/components/forms/TeacherFormFields.vue'
 import { createTeacher, getTeacherById, updateTeacher } from '@/api/teacherApi'
 import { DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
+import { buildFormSummary, resolveUserFacingError, scrollToFirstError, showActionSuccess } from '@/utils/feedback'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
+const pageError = ref('')
+const formSummary = reactive({
+  title: '',
+  items: []
+})
 
 const isEdit = computed(() => Boolean(route.params.teacherId))
 
@@ -87,15 +97,21 @@ async function fetchTeacher() {
       })
       return
     }
-    ElMessage.error(response.message || '加载教师信息失败')
+    pageError.value = resolveUserFacingError(response, '请稍后再试')
   } catch (error) {
-    ElMessage.error('加载教师信息失败，请稍后重试')
+    pageError.value = resolveUserFacingError(error, '请稍后再试')
   }
 }
 
 async function handleSubmit() {
+  pageError.value = ''
+  formSummary.title = ''
+  formSummary.items = []
+
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) {
+    Object.assign(formSummary, buildFormSummary(formRef, '请先补全教师信息'))
+    await scrollToFirstError(formRef)
     return
   }
 
@@ -105,14 +121,14 @@ async function handleSubmit() {
       : await createTeacher({ ...form, role: '1', sex: normalizeSex(form.sex) })
 
     if (response.code === 200) {
-      ElMessage.success(isEdit.value ? '教师信息已更新' : '教师已创建')
+      showActionSuccess(isEdit.value ? '教师信息已保存' : '教师账号已创建')
       router.push('/console/admin/teachers')
       return
     }
 
-    ElMessage.error(response.message || '保存失败，请检查后重试')
+    formSummary.title = resolveUserFacingError(response, '教师信息还没有保存成功')
   } catch (error) {
-    ElMessage.error('保存失败，请稍后重试')
+    formSummary.title = resolveUserFacingError(error, '教师信息还没有保存成功')
   }
 }
 

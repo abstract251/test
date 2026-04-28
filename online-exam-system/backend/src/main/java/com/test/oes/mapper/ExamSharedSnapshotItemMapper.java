@@ -11,11 +11,11 @@ import java.util.List;
 @Mapper
 public interface ExamSharedSnapshotItemMapper {
 
-    @Insert("INSERT INTO exam_shared_snapshot_item(exam_code, question_type, question_id, display_order) "
-            + "VALUES (#{examCode}, #{questionType}, #{questionId}, #{displayOrder})")
     int insert(ExamSharedSnapshotItem row);
 
-    @Select("SELECT id, exam_code, question_type, question_id, display_order FROM exam_shared_snapshot_item "
-            + "WHERE exam_code = #{examCode} ORDER BY display_order")
     List<ExamSharedSnapshotItem> findByExamCode(@Param("examCode") Integer examCode);
+
+    int countByExamCode(@Param("examCode") Integer examCode);
+
+    List<java.util.Map<String, Object>> countGroupedByType(@Param("examCode") Integer examCode);
 }

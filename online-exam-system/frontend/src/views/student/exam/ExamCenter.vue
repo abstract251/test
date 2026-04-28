@@ -3,31 +3,30 @@
     <PageContainer>
       <PageHeader
         title="考试中心"
-        description="这里只显示与当前学生相关的考试，开考后可直接进入作答。"
+        description="这里会显示你可以查看或参加的考试。考试开始后，可以直接进入答题。"
       />
 
       <div class="student-page__summary">
-        <StatusCard label="可见考试" :value="filteredExams.length" hint="后端已按当前学生参考范围筛选" />
-        <StatusCard label="当前身份" :value="session?.displayName || session?.userName || '--'" hint="如需修改个人资料，请进入个人资料页" />
-        <StatusCard label="进行中" :value="ongoingCount" hint="点击卡片可直接进入作答" />
+        <StatusCard label="可参加考试" :value="filteredExams.length" hint="这里只展示当前与你有关的考试" />
+        <StatusCard label="当前账号" :value="session?.displayName || session?.userName || '--'" hint="如需修改信息，可前往个人资料页" />
+        <StatusCard label="正在进行" :value="ongoingCount" hint="点击卡片可进入考试或查看详情" />
       </div>
 
-      <el-alert
+      <PageNotice
         v-if="loadError"
-        :title="loadError"
         type="error"
-        show-icon
-        :closable="false"
+        title="考试列表暂时没有加载出来"
+        :description="loadError"
       />
 
       <template v-else>
         <div class="toolbar">
-          <el-input v-model="keyword" placeholder="按科目、说明、专业、状态搜索" clearable />
+          <el-input v-model="keyword" placeholder="按考试名称、科目或状态查找" clearable />
         </div>
 
         <EmptyState
           v-if="!filteredExams.length"
-          description="当前没有可参加或可查看的考试。"
+          description="目前没有可参加或可查看的考试。"
           emoji="📝"
         />
 
@@ -47,14 +46,21 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import EmptyState from '@/components/common/EmptyState.vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import PageNotice from '@/components/common/PageNotice.vue'
 import StatusCard from '@/components/common/StatusCard.vue'
 import ExamCard from '@/components/exam/ExamCard.vue'
+import { getStudentExams } from '@/api/examApi'
 import { useAuthSession } from '@/composables/useAuthSession'
 import { useStudentExamFilter } from '@/composables/useStudentExamFilter'
-import { getStudentExams } from '@/api/examApi'
+import { resolveUserFacingError } from '@/utils/feedback'
+import { createRequestCoordinator } from '@/utils/requestCoordinator'
+
+const examCenterCoordinator = createRequestCoordinator('student-exams:list', {
+  defaultTtlMs: 15000
+})
 
 const router = useRouter()
 const { session } = useAuthSession()
@@ -77,15 +83,18 @@ async function fetchExams() {
   loadError.value = ''
 
   try {
-    const response = await getStudentExams()
+    const response = await examCenterCoordinator.load(
+      'student-exams:list',
+      () => getStudentExams()
+    )
     if (response.code === 200 && response.data) {
       exams.value = response.data.records || []
       return
     }
 
-    loadError.value = response.message || '考试列表加载失败'
+    loadError.value = resolveUserFacingError(response, '请刷新页面后再试')
   } catch (error) {
-    loadError.value = error?.response?.data?.message || '考试列表加载失败，请稍后重试'
+    loadError.value = resolveUserFacingError(error, '请检查网络后刷新页面')
   }
 }
 

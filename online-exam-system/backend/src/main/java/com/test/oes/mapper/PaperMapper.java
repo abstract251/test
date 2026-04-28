@@ -4,26 +4,28 @@ import com.test.oes.entity.PaperManage;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface PaperMapper {
-    @Select("select paperId, questionType,questionId from paper_manage")
     List<PaperManage> findAll();
 
-    @Select("select paperId, questionType,questionId from paper_manage where paperId = #{paperId}")
     List<PaperManage> findById(Integer paperId);
 
-    @Insert("insert into paper_manage(paperId,questionType,questionId) values " +
-            "(#{paperId},#{questionType},#{questionId})")
+    Integer countByPaperId(@Param("paperId") Integer paperId);
+
+    List<Map<String, Object>> countQuestionsByPaperIds(@Param("paperIds") List<Integer> paperIds);
+
+    List<Map<String, Object>> countQuestionsGroupedByType(@Param("paperId") Integer paperId);
+
     int add(PaperManage paperManage);
 
-    @Delete("delete from paper_manage where paperId = #{paperId} and questionType = #{type} and questionId = #{questionId}")
+    int batchInsert(@Param("rows") List<PaperManage> rows);
+
     int delete(@Param("paperId") Integer paperId, @Param("type") Integer type, @Param("questionId") Integer questionId);
 
-    @Select("select distinct paperId from paper_manage where questionType = #{questionType} and questionId = #{questionId}")
     List<Integer> findPaperIdsByQuestion(@Param("questionType") Integer questionType, @Param("questionId") Integer questionId);
 
-    @Delete("delete from paper_manage where questionType = #{questionType} and questionId = #{questionId}")
     int deleteByQuestion(@Param("questionType") Integer questionType, @Param("questionId") Integer questionId);
 
     /**
@@ -31,6 +33,5 @@ public interface PaperMapper {
      *
      * @param paperId 试卷id
      */
-    @Delete("DELETE FROM paper_manage WHERE paperId = #{paperId}")
     int deleteByPaperId(@Param("paperId") Integer paperId);
 }

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.RuntimeFeatureToggleAuditMapper">
+
+    <insert id="insert">
+        INSERT INTO runtime_feature_toggle_audit(batch_id, feature_key, old_enabled, new_enabled, operator_id, operator_role, operator_name, reason, preset_name, created_at)
+        VALUES(#{batchId}, #{featureKey}, #{oldEnabled}, #{newEnabled}, #{operatorId}, #{operatorRole}, #{operatorName}, #{reason}, #{presetName}, #{createdAt})
+    </insert>
+
+    <select id="findByBatchId" resultType="com.test.oes.runtime.RuntimeFeatureToggleAudit">
+        SELECT id,
+               batch_id as batchId,
+               feature_key as featureKey,
+               old_enabled as oldEnabled,
+               new_enabled as newEnabled,
+               operator_id as operatorId,
+               operator_role as operatorRole,
+               operator_name as operatorName,
+               reason,
+               preset_name as presetName,
+               created_at as createdAt
+        FROM runtime_feature_toggle_audit
+        WHERE batch_id = #{batchId}
+        ORDER BY id
+    </select>
+
+    <select id="findRecentBatchViews" resultType="com.test.oes.runtime.RuntimeToggleAuditBatchView">
+        SELECT batch_id as batchId,
+               MAX(preset_name) AS presetName,
+               MAX(reason) AS reason,
+               MAX(operator_id) AS operatorId,
+               MAX(operator_role) AS operatorRole,
+               MAX(operator_name) AS operatorName,
+               COUNT(*) AS changeCount,
+               MAX(created_at) AS createdAt
+        FROM runtime_feature_toggle_audit
+        GROUP BY batch_id
+        ORDER BY MAX(created_at) DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

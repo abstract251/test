@@ -227,6 +227,11 @@ import {
   normalizeReplyList,
   resolveMessageId
 } from '@/utils/message'
+import { createRequestCoordinator } from '@/utils/requestCoordinator'
+
+const messageDetailCoordinator = createRequestCoordinator('student-messages:detail', {
+  defaultTtlMs: 15000
+})
 
 const statusOptions = [
   { label: '全部留言', value: 'all' },
@@ -362,9 +367,17 @@ async function loadMessageDetail(messageId, fallbackRow = null) {
   }
 
   try {
+    const detailKey = `messages:detail:${messageId}`
+    const repliesKey = `messages:replies:${messageId}`
     const [messageResult, replyResult] = await Promise.allSettled([
-      getMessageById(messageId),
-      getReplyList(messageId)
+      messageDetailCoordinator.load(
+        detailKey,
+        () => getMessageById(messageId)
+      ),
+      messageDetailCoordinator.load(
+        repliesKey,
+        () => getReplyList(messageId)
+      )
     ])
 
     let nextMessage = fallbackRow ? normalizeMessage(fallbackRow) : null

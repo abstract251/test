@@ -8,7 +8,10 @@ import com.test.oes.service.JudgeQuestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +41,12 @@ public class JudgeQuestionServiceImpl implements JudgeQuestionService {
 
     @Override
     public List<Integer> findBySubject(String subject, Integer pageNo) {
-        return judgeQuestionMapper.findBySubject(subject,pageNo);
+        List<Integer> candidateIds = new ArrayList<>(judgeQuestionMapper.findIdsBySubject(subject));
+        if (pageNo == null || pageNo <= 0 || candidateIds.isEmpty()) {
+            return List.of();
+        }
+        Collections.shuffle(candidateIds, ThreadLocalRandom.current());
+        return candidateIds.subList(0, Math.min(pageNo, candidateIds.size()));
     }
 
     @Override

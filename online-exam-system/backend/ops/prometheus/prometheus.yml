@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: online-exam-backend-test
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - localhost:18080
+          - localhost:18081
+        labels:
+          service: online-exam-backend
+          env: test
+          instance_role: dual-instance-test
+  - job_name: online-exam-rabbitmq
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - localhost:15692
+        labels:
+          service: rabbitmq
+          env: test

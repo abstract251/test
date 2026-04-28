@@ -1,5 +1,10 @@
 package com.test.oes.service.impl;
 
+import com.test.oes.async.AsyncEventEnvelope;
+import com.test.oes.async.AsyncEventTypes;
+import com.test.oes.async.AsyncRoutingKeys;
+import com.test.oes.async.OutboxEventService;
+import com.test.oes.async.payload.ExamSubmittedPayload;
 import com.test.oes.entity.*;
 import com.test.oes.service.*;
 import com.test.oes.vo.AnswerVO;
@@ -9,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +30,7 @@ public class AnswerServiceImpl implements AnswerService {
     private final FillQuestionService fillQuestionService;
     private final JudgeQuestionService judgeQuestionService;
     private final ScoreService scoreService;
+    private final OutboxEventService outboxEventService;
 
     private static final int PER_QUESTION_SCORE = 2; // 每题固定2分（与PaperServiceImpl.getMaxScore保持一致）
 
@@ -34,10 +41,7 @@ public class AnswerServiceImpl implements AnswerService {
         Integer studentId = vo.getStudentId();
 
         // 1. 检查是否已经提交过该考试
-        List<Score> existingScores = scoreService.findByExamCode(examCode);
-        boolean alreadySubmitted = existingScores.stream()
-                .anyMatch(score -> score.getStudentId() == studentId);
-        if (alreadySubmitted) {
+        if (scoreService.findByExamAndStudent(examCode, studentId) != null) {
             throw new RuntimeException("您已参加过本次考试，不能重复提交");
         }
 
@@ -100,6 +104,29 @@ public class AnswerServiceImpl implements AnswerService {
         if (rows == 0) {
             throw new RuntimeException("成绩保存失败");
         }
+        ExamSubmittedPayload payload = new ExamSubmittedPayload();
+        payload.setExamCode(examCode);
+        payload.setStudentId(studentId);
+        payload.setScoreId(score.getScoreId());
+        payload.setSubmittedAt(LocalDateTime.now());
+        payload.setEtScore(obtainedScore);
+        payload.setMaxScore(totalScore);
+        payload.setPassed(isPass);
+        payload.setTotalQuestions(correctAnswerMap.size());
+        AsyncEventEnvelope<ExamSubmittedPayload> envelope = new AsyncEventEnvelope<>();
+        envelope.setEventType(AsyncEventTypes.EXAM_SUBMITTED);
+        envelope.setAggregateType("examAttempt");
+        envelope.setAggregateId(examCode + ":" + studentId);
+        envelope.setOccurredAt(payload.getSubmittedAt());
+        envelope.setPayloadVersion(1);
+        envelope.setPayload(payload);
+        outboxEventService.append(
+                AsyncEventTypes.EXAM_SUBMITTED,
+                "examAttempt",
+                examCode + ":" + studentId,
+                AsyncRoutingKeys.EXAM_SUBMITTED,
+                envelope
+        );
         return score;
     }
 

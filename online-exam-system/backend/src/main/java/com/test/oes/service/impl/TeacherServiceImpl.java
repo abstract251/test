@@ -8,6 +8,7 @@ import com.test.oes.security.PasswordService;
 import com.test.oes.service.TeacherService;
 import com.test.oes.service.identity.CardIdUniquenessValidator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public IPage<Teacher> findAll(Page<Teacher> page, String teacherId, String teacherName,
                                   String institute, String type, String tel, String email) {
         teacherId = ("@".equals(teacherId) ? "" : teacherId);
@@ -37,12 +39,14 @@ public class TeacherServiceImpl implements TeacherService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Teacher> findAll() {
         Page<Teacher> teacherPage = new Page<>(1, 9999);
         return teacherMapper.findAll(teacherPage, "", "", "", "", "", "").getRecords();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Teacher findById(Integer teacherId) {
         return teacherMapper.findById(teacherId);
     }

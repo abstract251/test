@@ -144,6 +144,11 @@ import { usePagination } from '@/composables/usePagination'
 import { useViewport } from '@/composables/useViewport'
 import { getStudentScorePage, getStudentScores } from '@/api/scoreApi'
 import { formatDateTime } from '@/utils/date'
+import { createRequestCoordinator } from '@/utils/requestCoordinator'
+
+const studentScoreCoordinator = createRequestCoordinator('student-scores', {
+  defaultTtlMs: 15000
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -311,11 +316,15 @@ async function fetchScorePage() {
 
   loading.value = true
   try {
-    const response = await getStudentScorePage({
-      page: pagination.current,
-      size: pagination.size,
-      studentId: studentId.value
-    })
+    const cacheKey = `student-scores:page:${studentId.value}:${pagination.current}:${pagination.size}`
+    const response = await studentScoreCoordinator.load(
+      cacheKey,
+      () => getStudentScorePage({
+        page: pagination.current,
+        size: pagination.size,
+        studentId: studentId.value
+      })
+    )
     if (response.code === 200 && response.data) {
       Object.assign(pagination, response.data)
       return
@@ -328,20 +337,30 @@ async function fetchScorePage() {
   }
 }
 
-async function refreshScores() {
+async function refreshScores(force = false) {
   if (!studentId.value) {
     historyScores.value = []
     return
   }
 
   loading.value = true
+  const pageKey = `student-scores:page:${studentId.value}:${pagination.current}:${pagination.size}`
+  const historyKey = `student-scores:history:${studentId.value}`
   const [pageResult, summaryResult] = await Promise.allSettled([
-    getStudentScorePage({
-      page: pagination.current,
-      size: pagination.size,
-      studentId: studentId.value
-    }),
-    getStudentScores(studentId.value)
+    studentScoreCoordinator.load(
+      pageKey,
+      () => getStudentScorePage({
+        page: pagination.current,
+        size: pagination.size,
+        studentId: studentId.value
+      }),
+      { force }
+    ),
+    studentScoreCoordinator.load(
+      historyKey,
+      () => getStudentScores(studentId.value),
+      { force }
+    )
   ])
 
   let pageLoaded = false
@@ -381,7 +400,14 @@ function clearSubmitQuery() {
   router.replace({ query: nextQuery })
 }
 
-onMounted(refreshScores)
+onMounted(() => {
+  const forceRefresh = Boolean(submitResult.value)
+  if (forceRefresh && studentId.value) {
+    studentScoreCoordinator.invalidatePrefix(`student-scores:page:${studentId.value}:`)
+    studentScoreCoordinator.invalidate(`student-scores:history:${studentId.value}`)
+  }
+  void refreshScores(forceRefresh)
+})
 </script>
 
 <style scoped>

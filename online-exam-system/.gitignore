@@ -1,11 +1,12 @@
 # ===========================
-# IDE 配置文件
+# IDE and editor files
 # ===========================
 .idea/
 .vscode/
 .claude/
 .trea/
 .playwright-mcp/
+.playwright-cli/
 .m2/
 *.iml
 *.ipr
@@ -18,7 +19,7 @@
 *~
 
 # ===========================
-# 后端 Java/Maven 相关
+# Backend Java / Maven
 # ===========================
 backend/target/
 backend/*.jar
@@ -29,7 +30,7 @@ backend/mvnw
 backend/mvnw.cmd
 
 # ===========================
-# 前端 Node.js/Vue 相关
+# Frontend Node.js / Vue
 # ===========================
 frontend/node_modules/
 frontend/dist/
@@ -44,31 +45,31 @@ frontend/.yarn
 frontend/.pnp.*
 
 # ===========================
-# 日志文件
+# Logs
 # ===========================
 *.log
 logs/
 *.log.*
+tools/prometheus/*.log
+tools/prometheus/**/*.log
 
 # ===========================
-# 操作系统生成文件
+# Operating system files
 # ===========================
 .DS_Store
 Thumbs.db
 Desktop.ini
 
 # ===========================
-# 临时文件和备份
+# Temporary files
 # ===========================
 *.tmp
 *.temp
 *.bak
-*.swp
 *.cache
-*~
 
 # ===========================
-# 环境配置文件（可能包含敏感信息）
+# Environment and local secrets
 # ===========================
 .env
 .env.local
@@ -77,17 +78,39 @@ backend/src/main/resources/application-dev.properties
 backend/src/main/resources/application-prod.properties
 
 # ===========================
-# 数据库文件
+# Local runtime data
+# ===========================
+backend/ops/mysql-replica/runtime/
+backend/ops/mysql-replica/*.sql
+backend/ops/local/tool-paths.local.ps1
+backend/ops/nginx/runtime/generated/
+tools/prometheus/**/data/
+tools/nginx/nginx-1.28.0/logs/
+tools/nginx/nginx-1.28.0/temp/
+tools/
+
+# ===========================
+# Databases
 # ===========================
 *.db
 *.sqlite
 *.sqlite3
 
 # ===========================
-# 编译和构建产物
+# Build artifacts and binaries
 # ===========================
 *.class
 *.o
 *.so
 *.dll
 *.exe
+
+# ===========================
+# Local documents
+# ===========================
+高并发优化当前进度文档.md
+
+# ===========================
+# Performance outputs
+# ===========================
+backend/perf/k6/*.json

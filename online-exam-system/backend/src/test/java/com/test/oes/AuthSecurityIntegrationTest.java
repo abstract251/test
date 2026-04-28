@@ -1,20 +1,26 @@
 package com.test.oes;
 
+import com.test.oes.cache.ExamCacheFacade;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.test.oes.runtime.RuntimeControlService;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -25,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
 @TestPropertySource(properties = {
         "DB_HOST=localhost",
         "DB_PORT=3306",
@@ -35,15 +40,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class AuthSecurityIntegrationTest {
 
+    private static final String DB_ROUTE_PRIMARY = "primary";
+
     private static final int ADMIN_ID = 9991;
     private static final int TEACHER_ID = 20081001;
     private static final int STUDENT_ID = 20224001;
     private static final int OTHER_STUDENT_ID = 20224084;
-    private static final int EXAM_CODE = 20230001;
+    private static final int EXAM_CODE = 21990001;
+    private static final int HIDDEN_EXAM_CODE = 21990002;
+    private static final int PAPER_ID = 1001;
+    private static final int TEST_MESSAGE_ID = 991001;
+    private static final int TEST_MESSAGE_ID_2 = 991002;
+    private static final int TEST_MESSAGE_ID_3 = 991003;
+    private static final int TEST_REPLAY_ID = 992001;
+    private static final int TEST_REPLAY_ID_2 = 992002;
 
-    private static final String ADMIN_PASSWORD = "Admin@123";
-    private static final String TEACHER_PASSWORD = "Teacher@123";
-    private static final String STUDENT_PASSWORD = "Student@123";
+    private static final String ADMIN_PASSWORD = "123456";
+    private static final String TEACHER_PASSWORD = "123456";
+    private static final String STUDENT_PASSWORD = "123456";
 
     @Autowired
     private MockMvc mockMvc;
@@ -57,11 +71,27 @@ class AuthSecurityIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private Optional<StringRedisTemplate> stringRedisTemplate;
+
+    @Autowired
+    private ExamCacheFacade examCacheFacade;
+
+    @Autowired
+    private RuntimeControlService runtimeControlService;
+
     private boolean examAttemptTableExists;
+    private boolean asyncEventOutboxTableExists;
+    private boolean asyncProjectionTableExists;
+    private boolean runtimeToggleTableExists;
 
     @BeforeEach
     void setUpAccounts() {
+        ensureRuntimeControlTables();
         examAttemptTableExists = hasTable("exam_attempt");
+        asyncEventOutboxTableExists = hasTable("async_event_outbox");
+        asyncProjectionTableExists = hasTable("exam_score_statistics_projection");
+        runtimeToggleTableExists = hasTable("runtime_feature_toggle");
         jdbcTemplate.update("UPDATE admin SET pwd = ?, role = '0' WHERE adminId = ?",
                 passwordEncoder.encode(ADMIN_PASSWORD), ADMIN_ID);
         jdbcTemplate.update("UPDATE teacher SET pwd = ?, role = '1' WHERE teacherId = ?",
@@ -71,22 +101,61 @@ class AuthSecurityIntegrationTest {
         jdbcTemplate.update("UPDATE student SET role = '2' WHERE studentId = ?", OTHER_STUDENT_ID);
         jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
                 String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
+        jdbcTemplate.update("DELETE FROM replay WHERE replayId IN (?, ?)", TEST_REPLAY_ID, TEST_REPLAY_ID_2);
+        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2, TEST_MESSAGE_ID_3);
         if (examAttemptTableExists) {
-            jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code = ? AND student_id = ?", EXAM_CODE, STUDENT_ID);
+            jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
         }
-        jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code = ?", EXAM_CODE);
-        jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code = ?", EXAM_CODE);
-        jdbcTemplate.update("DELETE FROM score WHERE examCode = ? AND studentId = ?", EXAM_CODE, STUDENT_ID);
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        if (asyncEventOutboxTableExists) {
+            jdbcTemplate.update("DELETE FROM async_event_outbox WHERE aggregate_id IN (?, ?, ?)",
+                    String.valueOf(EXAM_CODE), EXAM_CODE + ":" + STUDENT_ID, EXAM_CODE + ":" + OTHER_STUDENT_ID);
+            jdbcTemplate.update("DELETE FROM async_event_consume_record WHERE event_id NOT IN ('__keep__')");
+        }
+        if (asyncProjectionTableExists) {
+            jdbcTemplate.update("DELETE FROM exam_score_statistics_projection WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        }
+        if (runtimeToggleTableExists) {
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle");
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle_audit");
+            runtimeControlService.refreshSnapshot();
+        }
+        jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
         ensurePaperQuestions();
-        jdbcTemplate.update("""
-                UPDATE exam_manage
-                SET exam_start_at = DATE_SUB(NOW(), INTERVAL 5 MINUTE),
-                    examDate = DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MINUTE), '%Y-%m-%d %H:%i:%s'),
-                    revoked_at = NULL,
-                    revoke_reason = NULL,
-                    totalTime = 90
-                WHERE examCode = ?
-                """, EXAM_CODE);
+        clearExamCaches();
+        insertVisibleExam();
+    }
+
+    @AfterEach
+    void cleanUpExamData() {
+        if (examAttemptTableExists) {
+            jdbcTemplate.update("DELETE FROM exam_attempt WHERE exam_code IN (?, ?) ", EXAM_CODE, HIDDEN_EXAM_CODE);
+        }
+        jdbcTemplate.update("DELETE FROM replay WHERE replayId IN (?, ?)", TEST_REPLAY_ID, TEST_REPLAY_ID_2);
+        jdbcTemplate.update("DELETE FROM message WHERE id IN (?, ?, ?)", TEST_MESSAGE_ID, TEST_MESSAGE_ID_2, TEST_MESSAGE_ID_3);
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot_item WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM exam_shared_snapshot WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM score WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        if (asyncEventOutboxTableExists) {
+            jdbcTemplate.update("DELETE FROM async_event_outbox WHERE aggregate_id IN (?, ?, ?)",
+                    String.valueOf(EXAM_CODE), EXAM_CODE + ":" + STUDENT_ID, EXAM_CODE + ":" + OTHER_STUDENT_ID);
+            jdbcTemplate.update("DELETE FROM async_event_consume_record WHERE event_id NOT IN ('__keep__')");
+        }
+        if (asyncProjectionTableExists) {
+            jdbcTemplate.update("DELETE FROM exam_score_statistics_projection WHERE exam_code IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        }
+        if (runtimeToggleTableExists) {
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle");
+            jdbcTemplate.update("DELETE FROM runtime_feature_toggle_audit");
+            runtimeControlService.refreshSnapshot();
+        }
+        jdbcTemplate.update("DELETE FROM exam_manage WHERE examCode IN (?, ?)", EXAM_CODE, HIDDEN_EXAM_CODE);
+        jdbcTemplate.update("DELETE FROM auth_refresh_token WHERE username IN (?, ?, ?)",
+                String.valueOf(ADMIN_ID), String.valueOf(TEACHER_ID), String.valueOf(STUDENT_ID));
+        deleteRedisKey("oes:student:draft:" + EXAM_CODE + ":" + STUDENT_ID);
+        clearExamCaches();
     }
 
     @Test
@@ -122,7 +191,7 @@ class AuthSecurityIntegrationTest {
                         .content("""
                                 {
                                   "username": "9991",
-                                  "password": "Admin@123",
+                                  "password": "123456",
                                   "role": "STUDENT"
                                 }
                                 """))
@@ -139,6 +208,41 @@ class AuthSecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.userId").value(ADMIN_ID));
+    }
+
+    @Test
+    void actuatorHealthAndPrometheusShouldBePublic() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+
+        MvcResult result = mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("# HELP");
+        assertThat(body).contains("jvm_memory_used_bytes");
+    }
+
+    @Test
+    void readOnlyQueriesShouldExposeReplicaRouteMetrics() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+
+        mockMvc.perform(get("/score/statistics/" + EXAM_CODE)
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        MvcResult result = mockMvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body).contains("oes_db_route_requests_total");
+        assertThat(body).contains("target=\"replica\"");
+        assertThat(body).contains("result=\"selected\"");
+        assertThat(body).contains("oes_db_replica_lag_seconds");
     }
 
     @Test
@@ -179,6 +283,56 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    void refreshShouldRejectReusedRefreshToken() throws Exception {
+        JsonNode loginData = json(login("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD)).path("data");
+        String refreshToken = loginData.path("refreshToken").asText();
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "refreshToken": "%s"
+                                }
+                                """.formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "refreshToken": "%s"
+                                }
+                                """.formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    void refreshShouldWriteAuthRefreshRevokedOutbox() throws Exception {
+        Assumptions.assumeTrue(asyncEventOutboxTableExists, "async_event_outbox table is not present in current database");
+        JsonNode loginData = json(login("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD)).path("data");
+        String refreshToken = loginData.path("refreshToken").asText();
+
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "refreshToken": "%s"
+                                }
+                                """.formatted(refreshToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'auth.refresh.revoked'",
+                Integer.class
+        );
+        assertThat(count).isNotNull();
+        assertThat(count).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
     void logoutShouldInvalidateRefreshToken() throws Exception {
         JsonNode loginData = json(login("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD)).path("data");
         String refreshToken = loginData.path("refreshToken").asText();
@@ -203,6 +357,15 @@ class AuthSecurityIntegrationTest {
                                 """.formatted(refreshToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(401));
+
+        if (asyncEventOutboxTableExists) {
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'auth.refresh.revoked'",
+                    Integer.class
+            );
+            assertThat(count).isNotNull();
+            assertThat(count).isGreaterThanOrEqualTo(1);
+        }
     }
 
     @Test
@@ -285,10 +448,187 @@ class AuthSecurityIntegrationTest {
     }
 
     @Test
+    void scoreStatisticsShouldReturnAggregatedSummary() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update(
+                "INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                EXAM_CODE, STUDENT_ID, "phase8-subject", 1, 80, 100, "2026-04-19"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                EXAM_CODE, OTHER_STUDENT_ID, "phase8-subject", 0, 50, 100, "2026-04-19"
+        );
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM score WHERE examCode = ?",
+                Integer.class,
+                EXAM_CODE
+        )).isEqualTo(2);
+        examCacheFacade.markScoreProjectionDirty(EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(EXAM_CODE);
+        mockMvc.perform(get("/score/statistics/" + EXAM_CODE)
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.maxScore").value(80))
+                .andExpect(jsonPath("$.data.minScore").value(50))
+                .andExpect(jsonPath("$.data.avgScore").value(65.0))
+                .andExpect(jsonPath("$.data.passRate").value(0.5))
+                .andExpect(jsonPath("$.data.distribution").isArray());
+    }
+
+    @Test
+    void messageEndpointsShouldReturnRepliesWithoutNPlusOneShapeRegression() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update(
+                "INSERT INTO message(id, title, content, time) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID, "phase5-message-1", "message-one"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO message(id, title, content, time) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID_2, "phase5-message-2", "message-two"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO replay(messageId, replayId, replay, replayTime) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID, TEST_REPLAY_ID, "reply-one"
+        );
+        jdbcTemplate.update(
+                "INSERT INTO replay(messageId, replayId, replay, replayTime) VALUES (?, ?, ?, CURRENT_DATE())",
+                TEST_MESSAGE_ID_2, TEST_REPLAY_ID_2, "reply-two"
+        );
+
+        MvcResult listResult = mockMvc.perform(get("/messages/1/50")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-DB-Route", DB_ROUTE_PRIMARY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.records").isArray())
+                .andReturn();
+
+        JsonNode records = json(listResult).path("data").path("records");
+        JsonNode message = findMessage(records, TEST_MESSAGE_ID);
+        JsonNode secondMessage = findMessage(records, TEST_MESSAGE_ID_2);
+        assertThat(message).isNotNull();
+        assertThat(secondMessage).isNotNull();
+        assertThat(message.path("replays").isArray()).isTrue();
+        assertThat(message.path("replays").size()).isEqualTo(1);
+        assertThat(secondMessage.path("replays").size()).isEqualTo(1);
+
+        mockMvc.perform(get("/message/" + TEST_MESSAGE_ID)
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-DB-Route", DB_ROUTE_PRIMARY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.id").value(TEST_MESSAGE_ID))
+                .andExpect(jsonPath("$.data.replays").isArray())
+                .andExpect(jsonPath("$.data.replays[0].replay").value("reply-one"));
+    }
+
+    @Test
+    void createMessageShouldUseCurrentUserAndWriteMessageCreatedOutbox() throws Exception {
+        Assumptions.assumeTrue(asyncEventOutboxTableExists, "async_event_outbox table is not present in current database");
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+
+        mockMvc.perform(post("/message")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "id": %d,
+                                  "title": "phase6-created",
+                                  "content": "message-created-content",
+                                  "creatorId": %d,
+                                  "creatorRole": "ADMIN",
+                                  "creatorName": "fake"
+                                }
+                                """.formatted(TEST_MESSAGE_ID_3, ADMIN_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT creator_id, creator_role, creator_name, created_at, updated_at FROM message WHERE title = 'phase6-created' ORDER BY id DESC LIMIT 1"
+        );
+        assertThat(row.get("creator_id")).isEqualTo(STUDENT_ID);
+        assertThat(String.valueOf(row.get("creator_role"))).isEqualTo("STUDENT");
+        assertThat(String.valueOf(row.get("creator_name"))).isNotBlank();
+        assertThat(row.get("created_at")).isNotNull();
+        assertThat(row.get("updated_at")).isNotNull();
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'message.created'",
+                Integer.class
+        );
+        assertThat(count).isNotNull();
+        assertThat(count).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void createReplyShouldUseCurrentTeacherMetadata() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update(
+                "INSERT INTO message(id, title, content, time, creator_id, creator_role, creator_name, created_at, updated_at) VALUES (?, ?, ?, CURRENT_DATE(), ?, ?, ?, NOW(), NOW())",
+                TEST_MESSAGE_ID_3, "reply-target", "reply-target-content", STUDENT_ID, "STUDENT", "student"
+        );
+
+        mockMvc.perform(post("/replay")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "messageId": %d,
+                                  "replay": "phase6-reply",
+                                  "creatorId": %d,
+                                  "creatorRole": "STUDENT",
+                                  "creatorName": "fake"
+                                }
+                                """.formatted(TEST_MESSAGE_ID_3, STUDENT_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT creator_id, creator_role, creator_name, created_at FROM replay WHERE messageId = ? ORDER BY replayId DESC LIMIT 1",
+                TEST_MESSAGE_ID_3
+        );
+        assertThat(Integer.parseInt(String.valueOf(row.get("creator_id")))).isEqualTo(TEACHER_ID);
+        assertThat(String.valueOf(row.get("creator_role"))).isEqualTo("TEACHER");
+        assertThat(String.valueOf(row.get("creator_name"))).isNotBlank();
+        assertThat(row.get("created_at")).isNotNull();
+    }
+
+    @Test
+    void teacherExamListShouldExposeAggregatedPolicyFields() throws Exception {
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update("""
+                INSERT INTO exam_shared_snapshot(exam_code, paper_id, created_at)
+                VALUES (?, ?, NOW())
+                """, EXAM_CODE, PAPER_ID);
+
+        MvcResult result = mockMvc.perform(get("/exams/1/100")
+                        .header("Authorization", "Bearer " + teacherToken)
+                        .header("X-DB-Route", DB_ROUTE_PRIMARY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.records").isArray())
+                .andReturn();
+
+        JsonNode records = json(result).path("data").path("records");
+        JsonNode currentExam = findExam(records, EXAM_CODE);
+        assertThat(currentExam).isNotNull();
+        assertThat(currentExam.path("totalScore").asInt()).isEqualTo(6);
+        assertThat(currentExam.path("paperLocked").isMissingNode()).isFalse();
+        assertThat(currentExam.path("revoked").asBoolean()).isFalse();
+        assertThat(currentExam.path("inExamWindow").asBoolean()).isTrue();
+        assertThat(currentExam.path("snapshotReady").asBoolean()).isTrue();
+        assertThat(currentExam.path("windowEndAt").isMissingNode()).isFalse();
+        assertThat(currentExam.path("freezeAt").isMissingNode()).isFalse();
+        assertThat(currentExam.path("paperId").asInt()).isEqualTo(PAPER_ID);
+    }
+
+    @Test
     void studentExamListShouldFilterByScopeAndExposeStudentFacingStatusFields() throws Exception {
         Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
         String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
-        int hiddenExamCode = 20990001;
 
         jdbcTemplate.update("""
                 INSERT INTO exam_manage(
@@ -297,7 +637,7 @@ class AuthSecurityIntegrationTest {
                 ) VALUES (?, ?, ?, ?, DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 1 DAY), '%Y-%m-%d %H:%i:%s'),
                           DATE_ADD(NOW(), INTERVAL 1 DAY), ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)
                 """,
-                hiddenExamCode, "不属于当前学生的考试", "数据库系统", 1001, 60,
+                HIDDEN_EXAM_CODE, "不属于当前学生的考试", "数据库系统", PAPER_ID, 60,
                 "2025", "1", "软件工程", "信息工程学院", 6, "阶段测验", "hidden");
 
         jdbcTemplate.update("""
@@ -317,10 +657,11 @@ class AuthSecurityIntegrationTest {
         assertThat(records.isArray()).isTrue();
         JsonNode currentExam = findExam(records, EXAM_CODE);
         assertThat(currentExam).isNotNull();
-        assertThat(findExam(records, hiddenExamCode)).isNull();
+        assertThat(findExam(records, HIDDEN_EXAM_CODE)).isNull();
         assertThat(currentExam.path("examState").asText()).isEqualTo("ONGOING");
         assertThat(currentExam.path("attemptStatus").asText()).isEqualTo("IN_PROGRESS");
         assertThat(currentExam.path("canEnter").asBoolean()).isTrue();
+        assertThat(currentExam.path("totalScore").asInt()).isEqualTo(6);
         assertThat(currentExam.path("windowEndAt").isMissingNode()).isFalse();
         assertThat(currentExam.path("freezeAt").isMissingNode()).isFalse();
     }
@@ -440,8 +781,11 @@ class AuthSecurityIntegrationTest {
                 EXAM_CODE,
                 STUDENT_ID
         );
-        assertThat(persistedAnswers).contains("1_10001");
-        assertThat(persistedAnswers).contains("2_20001");
+        String draftKey = "oes:student:draft:" + EXAM_CODE + ":" + STUDENT_ID;
+        String draftJson = stringRedisTemplate.map(template -> template.opsForValue().get(draftKey)).orElse(null);
+        assertThat(draftJson).contains("1_10001");
+        assertThat(draftJson).contains("2_20001");
+        assertThat(persistedAnswers).isNotNull();
 
         mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/submit")
                         .header("Authorization", "Bearer " + studentToken))
@@ -466,10 +810,171 @@ class AuthSecurityIntegrationTest {
         );
         assertThat(status).isEqualTo(1);
 
+        String finalAnswers = jdbcTemplate.queryForObject(
+                "SELECT answers_json FROM exam_attempt WHERE exam_code = ? AND student_id = ?",
+                String.class,
+                EXAM_CODE,
+                STUDENT_ID
+        );
+        assertThat(finalAnswers).contains("1_10001");
+        assertThat(finalAnswers).contains("2_20001");
+        assertThat(stringRedisTemplate.map(template -> template.opsForValue().get(draftKey)).orElse(null)).isNull();
+
         mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/submit")
                         .header("Authorization", "Bearer " + studentToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    void studentExamAttemptStartShouldReuseExistingInProgressAttempt() throws Exception {
+        Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+
+        MvcResult first = mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/start")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+
+        MvcResult second = mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/start")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+
+        assertThat(json(first).path("data").path("attemptId").asLong())
+                .isEqualTo(json(second).path("data").path("attemptId").asLong());
+    }
+
+    @Test
+    void studentSubmitShouldWriteExamSubmittedOutbox() throws Exception {
+        Assumptions.assumeTrue(examAttemptTableExists, "exam_attempt table is not present in current database");
+        Assumptions.assumeTrue(asyncEventOutboxTableExists, "async_event_outbox table is not present in current database");
+        String studentToken = accessTokenOf("STUDENT", String.valueOf(STUDENT_ID), STUDENT_PASSWORD);
+
+        mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/start")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(put("/student/exam/" + EXAM_CODE + "/attempt/answers")
+                        .header("Authorization", "Bearer " + studentToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"answers\":{\"1_10001\":\"A\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(post("/student/exam/" + EXAM_CODE + "/attempt/submit")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM async_event_outbox WHERE event_type = 'exam.submitted' AND aggregate_id = ?",
+                Integer.class,
+                EXAM_CODE + ":" + STUDENT_ID
+        );
+        assertThat(count).isNotNull();
+        assertThat(count).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void scoreStatisticsShouldFallbackToRealtimeWhenProjectionDirty() throws Exception {
+        Assumptions.assumeTrue(asyncProjectionTableExists, "exam_score_statistics_projection table is not present in current database");
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+        jdbcTemplate.update("""
+                INSERT INTO score(examCode, studentId, subject, ptScore, etScore, score, answerDate)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE())
+                """, EXAM_CODE, STUDENT_ID, "计算机网络", 1, 6, 6);
+        examCacheFacade.markScoreProjectionDirty(EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(EXAM_CODE);
+
+        mockMvc.perform(get("/score/statistics/" + EXAM_CODE)
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").isMap())
+                .andExpect(jsonPath("$.data.distribution").isArray());
+    }
+
+    @Test
+    void adminRuntimeControlsShouldRequireAdminAndToggleMessageGate() throws Exception {
+        Assumptions.assumeTrue(runtimeToggleTableExists, "runtime_feature_toggle table is not present in current database");
+        String adminToken = accessTokenOf("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD);
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+
+        MvcResult updateResult = mockMvc.perform(put("/admin/runtime/controls/NON_CORE_MESSAGE_ENABLED")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": false,
+                                  "reason": "integration-test disable messages"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.features.NON_CORE_MESSAGE_ENABLED").value(false))
+                .andReturn();
+
+        mockMvc.perform(get("/messages/1/10")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(503));
+
+        mockMvc.perform(get("/admin/runtime/controls/local")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isForbidden());
+
+        String batchId = jdbcTemplate.queryForObject(
+                "SELECT batch_id FROM runtime_feature_toggle_audit ORDER BY id DESC LIMIT 1",
+                String.class
+        );
+        assertThat(batchId).isNotBlank();
+        assertThat(json(updateResult).path("data").path("version").asLong()).isPositive();
+    }
+
+    @Test
+    void adminRuntimeRollbackShouldRestoreMessageAccess() throws Exception {
+        Assumptions.assumeTrue(runtimeToggleTableExists, "runtime_feature_toggle table is not present in current database");
+        String adminToken = accessTokenOf("ADMIN", String.valueOf(ADMIN_ID), ADMIN_PASSWORD);
+        String teacherToken = accessTokenOf("TEACHER", String.valueOf(TEACHER_ID), TEACHER_PASSWORD);
+
+        mockMvc.perform(put("/admin/runtime/controls/NON_CORE_MESSAGE_ENABLED")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": false,
+                                  "reason": "integration-test disable messages"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        String batchId = jdbcTemplate.queryForObject(
+                "SELECT batch_id FROM runtime_feature_toggle_audit ORDER BY id DESC LIMIT 1",
+                String.class
+        );
+
+        mockMvc.perform(post("/admin/runtime/controls/history/" + batchId + "/rollback")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reason": "integration-test rollback messages"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.features.NON_CORE_MESSAGE_ENABLED").value(true));
+
+        mockMvc.perform(get("/messages/1/10")
+                        .header("Authorization", "Bearer " + teacherToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
     }
 
     private MvcResult login(String role, String username, String password) throws Exception {
@@ -503,6 +1008,15 @@ class AuthSecurityIntegrationTest {
         return null;
     }
 
+    private JsonNode findMessage(JsonNode records, int messageId) {
+        for (JsonNode item : records) {
+            if (item.path("id").asInt() == messageId) {
+                return item;
+            }
+        }
+        return null;
+    }
+
     private boolean hasTable(String tableName) {
         Integer count = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
@@ -513,17 +1027,96 @@ class AuthSecurityIntegrationTest {
         return count != null && count > 0;
     }
 
+    private void ensureRuntimeControlTables() {
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS runtime_feature_toggle (
+                    feature_key VARCHAR(64) NOT NULL PRIMARY KEY,
+                    enabled TINYINT(1) NOT NULL,
+                    version BIGINT NOT NULL,
+                    updated_by_id INT NULL,
+                    updated_by_role VARCHAR(32) NULL,
+                    updated_by_name VARCHAR(64) NULL,
+                    updated_reason VARCHAR(255) NOT NULL,
+                    preset_name VARCHAR(64) NULL,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """);
+        jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS runtime_feature_toggle_audit (
+                    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    batch_id VARCHAR(64) NOT NULL,
+                    feature_key VARCHAR(64) NOT NULL,
+                    old_enabled TINYINT(1) NOT NULL,
+                    new_enabled TINYINT(1) NOT NULL,
+                    operator_id INT NULL,
+                    operator_role VARCHAR(32) NULL,
+                    operator_name VARCHAR(64) NULL,
+                    reason VARCHAR(255) NOT NULL,
+                    preset_name VARCHAR(64) NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """);
+    }
+
     private void ensurePaperQuestions() {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM paper_manage WHERE paperId = ?",
                 Integer.class,
-                1001
+                PAPER_ID
         );
         if (count != null && count > 0) {
             return;
         }
-        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (1001, 1, 10001)");
-        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (1001, 2, 10001)");
-        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (1001, 3, 10001)");
+        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (?, 1, 10001)", PAPER_ID);
+        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (?, 2, 10001)", PAPER_ID);
+        jdbcTemplate.update("INSERT INTO paper_manage(paperId, questionType, questionId) VALUES (?, 3, 10001)", PAPER_ID);
+    }
+
+    private void insertVisibleExam() {
+        jdbcTemplate.update("""
+                INSERT INTO exam_manage(
+                    examCode, description, source, paperId, examDate, exam_start_at, totalTime,
+                    grade, term, major, institute, totalScore, type, tips, paper_frozen_at, revoked_at, revoke_reason
+                ) VALUES (
+                    ?, ?, ?, ?,
+                    DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 5 MINUTE), '%Y-%m-%d %H:%i:%s'),
+                    DATE_SUB(NOW(), INTERVAL 5 MINUTE),
+                    ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL
+                )
+                """,
+                EXAM_CODE,
+                "测试专用考试",
+                "计算机网络",
+                PAPER_ID,
+                90,
+                "2023",
+                "1",
+                "计算机科学与技术",
+                "软件工程学院",
+                6,
+                "期末考试",
+                "integration-test"
+        );
+    }
+
+    private void deleteRedisKey(String key) {
+        stringRedisTemplate.ifPresent(template -> template.delete(key));
+    }
+
+    private void clearExamCaches() {
+        examCacheFacade.evictExamMeta(EXAM_CODE);
+        examCacheFacade.evictExamMeta(HIDDEN_EXAM_CODE);
+        examCacheFacade.evictSnapshotCaches(EXAM_CODE);
+        examCacheFacade.evictSnapshotCaches(HIDDEN_EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(EXAM_CODE);
+        examCacheFacade.evictScoreStatistics(HIDDEN_EXAM_CODE);
+        examCacheFacade.clearScoreProjectionDirty(EXAM_CODE);
+        examCacheFacade.clearScoreProjectionDirty(HIDDEN_EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(EXAM_CODE);
+        examCacheFacade.bumpScoreStatisticsVersion(HIDDEN_EXAM_CODE);
+        examCacheFacade.evictPaperAggregates(PAPER_ID);
+        examCacheFacade.evictStudentExamList(STUDENT_ID);
+        examCacheFacade.evictStudentExamDetail(STUDENT_ID, EXAM_CODE);
+        examCacheFacade.bumpScopeExamVersion();
     }
 }

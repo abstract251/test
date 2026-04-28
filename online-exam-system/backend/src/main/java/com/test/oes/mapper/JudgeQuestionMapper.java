@@ -11,36 +11,28 @@ import java.util.List;
 @Mapper
 public interface JudgeQuestionMapper {
 
-    @Select("select * from judge_question where questionId in (select questionId from paper_manage where questionType = 3 and paperId = #{paperId})")
     List<JudgeQuestion> findByIdAndType(Integer paperId);
 
-    @Select("select * from judge_question")
     IPage<JudgeQuestion> findAll(Page<JudgeQuestion> page);
 
     /**
      * 查询最后一条记录的questionId
      * @return JudgeQuestion
      */
-    @Select("select questionId from judge_question order by questionId desc limit 1")
     JudgeQuestion findOnlyQuestionId();
 
-    @Insert("insert into judge_question(subject,question,answer,analysis,level,section) values " +
-            "(#{subject},#{question},#{answer},#{analysis},#{level},#{section})")
     int add(JudgeQuestion judgeQuestion);
 
-    @Select("select questionId from judge_question  where subject=#{subject}  order by rand() desc limit #{pageNo}")
-    List<Integer> findBySubject(@Param("subject") String subject, @Param("pageNo") Integer pageNo);
+    List<Integer> findIdsBySubject(@Param("subject") String subject);
 
-    @Update("update judge_question set subject = #{subject}, question = #{question}, answer = #{answer}, section = #{section}, analysis = #{analysis}, level = #{level} where questionId = #{questionId}")
     int edit(JudgeQuestion judgeQuestion);
 
-    @Select("select * from judge_question  where subject=#{subject}")
     List<JudgeQuestion> findQuestionBySubject(@Param("subject") String subject);
 
-    @Select("select * from judge_question where questionId = #{questionId}")
     JudgeQuestion findByQuestionId(@Param("questionId") Integer questionId);
 
-    @Delete("delete from judge_question where questionId = #{questionId}")
+    List<JudgeQuestion> findByQuestionIds(@Param("questionIds") List<Integer> questionIds);
+
     int deleteByQuestionId(@Param("questionId") Integer questionId);
 
 }

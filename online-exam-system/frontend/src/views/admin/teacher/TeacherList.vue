@@ -73,11 +73,12 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { useDebouncedWatch } from '@/composables/useDebouncedWatch'
 import { usePagination } from '@/composables/usePagination'
 import { deleteTeacher, getTeacherPage } from '@/api/teacherApi'
 import { normalizeSex } from '@/utils/constants'
@@ -92,18 +93,46 @@ const filters = reactive({
   tel: '',
   email: ''
 })
+const filterSignature = computed(() => JSON.stringify({
+  teacherId: filters.teacherId.trim(),
+  teacherName: filters.teacherName.trim(),
+  institute: filters.institute.trim(),
+  type: filters.type.trim(),
+  tel: filters.tel.trim(),
+  email: filters.email.trim()
+}))
+
+let fetchSequence = 0
+let skipNextAutoSearch = 0
+
+const { cancel: cancelAutoSearch, flush: flushAutoSearch } = useDebouncedWatch(
+  filterSignature,
+  () => {
+    if (skipNextAutoSearch > 0) {
+      skipNextAutoSearch -= 1
+      return
+    }
+    pagination.current = 1
+    void fetchTeachers()
+  },
+  400
+)
 
 function formatSexDisplay(row) {
   return normalizeSex(row.sex, '-')
 }
 
 async function fetchTeachers() {
+  const requestId = ++fetchSequence
   try {
     const response = await getTeacherPage({
       page: pagination.current,
       size: pagination.size,
       filters
     })
+    if (requestId !== fetchSequence) {
+      return
+    }
     if (response.code === 200) {
       Object.assign(pagination, response.data)
       return
@@ -137,6 +166,7 @@ async function handleDelete(teacherId) {
 }
 
 function resetFilters() {
+  skipNextAutoSearch += 1
   Object.assign(filters, {
     teacherId: '',
     teacherName: '',
@@ -145,13 +175,14 @@ function resetFilters() {
     tel: '',
     email: ''
   })
+  cancelAutoSearch()
   pagination.current = 1
   void fetchTeachers()
 }
 
 function handleSearch() {
   pagination.current = 1
-  void fetchTeachers()
+  void flushAutoSearch()
 }
 
 onMounted(fetchTeachers)

@@ -1,10 +1,13 @@
 package com.test.oes.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.test.oes.cache.CacheKeys;
+import com.test.oes.cache.ExamCacheFacade;
 import com.test.oes.entity.FillQuestion;
 import com.test.oes.entity.JudgeQuestion;
 import com.test.oes.entity.MultiQuestion;
 import com.test.oes.exception.ExamBusinessException;
+import com.test.oes.mapper.ExamManageMapper;
 import com.test.oes.mapper.FillQuestionMapper;
 import com.test.oes.mapper.JudgeQuestionMapper;
 import com.test.oes.mapper.MultiQuestionMapper;
@@ -17,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +35,11 @@ public class QuestionBankServiceImpl implements QuestionBankService {
     private final FillQuestionMapper fillQuestionMapper;
     private final JudgeQuestionMapper judgeQuestionMapper;
     private final ExamPaperEditPolicy examPaperEditPolicy;
+    private final ExamManageMapper examManageMapper;
+    private final ExamCacheFacade examCacheFacade;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<QuestionBankItemVO> findAll(Integer page,
                                             Integer size,
                                             Integer questionType,
@@ -43,12 +50,18 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         Integer normalizedType = normalizeQuestionType(questionType, false);
         String normalizedSubject = trimToNull(subject);
         String normalizedKeyword = trimToNull(keyword);
+        String cacheKey = CacheKeys.questionBank(normalizedType, normalizedSubject, normalizedKeyword, current, pageSize);
 
-        long total = questionBankMapper.countAll(normalizedType, normalizedSubject, normalizedKeyword);
+        Page<QuestionBankItemVO> cached = examCacheFacade.getQuestionBankPage(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        long total = countQuestions(normalizedType, normalizedSubject, normalizedKeyword);
         List<QuestionBankItemVO> records = List.of();
         if (total > 0) {
             long offset = (long) (current - 1) * pageSize;
-            records = questionBankMapper.selectPage(offset, pageSize, normalizedType, normalizedSubject, normalizedKeyword);
+            records = selectPage(offset, pageSize, normalizedType, normalizedSubject, normalizedKeyword);
             for (QuestionBankItemVO item : records) {
                 item.setQuestionTypeName(typeName(item.getQuestionType()));
             }
@@ -57,7 +70,50 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         Page<QuestionBankItemVO> result = new Page<>(current, pageSize);
         result.setTotal(total);
         result.setRecords(records);
+        examCacheFacade.putQuestionBankPage(cacheKey, result);
         return result;
+    }
+
+    private long countQuestions(Integer questionType, String subject, String keyword) {
+        if (questionType == null) {
+            return questionBankMapper.countMulti(subject, keyword)
+                    + questionBankMapper.countFill(subject, keyword)
+                    + questionBankMapper.countJudge(subject, keyword);
+        }
+        return switch (questionType) {
+            case 1 -> questionBankMapper.countMulti(subject, keyword);
+            case 2 -> questionBankMapper.countFill(subject, keyword);
+            case 3 -> questionBankMapper.countJudge(subject, keyword);
+            default -> 0L;
+        };
+    }
+
+    private List<QuestionBankItemVO> selectPage(long offset,
+                                                long pageSize,
+                                                Integer questionType,
+                                                String subject,
+                                                String keyword) {
+        if (questionType != null) {
+            return switch (questionType) {
+                case 1 -> questionBankMapper.selectMultiPage(offset, pageSize, subject, keyword);
+                case 2 -> questionBankMapper.selectFillPage(offset, pageSize, subject, keyword);
+                case 3 -> questionBankMapper.selectJudgePage(offset, pageSize, subject, keyword);
+                default -> List.of();
+            };
+        }
+
+        long fetchSize = offset + pageSize;
+        List<QuestionBankItemVO> merged = new java.util.ArrayList<>();
+        merged.addAll(questionBankMapper.selectMultiPage(0, fetchSize, subject, keyword));
+        merged.addAll(questionBankMapper.selectFillPage(0, fetchSize, subject, keyword));
+        merged.addAll(questionBankMapper.selectJudgePage(0, fetchSize, subject, keyword));
+        merged.sort(Comparator
+                .comparing(QuestionBankItemVO::getQuestionId, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(QuestionBankItemVO::getQuestionType, Comparator.nullsLast(Comparator.naturalOrder())));
+        return merged.stream()
+                .skip(offset)
+                .limit(pageSize)
+                .toList();
     }
 
     @Override
@@ -86,6 +142,17 @@ public class QuestionBankServiceImpl implements QuestionBankService {
         result.put("questionId", questionId);
         result.put("deletedPaperRelations", relationRows);
         result.put("deletedQuestion", questionRows);
+        examCacheFacade.evictQuestionBankPages();
+        for (Integer paperId : paperIds) {
+            examCacheFacade.evictPaperAggregates(paperId);
+            examManageMapper.findByPaperId(paperId).forEach(exam -> {
+                if (exam.getExamCode() != null) {
+                    examCacheFacade.evictExamMeta(exam.getExamCode());
+                    examCacheFacade.evictSnapshotCaches(exam.getExamCode());
+                }
+            });
+        }
+        examCacheFacade.bumpScopeExamVersion();
         return result;
     }
 

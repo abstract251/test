@@ -3,14 +3,10 @@
     <div class="login-view__hero">
       <div class="login-view__hero-inner">
         <span class="hero-tag">在线考试</span>
-        <h1>在线考试系统</h1>
-        <p>
-          系统现已切换为 JWT 登录认证。请先选择身份，再输入学校分配的账号和密码登录。
-        </p>
+        <h1>{{ LOGIN_COPY.heroTitle }}</h1>
+        <p>{{ LOGIN_COPY.heroDescription }}</p>
         <ul class="hero-points">
-          <li>管理员、教师、学生使用同一登录页，按身份分别鉴权</li>
-          <li>登录后自动加载当前登录信息，刷新页面不会直接丢失会话</li>
-          <li>学生端在线考试支持基于登录身份的会话校验</li>
+          <li v-for="item in LOGIN_COPY.heroPoints" :key="item">{{ item }}</li>
         </ul>
       </div>
     </div>
@@ -23,12 +19,24 @@
           </div>
           <div>
             <h2>账号登录</h2>
-            <p>请填写账号、密码并选择身份，系统将按所选角色调用对应鉴权接口。</p>
+            <p>{{ LOGIN_COPY.cardDescription }}</p>
           </div>
         </div>
 
-        <el-form @submit.prevent="handleLogin">
-          <el-form-item label="登录身份">
+        <PageNotice
+          v-if="pageError"
+          type="error"
+          title="暂时还不能登录"
+          :description="pageError"
+        />
+        <FormErrorSummary
+          v-if="formSummary.title || formSummary.items.length"
+          :title="formSummary.title"
+          :items="formSummary.items"
+        />
+
+        <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="handleLogin">
+          <el-form-item label="登录身份" prop="role">
             <el-radio-group v-model="form.role" class="login-role-group">
               <el-radio-button
                 v-for="item in AUTH_ROLE_OPTIONS"
@@ -40,10 +48,10 @@
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item label="账号">
+          <el-form-item label="账号" prop="username">
             <el-input
               v-model="form.username"
-              placeholder="请输入数字账号"
+              placeholder="请输入学校发放的数字账号"
               inputmode="numeric"
             >
               <template #prefix>
@@ -52,7 +60,7 @@
             </el-input>
           </el-form-item>
 
-          <el-form-item label="密码">
+          <el-form-item label="密码" prop="password">
             <el-input
               v-model="form.password"
               type="password"
@@ -76,8 +84,8 @@
         </el-form>
 
         <div class="login-card__footer">
-          <span>如无法登录，请确认密码已完成 BCrypt 迁移</span>
-          <span>登录态由 access token 和 refresh token 共同维护</span>
+          <span>{{ LOGIN_COPY.footerLeft }}</span>
+          <span>{{ LOGIN_COPY.footerRight }}</span>
         </div>
       </div>
     </div>
@@ -88,8 +96,9 @@
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Lock, School, User } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import { login } from '@/api/authApi'
+import FormErrorSummary from '@/components/common/FormErrorSummary.vue'
+import PageNotice from '@/components/common/PageNotice.vue'
 import {
   resolveHomePath,
   setSessionFromAuthResponse,
@@ -97,37 +106,53 @@ import {
 } from '@/utils/auth'
 import { getStudentProfile } from '@/api/profileApi'
 import { AUTH_ROLES, AUTH_ROLE_OPTIONS } from '@/utils/constants'
+import { buildFormSummary, resolveUserFacingError, scrollToFirstError, showActionSuccess } from '@/utils/feedback'
+import { LOGIN_COPY } from '@/utils/userCopy'
 
 const route = useRoute()
 const router = useRouter()
 
+const formRef = ref(null)
 const submitting = ref(false)
+const pageError = ref('')
+const formSummary = reactive({
+  title: '',
+  items: []
+})
 const form = reactive({
   username: '',
   password: '',
   role: AUTH_ROLES.STUDENT
 })
 
+const rules = {
+  role: [{ required: true, message: '请先选择你的身份', trigger: 'change' }],
+  username: [
+    { required: true, message: '请输入学校发放的账号', trigger: 'blur' },
+    { pattern: /^\d+$/, message: '账号通常是一串数字，请重新检查', trigger: 'blur' }
+  ],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
+
 function resolveLoginErrorMessage(response) {
   if (response?.code === 400 || response?.code === 401) {
-    return '账号、密码或登录身份不正确'
+    return '账号、密码或身份选择不正确，请重新确认后再试'
   }
+  return resolveUserFacingError(response, '登录暂时不可用，请稍后再试')
+}
 
-  if (response?.message) {
-    return response.message
-  }
-
-  return '登录失败，请稍后重试'
+function resetFormFeedback() {
+  pageError.value = ''
+  formSummary.title = ''
+  formSummary.items = []
 }
 
 async function handleLogin() {
-  if (!/^\d+$/.test(form.username)) {
-    ElMessage.warning('账号必须是纯数字')
-    return
-  }
-
-  if (!form.password.trim()) {
-    ElMessage.warning('请输入密码')
+  resetFormFeedback()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) {
+    Object.assign(formSummary, buildFormSummary(formRef, '请先补全登录信息'))
+    await scrollToFirstError(formRef)
     return
   }
 
@@ -141,13 +166,13 @@ async function handleLogin() {
     })
 
     if (response?.code !== 200 || !response?.data) {
-      ElMessage.error(resolveLoginErrorMessage(response))
+      pageError.value = resolveLoginErrorMessage(response)
       return
     }
 
     const session = setSessionFromAuthResponse(response.data)
     if (!session) {
-      ElMessage.error('登录成功，但会话初始化失败，请检查认证返回结构')
+      pageError.value = '登录信息处理失败，请重新登录一次'
       return
     }
 
@@ -160,10 +185,10 @@ async function handleLogin() {
 
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
 
-    ElMessage.success('登录成功')
+    showActionSuccess('登录成功，正在进入系统')
     await router.replace(redirect || resolveHomePath(session.authRole))
   } catch (error) {
-    ElMessage.error(error?.message || '登录请求失败，请确认后端服务已启动')
+    pageError.value = resolveUserFacingError(error, '当前无法连接系统，请稍后再试')
   } finally {
     submitting.value = false
   }

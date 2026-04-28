@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.test.oes.mapper.ReplayMapper">
+
+    <select id="findAll" resultType="com.test.oes.entity.Replay">
+        select messageId,
+               replayId,
+               replay,
+               replayTime,
+               creator_id as creatorId,
+               creator_role as creatorRole,
+               creator_name as creatorName,
+               created_at as createdAt
+        from replay
+    </select>
+
+    <select id="findAllById" resultType="com.test.oes.entity.Replay">
+        select messageId,
+               replayId,
+               replay,
+               replayTime,
+               creator_id as creatorId,
+               creator_role as creatorRole,
+               creator_name as creatorName,
+               created_at as createdAt
+        from replay
+        where messageId = #{messageId}
+    </select>
+
+    <select id="findByMessageIds" resultType="com.test.oes.entity.Replay">
+        select messageId,
+               replayId,
+               replay,
+               replayTime,
+               creator_id as creatorId,
+               creator_role as creatorRole,
+               creator_name as creatorName,
+               created_at as createdAt
+        from replay
+        where messageId in
+        <foreach collection="messageIds" item="messageId" open="(" separator="," close=")">
+            #{messageId}
+        </foreach>
+        order by messageId asc, replayId asc
+    </select>
+
+    <select id="findById" resultType="com.test.oes.entity.Replay">
+        select messageId,
+               replayId,
+               replay,
+               replayTime,
+               creator_id as creatorId,
+               creator_role as creatorRole,
+               creator_name as creatorName,
+               created_at as createdAt
+        from replay
+        where messageId = #{messageId}
+    </select>
+
+    <delete id="delete">
+        delete from replay where replayId = #{replayId}
+    </delete>
+
+    <update id="update">
+        update replay
+        set replay = #{replay},
+            replayTime = #{replayTime},
+            created_at = #{createdAt}
+        where replayId = #{replayId}
+    </update>
+
+    <insert id="add" useGeneratedKeys="true" keyProperty="replayId">
+        insert into replay(messageId, replay, replayTime, creator_id, creator_role, creator_name, created_at)
+        values(#{messageId}, #{replay}, #{replayTime}, #{creatorId}, #{creatorRole}, #{creatorName}, #{createdAt})
+    </insert>
+</mapper>
