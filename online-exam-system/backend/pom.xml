@@ -11,6 +11,17 @@
                 <configuration>
                     <source>16</source>
                     <target>16</target>
+<<<<<<< Updated upstream
+=======
+                    <encoding>${maven.compiler.encoding}</encoding>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.32</version>
+                        </path>
+                    </annotationProcessorPaths>
+>>>>>>> Stashed changes
                 </configuration>
             </plugin>
         </plugins>
