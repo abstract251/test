@@ -8,6 +8,7 @@ import com.test.oes.service.PaperService;
 import com.test.oes.util.ApiResultHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -32,7 +33,8 @@ public class PaperController {
         return ApiResultHandler.buildApiResult(200,"请求成功",paperService.findAll());
     }
 
-    // 根据试卷ID查询所有题目（选择、填空、判断）
+    // 根据试卷ID查询所有题目（选择、填空、判断）；学生角色禁止调用，防止考前泄题（正式试题仅通过开考接口下发）
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping("/paper/{paperId}")
     public ApiResult<Map<Integer, List<?>>> findById(@PathVariable Integer paperId) {
         List<MultiQuestion> multiQuestionRes = multiQuestionService.findByIdAndType(paperId);   //选择题题库 1

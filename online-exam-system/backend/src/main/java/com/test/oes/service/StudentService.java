@@ -6,7 +6,7 @@ import com.test.oes.entity.Student;
 
 public interface StudentService {
 
-    IPage<Student> findAll(Page<Student> page, String name, String grade,
+    IPage<Student> findAll(Page<Student> page, String studentId, String name, String grade,
                            String tel, String institute, String major, String clazz);
 
     Student findById(Integer studentId);

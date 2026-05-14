@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
-// 选择题 (TODO:未修改)
+// 选择题
 @Mapper
 public interface MultiQuestionMapper {
 
@@ -37,4 +37,10 @@ public interface MultiQuestionMapper {
 
     @Select("select * from multi_question where subject =#{subject}")
     List<MultiQuestion> findQuestionBySubject(@Param("subject") String subject);
+
+    @Select("select * from multi_question where questionId = #{questionId}")
+    MultiQuestion findByQuestionId(@Param("questionId") Integer questionId);
+
+    @Delete("delete from multi_question where questionId = #{questionId}")
+    int deleteByQuestionId(@Param("questionId") Integer questionId);
 }

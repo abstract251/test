@@ -8,7 +8,8 @@ import java.util.List;
 
 public interface TeacherService {
 
-    IPage<Teacher> findAll(Page<Teacher> page);
+    IPage<Teacher> findAll(Page<Teacher> page, String teacherId, String teacherName,
+                           String institute, String type, String tel, String email);
 
     List<Teacher> findAll();
 

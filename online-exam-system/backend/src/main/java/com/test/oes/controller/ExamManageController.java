@@ -5,17 +5,27 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.ApiResult;
 import com.test.oes.entity.ExamManage;
 import com.test.oes.service.ExamManageService;
+import com.test.oes.service.ExamSnapshotService;
+import com.test.oes.service.exam.ExamTimeHelper;
 import com.test.oes.util.ApiResultHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
 public class ExamManageController {
 
     private final ExamManageService examManageService;
+
+    private final ExamTimeHelper examTimeHelper;
+
+    private final ExamSnapshotService examSnapshotService;
 
     // 不分页查询所有试卷
     @GetMapping("/exams")
@@ -42,6 +52,29 @@ public class ExamManageController {
             return ApiResultHandler.buildApiResult(10000, "考试编号不存在", null);
         }
         return ApiResultHandler.buildApiResult(200, "请求成功！", res);
+    }
+
+    /**
+     * 考试时间与冻结策略、撤销状态、快照是否就绪（评审稿 §4–§7）。
+     */
+    @GetMapping("/exam/{examCode}/exam-policy")
+    public ApiResult<Map<String, Object>> examPolicy(@PathVariable Integer examCode) {
+        ExamManage res = examManageService.findById(examCode);
+        if (res == null) {
+            return ApiResultHandler.buildApiResult(10000, "考试编号不存在", null);
+        }
+        var now = examTimeHelper.nowShanghai();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("examCode", examCode);
+        body.put("examStartAt", res.getExamStartAt());
+        body.put("freezeAt", examTimeHelper.freezeInstant(res));
+        body.put("paperLocked", examTimeHelper.isPaperLocked(res, now));
+        body.put("revoked", examTimeHelper.isRevoked(res));
+        body.put("snapshotReady", examSnapshotService.hasSharedSnapshot(examCode));
+        body.put("windowEndAt", examTimeHelper.examWindowEnd(res));
+        body.put("inExamWindow", examTimeHelper.isWithinExamWindow(res, now));
+        body.put("serverTime", now);
+        return ApiResultHandler.buildApiResult(200, "请求成功", body);
     }
 
     // 根据ID删除试卷

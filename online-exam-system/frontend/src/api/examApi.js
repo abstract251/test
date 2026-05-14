@@ -1,38 +1,5 @@
-/**
- * 考试管理相关 API（与后端 ExamManageController 对应）
- *
- * 调用方式：
- * 在组件中 import { getExamList } from '@/api/examApi'
- * （@ 指向 src/，见 jsconfig.json 的 paths 配置）
- *
- * HTTP 方法约定（REST 常见风格）：
- * - GET    查询
- * - POST   新增
- * - PUT    全量/部分更新（本项目用于更新考试）
- * - DELETE 删除
- *
- * 后端接口一览（路径以 baseURL 为前缀，见 src/utils/request.js）：
- * | 方法   | 路径                    | 说明           |
- * |--------|-------------------------|----------------|
- * | GET    | /exams/{page}/{size}   | 分页考试列表   |
- * | DELETE | /exam/{examCode}       | 按编号删除考试 |
- * | POST   | /exam                  | 新增考试       |
- * | PUT    | /exam                  | 更新考试       |
- * | GET    | /exam/{examCode}       | 按编号查询考试 |
- *
- * 返回值：
- * 均为 Promise，resolve 值为 ApiResult（因 axios 拦截器已解包 res.data）
- */
-import request from '../utils/request'
+import request from '@/utils/request'
 
-// --- 查询（分页）---
-
-/**
- * 分页查询考试列表
- * @param {number} page 当前页码（从 1 开始，与后端 MyBatis-Plus Page 一致）
- * @param {number} size 每页条数
- * @returns {Promise<{ code: number, message: string, data: { records: Array, total: number, ... } }>}
- */
 export function getExamList(page, size) {
   return request({
     url: `/exams/${page}/${size}`,
@@ -40,25 +7,34 @@ export function getExamList(page, size) {
   })
 }
 
-// --- 删除 ---
-
-/**
- * 删除考试
- * @param {number} examCode 考试编号（主键）
- */
-export function deleteExam(examCode) {
+export function getAllExams() {
   return request({
-    url: `/exam/${examCode}`,
-    method: 'delete'
+    url: '/exams',
+    method: 'get'
   })
 }
 
-// --- 新增 / 更新（当前页面未使用，预留接口）---
+export function getExamById(examCode) {
+  return request({
+    url: `/exam/${examCode}`,
+    method: 'get'
+  })
+}
 
-/**
- * 新增考试
- * @param {object} data 请求体，字段需与后端 ExamManage 实体一致
- */
+export function getStudentExams() {
+  return request({
+    url: '/student/exams',
+    method: 'get'
+  })
+}
+
+export function getStudentExamDetail(examCode) {
+  return request({
+    url: `/student/exam/${examCode}`,
+    method: 'get'
+  })
+}
+
 export function addExam(data) {
   return request({
     url: '/exam',
@@ -67,10 +43,6 @@ export function addExam(data) {
   })
 }
 
-/**
- * 更新考试
- * @param {object} data 请求体，需包含 examCode 等主键/更新字段
- */
 export function updateExam(data) {
   return request({
     url: '/exam',
@@ -79,13 +51,64 @@ export function updateExam(data) {
   })
 }
 
-/**
- * 按考试编号查询单条
- * @param {number} examCode 考试编号
- */
-export function getExamById(examCode) {
+export function deleteExam(examCode) {
   return request({
     url: `/exam/${examCode}`,
+    method: 'delete'
+  })
+}
+
+export function getLatestPaperId() {
+  return request({
+    url: '/examManagePaperId',
     method: 'get'
+  })
+}
+
+/** 开考/冻结/撤销/快照等业务策略（评审稿） */
+export function getExamPolicy(examCode) {
+  return request({
+    url: `/exam/${examCode}/exam-policy`,
+    method: 'get'
+  })
+}
+
+/** 冻结后的本场共用题目（仅教师/管理员；学生请用 attempt/start） */
+export function getFrozenExamPaper(examCode) {
+  return request({
+    url: `/exam/${examCode}/frozen-paper`,
+    method: 'get'
+  })
+}
+
+/** 超级管理员撤销考试 */
+export function revokeExamAsAdmin(examCode, reason) {
+  return request({
+    url: `/admin/exam/${examCode}/revoke`,
+    method: 'post',
+    data: { reason }
+  })
+}
+
+/** 学生：开始/恢复作答（返回脱敏试卷与草稿） */
+export function startStudentExamSession(examCode) {
+  return request({
+    url: `/student/exam/${examCode}/attempt/start`,
+    method: 'post'
+  })
+}
+
+export function saveStudentExamAnswers(examCode, answers) {
+  return request({
+    url: `/student/exam/${examCode}/attempt/answers`,
+    method: 'put',
+    data: { answers }
+  })
+}
+
+export function submitStudentExamSession(examCode) {
+  return request({
+    url: `/student/exam/${examCode}/attempt/submit`,
+    method: 'post'
   })
 }

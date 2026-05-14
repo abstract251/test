@@ -1,44 +1,129 @@
-/**
- * HTTP 请求封装（基于 Axios）
- *
- * 为什么封装：
- * 1. 统一配置后端地址（baseURL），避免每个接口写完整 URL。
- * 2. 统一超时、请求头、token（后续可加）、错误处理。
- * 3. 响应拦截里直接返回 res.data，与后端约定的 JSON 结构一致。
- *
- * 与后端约定（本项目）：
- * 后端 Controller 多返回 ApiResult<T> 形如：
- * { code: 200, message: "...", data: ... }
- * 拦截器里 return res.data，即业务代码里拿到的就是整个 ApiResult 对象。
- *
- * 跨域（CORS）：
- * 浏览器从 localhost:8081 访问 localhost:8080 属于跨域，需后端开启 CORS（本项目后端已配置）。
- */
 import axios from 'axios'
+import router from '@/router'
+import {
+  clearSession,
+  getAccessToken,
+  getRefreshToken,
+  setSessionFromAuthResponse
+} from '@/utils/auth'
+
+const baseURL = 'http://localhost:8080'
+const authFreePaths = ['/auth/login', '/auth/refresh', '/auth/logout']
 
 const service = axios.create({
-  /** 后端服务根地址（与后端 server.port 一致） */
-  baseURL: 'http://localhost:8080',
-  /** 超时时间（毫秒），超时会在 catch 里进错误分支 */
-  timeout: 5000
+  baseURL,
+  timeout: 10000
 })
 
-/**
- * 请求拦截器：在请求发出前执行
- * 典型用途：附加 Authorization、统一 Content-Type、打印调试日志
- */
-service.interceptors.request.use(
-  (config) => config,
-  (error) => Promise.reject(error)
-)
+const refreshClient = axios.create({
+  baseURL,
+  timeout: 10000
+})
 
-/**
- * 响应拦截器：在收到响应后、交给业务代码前执行
- * 这里直接返回 res.data，即 axios 默认的「响应体」里的 data 字段（不是 HTTP 状态码）
- */
+let refreshPromise = null
+
+function isAuthFreeRequest(config = {}) {
+  return authFreePaths.some((path) => String(config.url || '').startsWith(path))
+}
+
+async function redirectToLogin() {
+  const currentRoute = router.currentRoute.value
+  if (currentRoute?.name === 'login') {
+    return
+  }
+
+  await router.replace({
+    name: 'login',
+    query: {
+      redirect: currentRoute?.fullPath || '/'
+    }
+  })
+}
+
+async function refreshAccessToken() {
+  if (refreshPromise) {
+    return refreshPromise
+  }
+
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) {
+    throw new Error('NO_REFRESH_TOKEN')
+  }
+
+  refreshPromise = refreshClient
+    .post('/auth/refresh', { refreshToken })
+    .then((response) => {
+      const payload = response?.data
+      if (payload?.code !== 200 || !payload?.data) {
+        throw new Error(payload?.message || 'REFRESH_FAILED')
+      }
+
+      const session = setSessionFromAuthResponse(payload.data)
+      if (!session) {
+        throw new Error('INVALID_REFRESH_PAYLOAD')
+      }
+
+      return session.accessToken
+    })
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
+service.interceptors.request.use((config) => {
+  const nextConfig = { ...config }
+  if (!isAuthFreeRequest(nextConfig)) {
+    const accessToken = getAccessToken()
+    if (accessToken) {
+      nextConfig.headers = {
+        ...(nextConfig.headers || {}),
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  }
+  return nextConfig
+})
+
 service.interceptors.response.use(
-  (res) => res.data,
-  (error) => Promise.reject(error)
+  (response) => response.data,
+  async (error) => {
+    const { response, config } = error
+    const originalConfig = config || {}
+
+    if (response?.status !== 401) {
+      return Promise.reject(error)
+    }
+
+    if (originalConfig.skipAuthRefresh || isAuthFreeRequest(originalConfig) || originalConfig._retry) {
+      clearSession()
+      await redirectToLogin()
+      return {
+        code: 401,
+        message: response?.data?.message || '登录状态已失效，请重新登录',
+        data: null
+      }
+    }
+
+    try {
+      const accessToken = await refreshAccessToken()
+      originalConfig._retry = true
+      originalConfig.headers = {
+        ...(originalConfig.headers || {}),
+        Authorization: `Bearer ${accessToken}`
+      }
+      return service(originalConfig)
+    } catch (refreshError) {
+      clearSession()
+      await redirectToLogin()
+      return {
+        code: 401,
+        message: '登录状态已失效，请重新登录',
+        data: null
+      }
+    }
+  }
 )
 
 export default service

@@ -1,0 +1,36 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: 在线考试
+    - heading "在线考试系统" [level=1] [ref=e7]
+    - paragraph [ref=e8]: 支持管理员、教师、学生三类账号登录，登录后自动进入对应工作区。 请使用学校分配的账号密码进行操作。
+    - list [ref=e9]:
+      - listitem [ref=e10]: 登录后自动识别角色并跳转首页
+      - listitem [ref=e11]: 学生考试中心支持手机端访问
+      - listitem [ref=e12]: 支持在页面内修改密码与退出登录
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - img [ref=e18]
+      - generic [ref=e22]:
+        - heading "账号登录" [level=2] [ref=e23]
+        - paragraph [ref=e24]: 请输入账号和密码，系统会自动识别管理员、教师或学生身份。
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]: 账号
+        - generic [ref=e30]:
+          - img [ref=e33]
+          - textbox "账号" [ref=e35]:
+            - /placeholder: 请输入数字账号
+            - text: "123"
+      - generic [ref=e36]:
+        - generic [ref=e37]: 密码
+        - generic [ref=e40]:
+          - img [ref=e43]
+          - textbox "密码" [ref=e46]:
+            - /placeholder: 请输入密码
+            - text: 1 2
+          - img [ref=e49] [cursor=pointer]
+      - button "登录并进入系统" [ref=e52] [cursor=pointer]:
+        - generic [ref=e53]: 登录并进入系统
+    - generic [ref=e54]:
+      - generic [ref=e55]: 如无法登录，请联系管理员
+      - generic [ref=e56]: 默认密码可在首次登录后修改
