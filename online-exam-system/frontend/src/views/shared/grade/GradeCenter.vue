@@ -27,8 +27,22 @@
         />
       </el-select>
 
+      <el-input
+        v-model="clazzFilter"
+        class="toolbar__input"
+        clearable
+        placeholder="请输入班级"
+        @clear="handleClazzClear"
+        @keyup.enter="handleClazzSearch"
+      >
+        <template #append>
+          <el-button :icon="Search" @click="handleClazzSearch" />
+        </template>
+      </el-input>
+
       <p v-if="selectedExam" class="toolbar__meta">
         {{ selectedExam.source || '未命名考试' }} · {{ formatDateTime(selectedExam.examDate) }}
+        <span v-if="clazzFilter" class="toolbar__meta-tag">班级: {{ clazzFilter }}</span>
       </p>
     </div>
 
@@ -108,13 +122,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import PageContainer from '@/components/common/PageContainer.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import StatusCard from '@/components/common/StatusCard.vue'
 import ScoreDistributionChart from '@/components/charts/ScoreDistributionChart.vue'
 import { getAllExams } from '@/api/examApi'
-import { getExamScores, getScoreStatistics } from '@/api/scoreApi'
+import { getExamScores, getScoreStatistics, getScoresByClazz } from '@/api/scoreApi'
 import { formatDateTime } from '@/utils/date'
 import { SCORE_DISTRIBUTION_LABELS } from '@/utils/constants'
 
@@ -126,6 +141,7 @@ const loadingExamOptions = ref(false)
 const loadingData = ref(false)
 const scoreRecords = ref([])
 const statistics = ref(null)
+const clazzFilter = ref('')
 
 const examOptions = computed(() =>
   [...exams.value].sort((left, right) => {
@@ -329,35 +345,41 @@ async function fetchGradeData() {
   }
 
   loadingData.value = true
-  const [scoresResult, statisticsResult] = await Promise.allSettled([
-    getExamScores(selectedExamCode.value),
-    getScoreStatistics(selectedExamCode.value)
-  ])
 
-  let listLoaded = false
+  const examCode = Number(selectedExamCode.value)
+  let scoresResult
 
-  if (scoresResult.status === 'fulfilled' && scoresResult.value.code === 200) {
-    scoreRecords.value = Array.isArray(scoresResult.value.data) ? scoresResult.value.data : []
-    listLoaded = true
+  if (clazzFilter.value) {
+    scoresResult = await getScoresByClazz(examCode, clazzFilter.value)
   } else {
-    scoreRecords.value = []
+    scoresResult = await getExamScores(examCode)
   }
 
-  if (statisticsResult.status === 'fulfilled' && statisticsResult.value.code === 200) {
-    statistics.value = statisticsResult.value.data || null
+  const statisticsResult = await getScoreStatistics(examCode)
+
+  if (scoresResult.code === 200) {
+    scoreRecords.value = Array.isArray(scoresResult.data) ? scoresResult.data : []
+  } else {
+    scoreRecords.value = []
+    ElMessage.error(scoresResult.message || '加载成绩数据失败')
+  }
+
+  if (statisticsResult.code === 200) {
+    statistics.value = statisticsResult.data || null
   } else {
     statistics.value = null
   }
 
-  if (!listLoaded && !statistics.value) {
-    ElMessage.error(
-      scoresResult.status === 'fulfilled'
-        ? scoresResult.value.message || '加载成绩数据失败'
-        : '加载成绩数据失败，请稍后重试'
-    )
-  }
-
   loadingData.value = false
+}
+
+function handleClazzSearch() {
+  void fetchGradeData()
+}
+
+function handleClazzClear() {
+  clazzFilter.value = ''
+  void fetchGradeData()
 }
 
 function handleExamChange() {
@@ -387,9 +409,22 @@ onMounted(async () => {
   width: min(420px, 100%);
 }
 
+.toolbar__input {
+  width: min(280px, 100%);
+}
+
 .toolbar__meta {
   margin: 0;
   color: var(--text-secondary);
+}
+
+.toolbar__meta-tag {
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  border-radius: 4px;
+  font-size: 12px;
 }
 
 .summary-grid {

@@ -100,4 +100,23 @@ public class ScoreController {
         Map<String, Object> statistics = scoreService.getStatistics(examCode);
         return ApiResultHandler.buildApiResult(200, "查询成绩统计成功", statistics);
     }
+
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @GetMapping("/scores/by-clazz/{examCode}/{clazz}")
+    public ApiResult<List<Map<String, Object>>> findByExamCodeAndClazz(@PathVariable Integer examCode,
+                                                                       @PathVariable String clazz) {
+        List<Map<String, Object>> scores = scoreService.findByExamCodeAndClazz(examCode, clazz);
+        return ApiResultHandler.buildApiResult(200, "查询成功", scores);
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+    @GetMapping("/scores/by-clazz/{examCode}/{page}/{size}/{clazz}")
+    public ApiResult<IPage<Map<String, Object>>> findByExamCodeAndClazz(@PathVariable Integer examCode,
+                                                                       @PathVariable Integer page,
+                                                                       @PathVariable Integer size,
+                                                                       @PathVariable String clazz) {
+        Page<Map<String, Object>> scorePage = new Page<>(page, size);
+        IPage<Map<String, Object>> res = scoreService.findByExamCodeAndClazz(scorePage, examCode, clazz);
+        return ApiResultHandler.buildApiResult(200, "查询成功", res);
+    }
 }

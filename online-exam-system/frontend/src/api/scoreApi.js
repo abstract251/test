@@ -46,3 +46,17 @@ export function getScoreStatistics(examCode) {
     method: 'get'
   })
 }
+
+export function getScoresByClazz(examCode, clazz) {
+  return request({
+    url: `/scores/by-clazz/${examCode}/${toSegment(clazz)}`,
+    method: 'get'
+  })
+}
+
+export function getScoresByClazzPage({ page, size, examCode, clazz }) {
+  return request({
+    url: `/scores/by-clazz/${examCode}/${page}/${size}/${toSegment(clazz)}`,
+    method: 'get'
+  })
+}
