@@ -20,6 +20,8 @@
                             <version>1.18.32</version>
                         </path>
                     </annotationProcessorPaths>
+
+
                 </configuration>
             </plugin>
             <plugin>

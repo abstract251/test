@@ -50,21 +50,17 @@ public class ScoreServiceImpl implements ScoreService {
     public Map<String, Object> getStatistics(Integer examCode) {
         Map<String, Object> stats = new HashMap<>();
 
-        // 基础统计
         Double avgScore = scoreMapper.getAvgScore(examCode);
         Integer maxScore = scoreMapper.getMaxScore(examCode);
         Integer minScore = scoreMapper.getMinScore(examCode);
         Integer totalCount = scoreMapper.getTotalCount(examCode);
         Integer passCount = scoreMapper.getPassCount(examCode);
 
-        // 及格率（避免除零）
         Double passRate = (totalCount == null || totalCount == 0) ? 0.0
                 : (passCount != null ? passCount.doubleValue() / totalCount : 0.0);
 
-        // 分数段分布
         List<Map<String, Object>> distribution = scoreMapper.getScoreDistribution(examCode);
 
-        // 组装返回结果
         stats.put("avgScore", avgScore != null ? avgScore : 0.0);
         stats.put("maxScore", maxScore != null ? maxScore : 0);
         stats.put("minScore", minScore != null ? minScore : 0);
@@ -75,4 +71,13 @@ public class ScoreServiceImpl implements ScoreService {
         return stats;
     }
 
+    @Override
+    public List<Map<String, Object>> findByExamCodeAndClazz(Integer examCode, String clazz) {
+        return scoreMapper.findByExamCodeAndClazz(examCode, clazz);
+    }
+
+    @Override
+    public IPage<Map<String, Object>> findByExamCodeAndClazz(Page<?> page, Integer examCode, String clazz) {
+        return scoreMapper.findByExamCodeAndClazz(page, examCode, clazz);
+    }
 }
