@@ -46,6 +46,11 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public int update(Admin admin) {
         cardIdUniquenessValidator.validateAdminUpdate(admin);
+        // 如果密码为空或者空字符串，则不更新密码
+        if (admin.getPwd() == null || admin.getPwd().isBlank()) {
+            return adminMapper.updateWithoutPassword(admin);
+        }
+        // 否则，加密密码后更新
         admin.setPwd(passwordService.encodeIfNeeded(admin.getPwd()));
         return adminMapper.update(admin);
     }
