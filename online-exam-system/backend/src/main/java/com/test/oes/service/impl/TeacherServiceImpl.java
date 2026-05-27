@@ -55,6 +55,11 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     public int update(Teacher teacher) {
         cardIdUniquenessValidator.validateTeacherUpdate(teacher);
+        // 如果密码为空或者空字符串，则不更新密码
+        if (teacher.getPwd() == null || teacher.getPwd().isBlank()) {
+            return teacherMapper.updateWithoutPassword(teacher);
+        }
+        // 否则，加密密码后更新
         teacher.setPwd(passwordService.encodeIfNeeded(teacher.getPwd()));
         return teacherMapper.update(teacher);
     }

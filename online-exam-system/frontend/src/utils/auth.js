@@ -227,3 +227,36 @@ export function resolveHomePath(role) {
   }
   return '/login'
 }
+
+// 新增代码
+export function initDevMockSession() {
+  if (process.env.NODE_ENV === 'development' && process.env.VUE_APP_USE_MOCK === 'true') {
+    // 如果已经有 session，不再重复注入
+    if (getSession()) {
+      return getSession()
+    }
+    // 构造一个模拟的会话对象（教师角色为例）
+    const mockSession = {
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      expiresIn: 7200,
+      expiresAt: Date.now() + 7200 * 1000,
+      user: {
+        userId: '10001',
+        username: 'teacher01',
+        displayName: '王老师',
+        role: '1',               // 内部 legacy role
+        authRole: 'TEACHER'
+      },
+      profile: null,
+      rawUser: {
+        teacherId: '10001',
+        teacherName: '王老师',
+        role: '1'
+      }
+    }
+    setSession(mockSession)
+    return mockSession
+  }
+  return getSession()
+}

@@ -22,7 +22,7 @@ public class PasswordMigrationTool {
         String port = env("DB_PORT", "3306");
         String database = env("DB_NAME", "online_exam");
         String username = env("DB_USERNAME", "root");
-        String password = env("DB_PASSWORD", "root");
+        String password = env("DB_PASSWORD", "123456");
 
         String url = "jdbc:mysql://" + host + ":" + port + "/" + database
                 + "?useUnicode=true&characterEncoding=UTF-8&useSSL=false"

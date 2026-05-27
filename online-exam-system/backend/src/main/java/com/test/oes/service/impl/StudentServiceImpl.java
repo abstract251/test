@@ -49,6 +49,11 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public int update(Student student) {
         cardIdUniquenessValidator.validateStudentUpdate(student);
+        // 如果密码为空或者空字符串，则不更新密码
+        if (student.getPwd() == null || student.getPwd().isBlank()) {
+            return studentMapper.updateWithoutPassword(student);
+        }
+        // 否则，加密密码后更新
         student.setPwd(passwordService.encodeIfNeeded(student.getPwd()));
         return studentMapper.update(student);
     }

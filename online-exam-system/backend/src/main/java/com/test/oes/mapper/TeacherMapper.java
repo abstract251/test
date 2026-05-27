@@ -30,6 +30,11 @@ public interface TeacherMapper {
             "role = #{role},institute = #{institute},type = #{type} where teacherId = #{teacherId}")
     int update(Teacher teacher);
 
+    @Update("update teacher set teacherName = #{teacherName},sex = #{sex}," +
+            "tel = #{tel}, email = #{email},cardId = #{cardId}," +
+            "role = #{role},institute = #{institute},type = #{type} where teacherId = #{teacherId}")
+    int updateWithoutPassword(Teacher teacher);
+
     @Options(useGeneratedKeys = true,keyProperty = "teacherId")
     @Insert("insert into teacher(teacherName,sex,tel,email,pwd,cardId,role,type,institute) " +
             "values(#{teacherName},#{sex},#{tel},#{email},#{pwd},#{cardId},#{role},#{type},#{institute})")
