@@ -56,6 +56,11 @@ public interface StudentMapper {
             "</script>")
     int update(Student student);
 
+    @Update("update student set studentName = #{studentName},grade = #{grade},major = #{major},clazz = #{clazz}," +
+            "institute = #{institute},tel = #{tel},email = #{email},cardId = #{cardId},sex = #{sex},role = #{role} " +
+            "where studentId = #{studentId}")
+    int updateWithoutPassword(Student student);
+
     /**
      * 更新密码
      * @param student 传递参数

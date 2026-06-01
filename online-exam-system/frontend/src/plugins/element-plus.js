@@ -18,6 +18,8 @@ import {
   ElLoadingDirective,
   ElMenu,
   ElMenuItem,
+  ElMessage,
+  ElMessageBox,
   ElOption,
   ElPagination,
   ElRadio,
@@ -50,6 +52,8 @@ import 'element-plus/es/components/input-number/style/css'
 import 'element-plus/es/components/loading/style/css'
 import 'element-plus/es/components/menu/style/css'
 import 'element-plus/es/components/menu-item/style/css'
+import 'element-plus/es/components/message/style/css'
+import 'element-plus/es/components/message-box/style/css'
 import 'element-plus/es/components/option/style/css'
 import 'element-plus/es/components/pagination/style/css'
 import 'element-plus/es/components/radio/style/css'
@@ -100,4 +104,8 @@ export function installElementPlus(app) {
   })
 
   app.directive('loading', ElLoadingDirective)
+  
+  // 注入 ElMessage 和 ElMessageBox 到全局
+  app.config.globalProperties.$message = ElMessage
+  app.config.globalProperties.$confirm = ElMessageBox.confirm
 }

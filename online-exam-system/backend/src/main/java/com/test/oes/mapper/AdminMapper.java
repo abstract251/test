@@ -31,6 +31,10 @@ public interface AdminMapper {
             "</script>")
     int update(Admin admin);
 
+    @Update("update `admin` set adminName = #{adminName},sex = #{sex}," +
+            "tel = #{tel}, email = #{email},cardId = #{cardId},role = #{role} where adminId = #{adminId}")
+    int updateWithoutPassword(Admin admin);
+
     @Options(useGeneratedKeys = true,keyProperty = "adminId")
     @Insert("insert into `admin`(adminName,sex,tel,email,pwd,cardId,role) " +
             "values(#{adminName},#{sex},#{tel},#{email},#{pwd},#{cardId},#{role})")

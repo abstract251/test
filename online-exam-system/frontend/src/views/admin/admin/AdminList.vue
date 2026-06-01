@@ -411,7 +411,12 @@ async function locateAdmin() {
     }
 
     locatedAdmin.value = null
-    ElMessage.error(response.message || '未找到对应管理员')
+    // 管理员不存在时，后端仍返回 code=200，需要根据 data 判断
+    if (!response.data) {
+      ElMessage.error('无效的管理员编号')
+    } else {
+      ElMessage.error(response.message || '未找到对应管理员')
+    }
   } catch (error) {
     locatedAdmin.value = null
     ElMessage.error('定位管理员失败，请稍后重试')

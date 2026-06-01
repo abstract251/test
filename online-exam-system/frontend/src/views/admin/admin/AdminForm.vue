@@ -27,7 +27,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import AdminFormFields from '@/components/forms/AdminFormFields.vue'
 import { createAdmin, getAdminById, updateAdmin } from '@/api/adminApi'
 import { getSession } from '@/utils/auth'
-import { buildConsolePath, DEFAULT_PASSWORD, normalizeSex } from '@/utils/constants'
+import { buildConsolePath, normalizeSex } from '@/utils/constants'
 import { REGEX, patternRule, requiredRule } from '@/utils/validators'
 
 const route = useRoute()
@@ -44,7 +44,7 @@ const form = reactive({
   sex: '男',
   tel: '',
   email: '',
-  pwd: DEFAULT_PASSWORD,
+  pwd: '',
   cardId: '',
   role: '0'
 })
@@ -63,14 +63,33 @@ const rules = {
     requiredRule('请输入邮箱'),
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
   ],
-  pwd: [
-    requiredRule('请输入密码'),
-    patternRule(REGEX.password, '密码需为 6-32 位且不能包含空格')
-  ],
+  pwd: computed(() => {
+    if (isEdit.value) {
+      // 编辑模式：密码为可选，不填写则不修改
+      return [
+        { validator: validatePasswordEdit, trigger: 'blur' }
+      ]
+    }
+    // 新增模式：密码必填
+    return [
+      requiredRule('请输入密码'),
+      patternRule(REGEX.password, '密码需为 6-32 位且不能包含空格')
+    ]
+  }),
   cardId: [
     requiredRule('请输入身份证号'),
     patternRule(REGEX.idCard, '身份证号格式不正确')
   ]
+}
+
+// 编辑模式下的密码验证
+function validatePasswordEdit(rule, value, callback) {
+  if (value && value.trim() !== '') {
+    if (!REGEX.password.test(value)) {
+      callback(new Error('密码需为 6-32 位且不能包含空格'))
+    }
+  }
+  callback()
 }
 
 async function fetchAdmin() {
@@ -81,10 +100,9 @@ async function fetchAdmin() {
   try {
     const response = await getAdminById(route.params.adminId)
     if (response.code === 200 && response.data) {
-      Object.assign(form, {
-        ...response.data,
-        sex: normalizeSex(response.data.sex)
-      })
+      Object.assign(form, response.data)
+      form.sex = normalizeSex(response.data.sex)
+      form.pwd = '' // 编辑时密码框保持为空
       return
     }
     ElMessage.error(response.message || '加载管理员信息失败')
@@ -100,11 +118,18 @@ async function handleSubmit() {
   }
 
   try {
+    // 构建payload
     const payload = {
       ...form,
       role: '0',
       sex: normalizeSex(form.sex)
     }
+    
+    // 编辑模式下，如果密码为空，则移除pwd字段，不更新密码
+    if (isEdit.value && (!payload.pwd || payload.pwd.trim() === '')) {
+      delete payload.pwd
+    }
+
     const response = isEdit.value
       ? await updateAdmin(route.params.adminId, payload)
       : await createAdmin(payload)
