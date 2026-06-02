@@ -19,21 +19,15 @@ public interface TeacherMapper {
                            @Param("teacherName") String teacherName, @Param("institute") String institute,
                            @Param("type") String type, @Param("tel") String tel, @Param("email") String email);
 
-    @Select("select teacherId, teacherName, sex, tel, email, cardId, role, institute, type from teacher where teacherId = #{teacherId}")
+    @Select("select * from teacher where teacherId = #{teacherId}")
     Teacher findById(Integer teacherId);
-
-    @Select("select teacherId, teacherName, pwd from teacher where teacherId = #{teacherId}")
-    Teacher findForLogin(String teacherId);
 
     @Delete("delete from teacher where teacherId = #{teacherId}")
     int deleteById(Integer teacherId);
 
-    @Update("<script>" +
-            "update teacher set teacherName = #{teacherName},sex = #{sex}," +
-            "tel = #{tel}, email = #{email}," +
-            "<if test='pwd != null and pwd != \"\"'>pwd = #{pwd},</if>" +
-            "cardId = #{cardId},role = #{role},institute = #{institute},type = #{type} where teacherId = #{teacherId}" +
-            "</script>")
+    @Update("update teacher set teacherName = #{teacherName},sex = #{sex}," +
+            "tel = #{tel}, email = #{email},pwd = #{pwd},cardId = #{cardId}," +
+            "role = #{role},institute = #{institute},type = #{type} where teacherId = #{teacherId}")
     int update(Teacher teacher);
 
     @Update("update teacher set teacherName = #{teacherName},sex = #{sex}," +

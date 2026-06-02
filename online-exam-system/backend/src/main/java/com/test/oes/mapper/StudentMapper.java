@@ -33,11 +33,8 @@ public interface StudentMapper {
                            @Param("tel") String tel,  @Param("institute") String institute,
                            @Param("major")String major, @Param("clazz") String clazz);
 
-    @Select("select studentId, studentName, grade, major, clazz, institute, tel, email, cardId, sex, role from student where studentId = #{studentId}")
+    @Select("select * from student where studentId = #{studentId}")
     Student findById(Integer studentId);
-
-    @Select("select studentId, studentName, pwd from student where studentId = #{studentId}")
-    Student findForLogin(Integer studentId);
 
     @Delete("delete from student where studentId = #{studentId}")
     int deleteById(Integer studentId);
@@ -47,13 +44,9 @@ public interface StudentMapper {
      * @param student 传递一个对象
      * @return 受影响的记录条数
      */
-    @Update("<script>" +
-            "update student set studentName = #{studentName},grade = #{grade},major = #{major},clazz = #{clazz}," +
-            "institute = #{institute},tel = #{tel},email = #{email}," +
-            "<if test='pwd != null and pwd != \"\"'>pwd = #{pwd},</if>" +
-            "cardId = #{cardId},sex = #{sex},role = #{role} " +
-            "where studentId = #{studentId}" +
-            "</script>")
+    @Update("update student set studentName = #{studentName},grade = #{grade},major = #{major},clazz = #{clazz}," +
+            "institute = #{institute},tel = #{tel},email = #{email},pwd = #{pwd},cardId = #{cardId},sex = #{sex},role = #{role} " +
+            "where studentId = #{studentId}")
     int update(Student student);
 
     @Update("update student set studentName = #{studentName},grade = #{grade},major = #{major},clazz = #{clazz}," +

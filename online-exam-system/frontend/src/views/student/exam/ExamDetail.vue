@@ -203,6 +203,7 @@ function updateCountdown() {
     const diffSeconds = startAt.diff(now, 'second')
     if (diffSeconds <= 0) {
       countdownLabel.value = '00:00:00'
+      void fetchExamDetail()
       return
     }
     const hours = Math.floor(diffSeconds / 3600)

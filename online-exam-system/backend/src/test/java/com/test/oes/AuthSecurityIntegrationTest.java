@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "DB_PORT=3306",
         "DB_NAME=online_exam",
         "DB_USERNAME=root",
-        "DB_PASSWORD=123456"
+        "DB_PASSWORD=root"
 })
 class AuthSecurityIntegrationTest {
 

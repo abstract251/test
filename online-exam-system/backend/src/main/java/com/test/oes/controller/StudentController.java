@@ -21,7 +21,7 @@ public class StudentController {
         this.currentUserService = currentUserService;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @GetMapping("/students/{page}/{size}/{studentId}/{name}/{grade}/{tel}/{institute}/{major}/{clazz}")
     public ApiResult<IPage<Student>> findAll(@PathVariable Integer page, @PathVariable Integer size,
                                              @PathVariable String studentId, @PathVariable String name,
@@ -45,7 +45,7 @@ public class StudentController {
         return ApiResultHandler.buildApiResult(404, "查询的用户不存在", null);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @DeleteMapping("/student/{studentId}")
     public ApiResult<Integer> deleteById(@PathVariable Integer studentId) {
         return ApiResultHandler.buildApiResult(200, "删除成功", studentService.deleteById(studentId));
@@ -64,10 +64,10 @@ public class StudentController {
         return ApiResultHandler.buildApiResult(400, "密码更新失败", null);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER','STUDENT')")
     @PutMapping("/student")
     public ApiResult<Integer> update(@RequestBody Student student) {
-        if (!currentUserService.hasAnyRole("ADMIN", "TEACHER")) {
+        if (currentUserService.hasAnyRole("STUDENT")) {
             student.setStudentId(currentUserService.requireCurrentUser().getUserId());
         }
         int res = studentService.update(student);
@@ -77,7 +77,7 @@ public class StudentController {
         return ApiResultHandler.buildApiResult(400, "更新失败", res);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
     @PostMapping("/student")
     public ApiResult<Void> add(@RequestBody Student student) {
         int res = studentService.add(student);

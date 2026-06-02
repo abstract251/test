@@ -125,21 +125,21 @@ public class AuthServiceImpl implements AuthService {
         Integer numericId = parseNumericId(username);
         return switch (role) {
             case ADMIN -> {
-                Admin admin = adminMapper.findForLogin(numericId);
+                Admin admin = adminMapper.findById(numericId);
                 if (admin == null) {
                     throw new ExamBusinessException(400, "用户名或密码错误");
                 }
                 yield new LoginUser(admin.getAdminId(), String.valueOf(admin.getAdminId()), admin.getAdminName(), role, admin.getPwd());
             }
             case TEACHER -> {
-                Teacher teacher = teacherMapper.findForLogin(String.valueOf(numericId));
+                Teacher teacher = teacherMapper.findById(numericId);
                 if (teacher == null) {
                     throw new ExamBusinessException(400, "用户名或密码错误");
                 }
                 yield new LoginUser(Integer.parseInt(teacher.getTeacherId()), teacher.getTeacherId(), teacher.getTeacherName(), role, teacher.getPwd());
             }
             case STUDENT -> {
-                Student student = studentMapper.findForLogin(numericId);
+                Student student = studentMapper.findById(numericId);
                 if (student == null) {
                     throw new ExamBusinessException(400, "用户名或密码错误");
                 }

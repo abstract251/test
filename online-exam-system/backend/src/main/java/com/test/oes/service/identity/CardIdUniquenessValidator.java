@@ -31,12 +31,6 @@ public class CardIdUniquenessValidator {
         String cid = normalize(student.getCardId());
         requireNonBlank(cid);
         int sid = requirePositiveId(student.getStudentId(), "学生编号");
-        
-        Student existing = studentMapper.findById(sid);
-        if (existing != null && cid.equals(normalize(existing.getCardId()))) {
-            return;
-        }
-        
         assertUniqueAmongAllRoles(cid, sid, null, null);
     }
 
