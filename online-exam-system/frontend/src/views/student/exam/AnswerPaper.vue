@@ -229,11 +229,38 @@ function updateClock() {
   if (sec <= 0) {
     remainLabel.value = '已结束'
     ended.value = true
+    void autoSubmit()
     return
   }
   const m = Math.floor(sec / 60)
   const s = sec % 60
   remainLabel.value = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+async function autoSubmit() {
+  submitting.value = true
+  await flushSave()
+  try {
+    const res = await submitStudentExamSession(route.params.examCode)
+    if (res.code === 200 && res.data) {
+      ElMessage.success(`时间到，自动交卷成功，得分 ${res.data.etScore} / ${res.data.maxScore}`)
+      router.push({
+        path: '/student/scores',
+        query: {
+          submitted: '1',
+          examCode: String(route.params.examCode),
+          score: String(res.data.etScore ?? ''),
+          maxScore: String(res.data.maxScore ?? '')
+        }
+      })
+      return
+    }
+    ElMessage.error(res.message || '自动交卷失败')
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || '自动交卷失败，请手动提交')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleVisibilityChange() {

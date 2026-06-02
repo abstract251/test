@@ -46,7 +46,7 @@ public class ExamTimeHelper {
         if (start == null) {
             return null;
         }
-        return start.minusHours(1);
+        return start.minusMinutes(1);
     }
 
     public boolean isRevoked(ExamManage e) {
