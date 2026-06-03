@@ -25,7 +25,7 @@
     <div class="header-actions">
       <div class="user-chip">
         <span class="user-chip__role">{{ roleText }}</span>
-        <strong>{{ session?.userName || '未登录' }}</strong>
+        <strong>{{ session?.displayName || session?.userName || '未登录' }}</strong>
       </div>
 
       <el-dropdown trigger="click">
@@ -36,7 +36,7 @@
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item
-              v-if="mode === 'console'"
+              v-if="mode === 'console' && canResetConsolePassword"
               @click="dialogVisible = true"
             >
               修改密码
@@ -88,7 +88,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { ArrowDown, School } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { resetConsolePassword } from '@/api/authApi'
-import { ROLE_LABELS } from '@/utils/constants'
+import { AUTH_ROLE_LABELS, AUTH_ROLES } from '@/utils/constants'
 
 const props = defineProps({
   mode: {
@@ -117,9 +117,10 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
-const roleText = computed(() => ROLE_LABELS[props.session?.role] || '访客')
+const roleText = computed(() => AUTH_ROLE_LABELS[props.session?.authRole] || '访客')
 const brandTitle = computed(() => (props.mode === 'console' ? '在线考试管理台' : '在线考试系统'))
 const subtitle = computed(() => route.meta.title || '考试管理')
+const canResetConsolePassword = computed(() => props.session?.authRole === AUTH_ROLES.ADMIN)
 
 async function handleResetPassword() {
   if (!passwordForm.oldPassword || !passwordForm.newPassword) {

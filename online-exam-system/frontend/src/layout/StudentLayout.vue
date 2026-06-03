@@ -19,7 +19,7 @@ import { ElMessage } from 'element-plus'
 import AppHeader from '@/components/common/AppHeader.vue'
 import { logout } from '@/api/authApi'
 import { useAuthSession } from '@/composables/useAuthSession'
-import { clearSession } from '@/utils/auth'
+import { clearSession, getRefreshToken } from '@/utils/auth'
 import { STUDENT_NAV_ITEMS } from '@/utils/constants'
 
 const router = useRouter()
@@ -29,7 +29,10 @@ const navItems = STUDENT_NAV_ITEMS
 
 async function handleLogout() {
   try {
-    await logout()
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      await logout({ refreshToken })
+    }
   } catch (error) {
     // ignore and continue cleanup
   }

@@ -58,7 +58,11 @@
       <el-input v-model="model.cardId" placeholder="请输入身份证号" />
     </el-form-item>
     <el-form-item label="密码" prop="pwd">
-      <el-input v-model="model.pwd" placeholder="默认 123456，可手动修改" show-password />
+      <el-input 
+        v-model="model.pwd" 
+        :placeholder="isEdit ? '如需修改密码请输入新密码，留空则不修改' : '默认 123456，可手动修改'" 
+        show-password 
+      />
     </el-form-item>
   </div>
 </template>

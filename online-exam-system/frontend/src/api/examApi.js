@@ -21,6 +21,20 @@ export function getExamById(examCode) {
   })
 }
 
+export function getStudentExams() {
+  return request({
+    url: '/student/exams',
+    method: 'get'
+  })
+}
+
+export function getStudentExamDetail(examCode) {
+  return request({
+    url: `/student/exam/${examCode}`,
+    method: 'get'
+  })
+}
+
 export function addExam(data) {
   return request({
     url: '/exam',

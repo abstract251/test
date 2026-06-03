@@ -45,7 +45,7 @@ import { patternRule, requiredRule } from '@/utils/validators'
 const route = useRoute()
 const router = useRouter()
 const formRef = ref(null)
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 const examListPath = buildConsolePath(consoleRole, 'exams')
 
 const isEdit = computed(() => Boolean(route.params.examCode))

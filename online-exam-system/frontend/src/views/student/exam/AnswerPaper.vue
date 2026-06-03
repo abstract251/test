@@ -1,17 +1,25 @@
 <template>
-  <div v-if="exam" class="student-page">
+  <div v-if="exam || bootError" class="student-page">
     <PageContainer>
       <PageHeader
         title="在线答题"
-        description="题目已按本场考试固定；系统会自动暂存作答，请在结束前完成并交卷。"
+        description="题目已按本场考试固定，系统会自动暂存作答，请在结束前完成并交卷。"
       >
         <template #actions>
-          <el-button @click="router.push(`/student/exams/${exam.examCode}`)">返回考试详情</el-button>
+          <el-button v-if="exam" @click="router.push(`/student/exams/${exam.examCode}`)">返回考试详情</el-button>
+          <el-button v-else @click="router.push('/student/home')">返回考试中心</el-button>
         </template>
       </PageHeader>
 
-      <ExamMetaPanel :exam="exam" />
+      <ExamMetaPanel v-if="examForPanel" :exam="examForPanel" />
       <el-alert v-if="bootError" :title="bootError" type="error" show-icon :closable="false" />
+      <el-alert
+        v-else-if="restoreNotice"
+        :title="restoreNotice"
+        type="success"
+        show-icon
+        :closable="false"
+      />
     </PageContainer>
 
     <PageContainer v-if="!bootError && ready">
@@ -56,7 +64,8 @@
             :value="`${answeredQuestionCount}/${totalQuestionCount}`"
             :hint="answerProgressHint"
           />
-          <StatusCard label="作答状态" :value="submitting ? '交卷中…' : '进行中'" hint="请勿关闭页面前交卷" />
+          <StatusCard label="作答状态" :value="submitting ? '交卷中' : ended ? '已结束' : '进行中'" hint="请勿在未交卷时关闭页面" />
+          <StatusCard label="暂存状态" :value="saveStatusLabel" :hint="saveStatusHint" />
           <StatusCard label="剩余时间" :value="remainLabel" hint="以服务器时间为准" />
           <div class="answer-layout__actions">
             <el-button type="primary" :loading="submitting" :disabled="!ready || ended" @click="handleSubmit">
@@ -71,7 +80,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import PageContainer from '@/components/common/PageContainer.vue'
@@ -79,7 +88,6 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import StatusCard from '@/components/common/StatusCard.vue'
 import ExamMetaPanel from '@/components/exam/ExamMetaPanel.vue'
 import {
-  getExamById,
   saveStudentExamAnswers,
   startStudentExamSession,
   submitStudentExamSession
@@ -97,6 +105,9 @@ const serverSkewMs = ref(0)
 const remainLabel = ref('--:--')
 const submitting = ref(false)
 const ended = ref(false)
+const restoreNotice = ref('')
+const saveState = ref('idle')
+const lastSavedAt = ref('')
 
 const totalQuestionCount = computed(() => {
   return [1, 2, 3].reduce((sum, type) => sum + questionsOf(type).length, 0)
@@ -114,6 +125,43 @@ const answerProgressHint = computed(() => {
     return '已完成全部作答，请确认后交卷'
   }
   return `还有 ${totalQuestionCount.value - answeredQuestionCount.value} 题未作答`
+})
+
+const saveStatusLabel = computed(() => {
+  if (saveState.value === 'saving') {
+    return '暂存中'
+  }
+  if (saveState.value === 'saved') {
+    return '已暂存'
+  }
+  if (saveState.value === 'failed') {
+    return '暂存失败'
+  }
+  return '等待作答'
+})
+
+const saveStatusHint = computed(() => {
+  if (saveState.value === 'saving') {
+    return '答案变化后会自动写回服务器'
+  }
+  if (saveState.value === 'saved') {
+    return lastSavedAt.value ? `最近暂存于 ${lastSavedAt.value}` : '答案已写回服务器'
+  }
+  if (saveState.value === 'failed') {
+    return '稍后会继续尝试，交卷前也会再保存一次'
+  }
+  return '开始作答后将自动暂存'
+})
+
+const examForPanel = computed(() => {
+  if (!exam.value) {
+    return null
+  }
+
+  return {
+    ...exam.value,
+    windowEndAt: sessionPayload.value?.windowEndAt || exam.value.windowEndAt
+  }
 })
 
 let saveTimer = null
@@ -135,16 +183,37 @@ function questionsOf(type) {
   return paper[type] || paper[String(type)] || []
 }
 
+function updateSavedAt() {
+  lastSavedAt.value = dayjs(Date.now() + serverSkewMs.value).format('YYYY-MM-DD HH:mm:ss')
+}
+
+async function persistAnswers() {
+  if (!ready.value || ended.value) {
+    return true
+  }
+
+  saveState.value = 'saving'
+  try {
+    const response = await saveStudentExamAnswers(route.params.examCode, { ...answers })
+    if (response?.code === 200) {
+      saveState.value = 'saved'
+      updateSavedAt()
+      return true
+    }
+    saveState.value = 'failed'
+    return false
+  } catch {
+    saveState.value = 'failed'
+    return false
+  }
+}
+
 function scheduleSave() {
   if (saveTimer) {
     clearTimeout(saveTimer)
   }
-  saveTimer = setTimeout(async () => {
-    try {
-      await saveStudentExamAnswers(route.params.examCode, { ...answers })
-    } catch {
-      /* 忽略 */
-    }
+  saveTimer = setTimeout(() => {
+    void persistAnswers()
   }, 900)
 }
 
@@ -160,11 +229,48 @@ function updateClock() {
   if (sec <= 0) {
     remainLabel.value = '已结束'
     ended.value = true
+    void autoSubmit()
     return
   }
   const m = Math.floor(sec / 60)
   const s = sec % 60
   remainLabel.value = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+async function autoSubmit() {
+  submitting.value = true
+  await flushSave()
+  try {
+    const res = await submitStudentExamSession(route.params.examCode)
+    if (res.code === 200 && res.data) {
+      ElMessage.success(`时间到，自动交卷成功，得分 ${res.data.etScore} / ${res.data.maxScore}`)
+      router.push({
+        path: '/student/scores',
+        query: {
+          submitted: '1',
+          examCode: String(route.params.examCode),
+          score: String(res.data.etScore ?? ''),
+          maxScore: String(res.data.maxScore ?? '')
+        }
+      })
+      return
+    }
+    ElMessage.error(res.message || '自动交卷失败')
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || '自动交卷失败，请手动提交')
+  } finally {
+    submitting.value = false
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    void persistAnswers()
+  }
+}
+
+function handlePageHide() {
+  void persistAnswers()
 }
 
 watch(
@@ -178,42 +284,42 @@ watch(
 )
 
 async function flushSave() {
-  if (!ready.value || ended.value) {
-    return
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
   }
-  try {
-    await saveStudentExamAnswers(route.params.examCode, { ...answers })
-  } catch {
-    /* 忽略 */
-  }
+  return persistAnswers()
 }
 
 async function bootstrap() {
   try {
-    const examRes = await getExamById(route.params.examCode)
-    if (examRes.code !== 200 || !examRes.data) {
-      bootError.value = examRes.message || '无法加载考试'
-      return
-    }
-    exam.value = examRes.data
-
     const startRes = await startStudentExamSession(route.params.examCode)
     if (startRes.code !== 200 || !startRes.data) {
-      bootError.value = startRes.message || '无法进入考试（时间、资格或快照未就绪）'
+      bootError.value = startRes.message || '无法进入考试，可能不在考试时间内或不在本场考试范围内'
       return
     }
+
+    exam.value = startRes.data.exam || null
     sessionPayload.value = startRes.data
     const srv = startRes.data.serverTime
     if (srv) {
       serverSkewMs.value = dayjs(srv).valueOf() - Date.now()
     }
-    Object.keys(answers).forEach((k) => delete answers[k])
+
+    Object.keys(answers).forEach((key) => delete answers[key])
     Object.assign(answers, startRes.data.answers || {})
+    restoreNotice.value = Object.keys(startRes.data.answers || {}).length
+      ? '已恢复上次暂存的作答内容'
+      : ''
     ready.value = true
+    saveState.value = Object.keys(startRes.data.answers || {}).length ? 'saved' : 'idle'
+    if (saveState.value === 'saved') {
+      updateSavedAt()
+    }
     updateClock()
     tickTimer = setInterval(updateClock, 1000)
-  } catch {
-    bootError.value = '加载失败，请稍后重试'
+  } catch (error) {
+    bootError.value = error?.response?.data?.message || '加载失败，请稍后重试'
   }
 }
 
@@ -221,6 +327,7 @@ async function handleSubmit() {
   if (ended.value) {
     return
   }
+
   try {
     await ElMessageBox.confirm('确定交卷吗？提交后不可修改。', '交卷确认', {
       type: 'warning',
@@ -230,12 +337,13 @@ async function handleSubmit() {
   } catch {
     return
   }
+
   submitting.value = true
   await flushSave()
   try {
     const res = await submitStudentExamSession(route.params.examCode)
     if (res.code === 200 && res.data) {
-      ElMessage.success(`交卷成功，得分 ${res.data.etScore} / ${res.data.maxScore}`)
+      ElMessage.success(`交卷成功，得到 ${res.data.etScore} / ${res.data.maxScore}`)
       router.push({
         path: '/student/scores',
         query: {
@@ -248,23 +356,33 @@ async function handleSubmit() {
       return
     }
     ElMessage.error(res.message || '交卷失败')
-  } catch {
-    ElMessage.error('交卷失败，请稍后重试')
+  } catch (error) {
+    ElMessage.error(error?.response?.data?.message || '交卷失败，请稍后重试')
   } finally {
     submitting.value = false
   }
 }
 
-onMounted(bootstrap)
+onBeforeRouteLeave(() => {
+  void flushSave()
+})
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  window.addEventListener('pagehide', handlePageHide)
+  void bootstrap()
+})
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  window.removeEventListener('pagehide', handlePageHide)
   if (saveTimer) {
     clearTimeout(saveTimer)
   }
   if (tickTimer) {
     clearInterval(tickTimer)
   }
-  flushSave()
+  void flushSave()
 })
 </script>
 

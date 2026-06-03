@@ -9,6 +9,7 @@ import com.test.oes.service.ExamSnapshotService;
 import com.test.oes.service.exam.ExamTimeHelper;
 import com.test.oes.util.ApiResultHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
 public class ExamManageController {
 
     private final ExamManageService examManageService;

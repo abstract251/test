@@ -3,5 +3,5 @@ export function hasRoleAccess(routeRoles = [], currentRole = '') {
     return true
   }
 
-  return routeRoles.includes(currentRole)
+  return routeRoles.includes(String(currentRole || '').toUpperCase())
 }

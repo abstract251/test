@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.test.oes.entity.Teacher;
 import com.test.oes.mapper.TeacherMapper;
+import com.test.oes.security.PasswordService;
 import com.test.oes.service.TeacherService;
 import com.test.oes.service.identity.CardIdUniquenessValidator;
 import org.springframework.stereotype.Service;
@@ -14,10 +15,13 @@ import java.util.List;
 public class TeacherServiceImpl implements TeacherService {
     private final TeacherMapper teacherMapper;
     private final CardIdUniquenessValidator cardIdUniquenessValidator;
+    private final PasswordService passwordService;
 
-    public TeacherServiceImpl(TeacherMapper teacherMapper, CardIdUniquenessValidator cardIdUniquenessValidator) {
+    public TeacherServiceImpl(TeacherMapper teacherMapper, CardIdUniquenessValidator cardIdUniquenessValidator,
+                              PasswordService passwordService) {
         this.teacherMapper = teacherMapper;
         this.cardIdUniquenessValidator = cardIdUniquenessValidator;
+        this.passwordService = passwordService;
     }
 
     @Override
@@ -51,6 +55,12 @@ public class TeacherServiceImpl implements TeacherService {
     @Override
     public int update(Teacher teacher) {
         cardIdUniquenessValidator.validateTeacherUpdate(teacher);
+        // 如果密码为空或者空字符串，则不更新密码
+        if (teacher.getPwd() == null || teacher.getPwd().isBlank()) {
+            return teacherMapper.updateWithoutPassword(teacher);
+        }
+        // 否则，加密密码后更新
+        teacher.setPwd(passwordService.encodeIfNeeded(teacher.getPwd()));
         return teacherMapper.update(teacher);
     }
 
@@ -58,6 +68,7 @@ public class TeacherServiceImpl implements TeacherService {
     public int add(Teacher teacher) {
         teacher.setRole("1");
         cardIdUniquenessValidator.validateNewTeacher(teacher);
+        teacher.setPwd(passwordService.encodeIfNeeded(teacher.getPwd()));
         return teacherMapper.add(teacher);
     }
 }

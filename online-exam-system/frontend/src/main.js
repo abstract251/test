@@ -1,12 +1,19 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
 import router from './router'
+import { restoreAuthSession } from '@/bootstrap/auth'
+import { installElementPlus } from '@/plugins/element-plus'
 import '@/assets/styles/theme.css'
 import '@/assets/styles/base.css'
+import { initDevMockSession } from '@/utils/auth'
 
-createApp(App)
-  .use(ElementPlus)
-  .use(router)
-  .mount('#app')
+async function bootstrap() {
+  await restoreAuthSession()
+
+  const app = createApp(App)
+  installElementPlus(app)
+  app.use(router).mount('#app')
+}
+
+bootstrap()
+initDevMockSession()

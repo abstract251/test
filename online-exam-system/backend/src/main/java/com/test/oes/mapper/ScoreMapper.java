@@ -109,4 +109,18 @@ public interface ScoreMapper {
             "GROUP BY scoreSegment " +
             "ORDER BY MIN(etScore)")
     List<Map<String, Object>> getScoreDistribution(@Param("examCode") Integer examCode);
+
+    @Select("SELECT s.scoreId, s.examCode, s.studentId, s.subject, s.ptScore, s.etScore, s.score, s.answerDate, st.clazz " +
+            "FROM score s " +
+            "LEFT JOIN student st ON s.studentId = st.studentId " +
+            "WHERE s.examCode = #{examCode} AND st.clazz = #{clazz} " +
+            "ORDER BY s.scoreId DESC")
+    List<Map<String, Object>> findByExamCodeAndClazz(@Param("examCode") Integer examCode, @Param("clazz") String clazz);
+
+    @Select("SELECT s.scoreId, s.examCode, s.studentId, s.subject, s.ptScore, s.etScore, s.score, s.answerDate, st.clazz " +
+            "FROM score s " +
+            "LEFT JOIN student st ON s.studentId = st.studentId " +
+            "WHERE s.examCode = #{examCode} AND st.clazz = #{clazz} " +
+            "ORDER BY s.scoreId DESC")
+    IPage<Map<String, Object>> findByExamCodeAndClazz(Page<?> page, @Param("examCode") Integer examCode, @Param("clazz") String clazz);
 }

@@ -10,8 +10,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>16</source>
+                    <target>16</target>
                     <encoding>${maven.compiler.encoding}</encoding>
                     <annotationProcessorPaths>
                         <path>
@@ -20,6 +20,8 @@
                             <version>1.18.32</version>
                         </path>
                     </annotationProcessorPaths>
+
+
                 </configuration>
             </plugin>
             <plugin>
@@ -59,6 +61,11 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- 2. Spring JDBC：数据库基础支持 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -94,6 +101,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- 7. 热部署：改代码不用重启项目 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -107,6 +120,26 @@
             <artifactId>lombok</artifactId>
             <version>1.18.32</version>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.5</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.5</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 

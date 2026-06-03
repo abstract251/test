@@ -178,7 +178,7 @@ import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 const exam = ref(null)
 const paperScore = ref(0)
 const keyword = ref('')

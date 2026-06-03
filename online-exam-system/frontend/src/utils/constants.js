@@ -1,5 +1,8 @@
 export const STORAGE_KEYS = {
   SESSION: 'oes_session',
+  ACCESS_TOKEN: 'oes_access_token',
+  REFRESH_TOKEN: 'oes_refresh_token',
+  CURRENT_USER: 'oes_current_user',
   QUESTION_DRAFT: 'oes_question_draft'
 }
 
@@ -7,6 +10,35 @@ export const ROLES = {
   ADMIN: '0',
   TEACHER: '1',
   STUDENT: '2'
+}
+
+export const AUTH_ROLES = {
+  ADMIN: 'ADMIN',
+  TEACHER: 'TEACHER',
+  STUDENT: 'STUDENT'
+}
+
+export const AUTH_ROLE_OPTIONS = [
+  { value: AUTH_ROLES.ADMIN, label: '管理员' },
+  { value: AUTH_ROLES.TEACHER, label: '教师' },
+  { value: AUTH_ROLES.STUDENT, label: '学生' }
+]
+
+export const AUTH_ROLE_LABELS = AUTH_ROLE_OPTIONS.reduce((accumulator, item) => {
+  accumulator[item.value] = item.label
+  return accumulator
+}, {})
+
+export const AUTH_ROLE_TO_LEGACY_ROLE = {
+  [AUTH_ROLES.ADMIN]: ROLES.ADMIN,
+  [AUTH_ROLES.TEACHER]: ROLES.TEACHER,
+  [AUTH_ROLES.STUDENT]: ROLES.STUDENT
+}
+
+export const LEGACY_ROLE_TO_AUTH_ROLE = {
+  [ROLES.ADMIN]: AUTH_ROLES.ADMIN,
+  [ROLES.TEACHER]: AUTH_ROLES.TEACHER,
+  [ROLES.STUDENT]: AUTH_ROLES.STUDENT
 }
 
 export const ROLE_LABELS = {
@@ -21,7 +53,8 @@ export const CONSOLE_ROLE_SCOPE = {
 }
 
 export function resolveConsoleScope(role) {
-  return CONSOLE_ROLE_SCOPE[role] || CONSOLE_ROLE_SCOPE[ROLES.TEACHER]
+  const normalizedRole = AUTH_ROLE_TO_LEGACY_ROLE[role] || role
+  return CONSOLE_ROLE_SCOPE[normalizedRole] || CONSOLE_ROLE_SCOPE[ROLES.TEACHER]
 }
 
 export function buildConsolePath(role, path = '') {
@@ -75,24 +108,24 @@ export const GRADE_OPTIONS = ['2022', '2023', '2024', '2025', '2026']
 export const TEACHER_TYPE_OPTIONS = ['讲师', '副教授', '教授']
 
 export const CONSOLE_MENU = {
-  [ROLES.ADMIN]: [
+  [AUTH_ROLES.ADMIN]: [
     { title: '控制台', path: '/console/home', icon: 'House' },
-    { title: '管理员管理', path: buildConsolePath(ROLES.ADMIN, 'admins'), icon: 'UserFilled' },
-    { title: '教师管理', path: buildConsolePath(ROLES.ADMIN, 'teachers'), icon: 'UserFilled' },
-    { title: '学生管理', path: buildConsolePath(ROLES.ADMIN, 'students'), icon: 'User' },
-    { title: '考试管理', path: buildConsolePath(ROLES.ADMIN, 'exams'), icon: 'Reading' },
-    { title: '全局题库管理', path: buildConsolePath(ROLES.ADMIN, 'question-bank'), icon: 'EditPen' },
-    { title: '成绩管理', path: buildConsolePath(ROLES.ADMIN, 'grades'), icon: 'Histogram' },
-    { title: '消息管理', path: buildConsolePath(ROLES.ADMIN, 'messages'), icon: 'ChatDotRound' }
+    { title: '管理员管理', path: buildConsolePath(AUTH_ROLES.ADMIN, 'admins'), icon: 'UserFilled' },
+    { title: '教师管理', path: buildConsolePath(AUTH_ROLES.ADMIN, 'teachers'), icon: 'UserFilled' },
+    { title: '学生管理', path: buildConsolePath(AUTH_ROLES.ADMIN, 'students'), icon: 'User' },
+    { title: '考试管理', path: buildConsolePath(AUTH_ROLES.ADMIN, 'exams'), icon: 'Reading' },
+    { title: '全局题库管理', path: buildConsolePath(AUTH_ROLES.ADMIN, 'question-bank'), icon: 'EditPen' },
+    { title: '成绩管理', path: buildConsolePath(AUTH_ROLES.ADMIN, 'grades'), icon: 'Histogram' },
+    { title: '消息管理', path: buildConsolePath(AUTH_ROLES.ADMIN, 'messages'), icon: 'ChatDotRound' }
   ],
-  [ROLES.TEACHER]: [
+  [AUTH_ROLES.TEACHER]: [
     { title: '控制台', path: '/console/home', icon: 'House' },
-    { title: '学生管理', path: buildConsolePath(ROLES.TEACHER, 'students'), icon: 'User' },
-    { title: '考试管理', path: buildConsolePath(ROLES.TEACHER, 'exams'), icon: 'Reading' },
-    { title: '题库工作台', path: buildConsolePath(ROLES.TEACHER, 'questions'), icon: 'EditPen' },
-    { title: '全局题库管理', path: buildConsolePath(ROLES.TEACHER, 'question-bank'), icon: 'EditPen' },
-    { title: '成绩管理', path: buildConsolePath(ROLES.TEACHER, 'grades'), icon: 'Histogram' },
-    { title: '消息管理', path: buildConsolePath(ROLES.TEACHER, 'messages'), icon: 'ChatDotRound' }
+    { title: '学生管理', path: buildConsolePath(AUTH_ROLES.TEACHER, 'students'), icon: 'User' },
+    { title: '考试管理', path: buildConsolePath(AUTH_ROLES.TEACHER, 'exams'), icon: 'Reading' },
+    { title: '题库工作台', path: buildConsolePath(AUTH_ROLES.TEACHER, 'questions'), icon: 'EditPen' },
+    { title: '全局题库管理', path: buildConsolePath(AUTH_ROLES.TEACHER, 'question-bank'), icon: 'EditPen' },
+    { title: '成绩管理', path: buildConsolePath(AUTH_ROLES.TEACHER, 'grades'), icon: 'Histogram' },
+    { title: '消息管理', path: buildConsolePath(AUTH_ROLES.TEACHER, 'messages'), icon: 'ChatDotRound' }
   ]
 }
 

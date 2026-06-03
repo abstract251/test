@@ -1,3 +1,5 @@
+import { AUTH_ROLES } from '@/utils/constants'
+
 export const teacherConsoleRoutes = [
   {
     path: 'teacher/students',
@@ -5,7 +7,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/student/StudentList.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '学生管理'
     }
   },
@@ -15,7 +17,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/student/StudentForm.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '新增学生'
     }
   },
@@ -25,7 +27,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/student/StudentForm.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '编辑学生'
     }
   },
@@ -35,7 +37,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/exam/ExamList.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '考试管理'
     }
   },
@@ -45,7 +47,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/exam/ExamForm.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '新增考试'
     }
   },
@@ -55,7 +57,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/exam/ExamForm.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '编辑考试'
     }
   },
@@ -65,7 +67,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/exam/PaperBuilder.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '试卷编辑'
     }
   },
@@ -75,7 +77,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/question/QuestionWorkbench.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '题库工作台'
     }
   },
@@ -85,7 +87,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/question/QuestionForm.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '新增题目'
     }
   },
@@ -95,7 +97,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/teacher/question/QuestionForm.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '编辑题目'
     }
   },
@@ -105,7 +107,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/shared/grade/GradeCenter.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '成绩管理'
     }
   },
@@ -115,7 +117,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/shared/question/GlobalQuestionBank.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '全局题库管理'
     }
   },
@@ -125,7 +127,7 @@ export const teacherConsoleRoutes = [
     component: () => import('@/views/shared/message/MessageManage.vue'),
     meta: {
       requiresAuth: true,
-      roles: ['1'],
+      roles: [AUTH_ROLES.TEACHER],
       title: '消息管理'
     }
   }

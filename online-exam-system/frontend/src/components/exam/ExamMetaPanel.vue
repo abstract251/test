@@ -7,7 +7,7 @@
       </div>
       <div>
         <span class="label">考试时间</span>
-        <strong>{{ formatDateTime(exam.examDate) }}</strong>
+        <strong>{{ formatDateTime(exam.examStartAt || exam.examDate) }}</strong>
       </div>
       <div>
         <span class="label">时长</span>
@@ -24,6 +24,10 @@
       <div>
         <span class="label">学院</span>
         <strong>{{ exam.institute }}</strong>
+      </div>
+      <div v-if="exam.windowEndAt">
+        <span class="label">结束时间</span>
+        <strong>{{ formatDateTime(exam.windowEndAt) }}</strong>
       </div>
     </div>
     <el-alert

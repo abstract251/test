@@ -162,40 +162,42 @@ public class ExamManageServiceImpl implements ExamManageService {
      * 冻结后仅允许改说明、考生提示、时长（只增不减）；若请求中其它字段与当前不一致则拒绝，避免误提示「成功」。
      */
     private void assertNoDisallowedChangesWhenPaperLocked(ExamManage incoming, ExamManage cur) {
-        if (!strEq(incoming.getSource(), cur.getSource())) {
+        if (incoming.getSource() != null && !strEq(incoming.getSource(), cur.getSource())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能修改科目等基础信息，仅可调整说明、考生提示与考试时长");
         }
-        if (!strEq(incoming.getType(), cur.getType())) {
+        if (incoming.getType() != null && !strEq(incoming.getType(), cur.getType())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能修改考试类型");
         }
-        if (!strEq(incoming.getGrade(), cur.getGrade())) {
+        if (incoming.getGrade() != null && !strEq(incoming.getGrade(), cur.getGrade())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能修改年级范围");
         }
-        if (!strEq(incoming.getTerm(), cur.getTerm())) {
+        if (incoming.getTerm() != null && !strEq(incoming.getTerm(), cur.getTerm())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能修改学期");
         }
-        if (!strEq(incoming.getMajor(), cur.getMajor())) {
+        if (incoming.getMajor() != null && !strEq(incoming.getMajor(), cur.getMajor())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能修改专业范围");
         }
-        if (!strEq(incoming.getInstitute(), cur.getInstitute())) {
+        if (incoming.getInstitute() != null && !strEq(incoming.getInstitute(), cur.getInstitute())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能修改学院范围");
         }
-        if (!Objects.equals(incoming.getPaperId(), cur.getPaperId())) {
+        if (incoming.getPaperId() != null && !Objects.equals(incoming.getPaperId(), cur.getPaperId())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能更换试卷");
         }
         if (incoming.getTotalScore() != null && cur.getTotalScore() != null
                 && !incoming.getTotalScore().equals(cur.getTotalScore())) {
             throw new ExamBusinessException(400, "试卷已冻结，不能通过保存修改总分（总分随试卷自动计算）");
         }
-        LocalDateTime curStart = cur.getExamStartAt() != null
-                ? cur.getExamStartAt()
-                : examTimeHelper.parseExamDateField(cur.getExamDate());
-        LocalDateTime reqStart = examTimeHelper.resolveExamStartFromPayload(incoming, curStart);
-        if (curStart != null && reqStart != null) {
-            LocalDateTime a = curStart.truncatedTo(ChronoUnit.MINUTES);
-            LocalDateTime b = reqStart.truncatedTo(ChronoUnit.MINUTES);
-            if (!a.equals(b)) {
-                throw new ExamBusinessException(400, "试卷已冻结，不能修改开考时间");
+        LocalDateTime reqStart = examTimeHelper.resolveExamStartFromPayload(incoming, null);
+        if (reqStart != null) {
+            LocalDateTime curStart = cur.getExamStartAt() != null
+                    ? cur.getExamStartAt()
+                    : examTimeHelper.parseExamDateField(cur.getExamDate());
+            if (curStart != null) {
+                LocalDateTime a = curStart.truncatedTo(ChronoUnit.MINUTES);
+                LocalDateTime b = reqStart.truncatedTo(ChronoUnit.MINUTES);
+                if (!a.equals(b)) {
+                    throw new ExamBusinessException(400, "试卷已冻结，不能修改开考时间");
+                }
             }
         }
     }

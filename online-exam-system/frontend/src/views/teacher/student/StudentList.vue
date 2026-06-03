@@ -88,7 +88,7 @@ import { getSession } from '@/utils/auth'
 import { buildConsolePath, normalizeSex } from '@/utils/constants'
 
 const router = useRouter()
-const consoleRole = getSession()?.role
+const consoleRole = getSession()?.authRole
 const pagination = usePagination(6)
 const filters = reactive({
   studentId: '',

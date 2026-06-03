@@ -9,6 +9,7 @@ import com.test.oes.service.impl.MultiQuestionServiceImpl;
 import com.test.oes.util.ApiResultHandler;
 import com.test.oes.vo.Item;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
 public class ItemController {
 
     private final MultiQuestionServiceImpl multiQuestionService;
